@@ -1,0 +1,164 @@
+[
+  {
+    "source": "disease_stripe_rust",
+    "target": "pathogen_stripe",
+    "type": "HAS_PATHOGEN",
+    "properties": {}
+  },
+  {
+    "source": "disease_stripe_rust",
+    "target": "crop_wheat",
+    "type": "OCCURS_IN",
+    "properties": {}
+  },
+  {
+    "source": "disease_leaf_rust",
+    "target": "pathogen_leaf",
+    "type": "HAS_PATHOGEN",
+    "properties": {}
+  },
+  {
+    "source": "disease_leaf_rust",
+    "target": "crop_wheat",
+    "type": "OCCURS_IN",
+    "properties": {}
+  },
+  {
+    "source": "disease_stem_rust",
+    "target": "pathogen_stem",
+    "type": "HAS_PATHOGEN",
+    "properties": {}
+  },
+  {
+    "source": "disease_stem_rust",
+    "target": "crop_wheat",
+    "type": "OCCURS_IN",
+    "properties": {}
+  },
+  {
+    "source": "disease_powdery_mildew",
+    "target": "pathogen_powdery",
+    "type": "HAS_PATHOGEN",
+    "properties": {}
+  },
+  {
+    "source": "disease_powdery_mildew",
+    "target": "crop_wheat",
+    "type": "OCCURS_IN",
+    "properties": {}
+  },
+  {
+    "source": "disease_fusarium",
+    "target": "pathogen_fusarium",
+    "type": "HAS_PATHOGEN",
+    "properties": {}
+  },
+  {
+    "source": "disease_fusarium",
+    "target": "crop_wheat",
+    "type": "OCCURS_IN",
+    "properties": {}
+  },
+  {
+    "source": "disease_sharp_eyespot",
+    "target": "pathogen_sharp",
+    "type": "HAS_PATHOGEN",
+    "properties": {}
+  },
+  {
+    "source": "disease_sharp_eyespot",
+    "target": "crop_wheat",
+    "type": "OCCURS_IN",
+    "properties": {}
+  },
+  {
+    "source": "disease_root_rot",
+    "target": "pathogen_root",
+    "type": "HAS_PATHOGEN",
+    "properties": {}
+  },
+  {
+    "source": "disease_root_rot",
+    "target": "crop_wheat",
+    "type": "OCCURS_IN",
+    "properties": {}
+  },
+  {
+    "source": "disease_stripe_rust",
+    "target": "symptom_stripe_0",
+    "type": "MANIFESTS_AS",
+    "properties": {}
+  },
+  {
+    "source": "disease_stripe_rust",
+    "target": "symptom_stripe_1",
+    "type": "MANIFESTS_AS",
+    "properties": {}
+  },
+  {
+    "source": "disease_stripe_rust",
+    "target": "symptom_stripe_2",
+    "type": "MANIFESTS_AS",
+    "properties": {}
+  },
+  {
+    "source": "disease_powdery_mildew",
+    "target": "symptom_powdery_0",
+    "type": "MANIFESTS_AS",
+    "properties": {}
+  },
+  {
+    "source": "disease_powdery_mildew",
+    "target": "symptom_powdery_1",
+    "type": "MANIFESTS_AS",
+    "properties": {}
+  },
+  {
+    "source": "disease_powdery_mildew",
+    "target": "symptom_powdery_2",
+    "type": "MANIFESTS_AS",
+    "properties": {}
+  },
+  {
+    "source": "disease_fusarium",
+    "target": "symptom_fusarium_0",
+    "type": "MANIFESTS_AS",
+    "properties": {}
+  },
+  {
+    "source": "disease_fusarium",
+    "target": "symptom_fusarium_1",
+    "type": "MANIFESTS_AS",
+    "properties": {}
+  },
+  {
+    "source": "disease_fusarium",
+    "target": "symptom_fusarium_2",
+    "type": "MANIFESTS_AS",
+    "properties": {}
+  },
+  {
+    "source": "disease_stripe_rust",
+    "target": "control_triadimefon",
+    "type": "TREATED_BY",
+    "properties": {}
+  },
+  {
+    "source": "disease_powdery_mildew",
+    "target": "control_triadimefon",
+    "type": "TREATED_BY",
+    "properties": {}
+  },
+  {
+    "source": "disease_fusarium",
+    "target": "control_carbendazim",
+    "type": "TREATED_BY",
+    "properties": {}
+  },
+  {
+    "source": "disease_fusarium",
+    "target": "control_tebuconazole",
+    "type": "TREATED_BY",
+    "properties": {}
+  }
+]

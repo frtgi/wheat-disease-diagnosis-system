@@ -1,0 +1,17 @@
+[
+  {
+    "image": "images/stripe_rust_001.jpg",
+    "instruction": "描述这张图片中的病害特征。",
+    "answer": "这张图片显示小麦叶片上有鲜黄色的条状孢子堆，沿叶脉平行排列，这是条锈病的典型症状。"
+  },
+  {
+    "image": "images/powdery_mildew_001.jpg",
+    "instruction": "这是什么病害？",
+    "answer": "这是小麦白粉病，叶片表面覆盖白色粉状霉层。"
+  },
+  {
+    "image": "images/healthy_001.jpg",
+    "instruction": "这张图片中的小麦健康吗？",
+    "answer": "是的，这张图片中的小麦叶片翠绿，没有明显病斑，是健康状态。"
+  }
+]

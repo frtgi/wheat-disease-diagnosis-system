@@ -1,0 +1,39 @@
+{
+  "entity2id": {
+    "crop_wheat": 0,
+    "disease_stripe_rust": 1,
+    "pathogen_stripe": 2,
+    "disease_leaf_rust": 3,
+    "pathogen_leaf": 4,
+    "disease_stem_rust": 5,
+    "pathogen_stem": 6,
+    "disease_powdery_mildew": 7,
+    "pathogen_powdery": 8,
+    "disease_fusarium": 9,
+    "pathogen_fusarium": 10,
+    "disease_sharp_eyespot": 11,
+    "pathogen_sharp": 12,
+    "disease_root_rot": 13,
+    "pathogen_root": 14,
+    "symptom_stripe_0": 15,
+    "symptom_stripe_1": 16,
+    "symptom_stripe_2": 17,
+    "symptom_powdery_0": 18,
+    "symptom_powdery_1": 19,
+    "symptom_powdery_2": 20,
+    "symptom_fusarium_0": 21,
+    "symptom_fusarium_1": 22,
+    "symptom_fusarium_2": 23,
+    "control_triadimefon": 24,
+    "control_carbendazim": 25,
+    "control_tebuconazole": 26,
+    "control_resistant_variety": 27,
+    "control_crop_rotation": 28
+  },
+  "relation2id": {
+    "HAS_PATHOGEN": 0,
+    "OCCURS_IN": 1,
+    "MANIFESTS_AS": 2,
+    "TREATED_BY": 3
+  }
+}

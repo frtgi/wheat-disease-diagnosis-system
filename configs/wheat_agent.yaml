@@ -1,0 +1,172 @@
+# WheatAgent 配置文件
+# 基于多模态特征融合的小麦病害诊断智能体
+# 文档参考: 基于多模态特征融合的小麦病害诊断智能体开发方案深度研究报告
+
+# 项目基本信息
+project:
+  name: "WheatAgent"
+  version: "0.2.0"
+  description: "基于多模态特征融合的小麦病害诊断智能体"
+
+# 数据路径配置
+paths:
+  data_root: "./data"
+  image_dir: "./data/images"
+  text_dir: "./data/texts"
+  model_dir: "./models"
+  output_dir: "./outputs"
+  log_root: "./logs"
+  dataset_root: "./datasets"
+
+# 视觉感知模块配置 (文档第3章)
+vision:
+  # 基础YOLOv8配置
+  model_name: "yolov8"
+  model_path: "./models/yolov8_wheat.pt"
+  confidence_threshold: 0.25
+  iou_threshold: 0.45
+  image_size: 640
+  device: "auto"  # auto, cuda, cpu
+  fp16: true
+  
+  # 改进架构配置 (文档3.1-3.3节)
+  use_dy_snake_conv: true      # 动态蛇形卷积
+  use_sppelan: true            # SPPELAN多尺度特征聚合
+  use_sta: true                # 超级令牌注意力
+  
+  # 病害类别 (文档2.1节)
+  classes:
+    - "aphid"                  # 蚜虫
+    - "blast"                  # 稻瘟病
+    - "mite"                   # 螨类
+    - "smut"                   # 黑穗病
+    - "stripe_rust"            # 条锈病
+    - "leaf_rust"              # 叶锈病
+    - "powdery_mildew"         # 白粉病
+    - "fusarium"               # 赤霉病
+
+# 认知模块配置 (文档第4章)
+cognition:
+  # 视觉编码器 (CLIP)
+  vision_encoder: "openai/clip-vit-large-patch14"
+  vision_dim: 1024
+  
+  # 语言模型 (Vicuna)
+  llm_name: "lmsys/vicuna-7b-v1.5"
+  llm_dim: 4096
+  
+  # 投影层配置
+  projection_type: "mlp"
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  
+  # 推理配置
+  max_new_tokens: 512
+  temperature: 0.7
+  top_p: 0.9
+  
+  # 提示工程 (文档4.3节)
+  system_prompt: "你是一个经验丰富的小麦病理学专家。请基于提供的图像视觉特征和上下文信息，进行严谨的病害诊断，并给出科学的防治建议。如果视觉特征不明确，请指出不确定性，不要臆造。"
+
+# 知识图谱配置 (文档第5章)
+graph:
+  # Neo4j连接配置
+  uri: "bolt://localhost:7687"
+  user: "neo4j"
+  password: "password"
+  database: "wheat_knowledge"
+  
+  # 知识图谱本体 (文档5.1节)
+  entities:
+    - "Crop"                   # 作物
+    - "Disease"                # 病害
+    - "Symptom"                # 症状
+    - "Pathogen"               # 病原体
+    - "Environment"            # 环境条件
+    - "ControlMeasure"         # 防治措施
+  
+  # TransE嵌入配置 (文档5.3节)
+  transe:
+    embedding_dim: 128
+    margin: 1.0
+    learning_rate: 0.001
+
+# 多模态融合配置 (文档第6章)
+fusion:
+  # KAD-Fusion架构 (文档6.1节)
+  method: "kad_fusion"
+  hidden_dim: 256
+  dropout: 0.1
+  
+  # 知识引导注意力 (KGA)
+  use_kga: true
+  kga_alpha: 0.5
+  
+  # 交叉注意力
+  use_cross_attention: true
+  num_heads: 8
+  
+  # GraphRAG配置 (文档6.2节)
+  use_graphrag: true
+  top_k: 3
+
+# 自进化配置 (文档第7章)
+evolution:
+  # 增量学习 (文档7.1节)
+  use_incremental_learning: true
+  experience_buffer_size: 1000
+  
+  # 人机反馈 (文档7.2节)
+  use_human_feedback: true
+  feedback_threshold: 0.7
+  
+  # LoRA适配器
+  use_lora_adapters: true
+  adapter_path: "./adapters"
+
+# 部署配置 (文档第8章)
+deployment:
+  # 边缘端配置 (文档8.1节)
+  edge:
+    device: "jetson"           # jetson, raspberry_pi
+    use_tensorrt: true
+    quantization: "int8"       # fp16, int8
+    max_batch_size: 1
+  
+  # 云端配置
+  cloud:
+    use_gpu: true
+    gpu_memory_fraction: 0.8
+
+# 评估指标 (文档8.3节)
+evaluation:
+  metrics:
+    vision:
+      - "mAP@0.5"
+      - "CIoU"
+      target: "> 0.95"
+    cognition:
+      - "BLEU-4"
+      - "ROUGE-L"
+      target: "> 0.45"
+    knowledge:
+      - "Consistency@k"
+      target: "> 0.85"
+    efficiency:
+      - "FPS"
+      target: "> 30"
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "./logs/wheat_agent.log"
+  console: true
+
+# 系统配置
+system:
+  debug: false
+  log_level: "INFO"
+  seed: 42
+  num_workers: 4
