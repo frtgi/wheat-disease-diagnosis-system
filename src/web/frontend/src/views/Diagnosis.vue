@@ -135,7 +135,7 @@ const inferenceStartTime = ref<number>(0)
 
 // 步骤和日志状态
 const inferenceSteps = ref<Array<{id: string, name: string, icon: string}>>([])
-const inferenceLogs = ref<Array<{level: string, message: string, timestamp: number, stage?: string}>>([])
+const inferenceLogs = ref<Array<{level: 'info' | 'warning' | 'error' | 'debug', message: string, timestamp: number, stage?: string}>>([])
 
 let currentEventSource: EventSource | null = null
 let lastHeartbeatTime = ref<number>(Date.now())
@@ -232,7 +232,8 @@ const handleReconnect = async (): Promise<void> => {
   
   if (currentDiagnoseParams) {
     try {
-      await startStreamingDiagnosis(currentDiagnoseParams.params, currentDiagnoseParams.imageUrl)
+      const p = currentDiagnoseParams as { params: DiagnoseParams; imageUrl: string }
+      await startStreamingDiagnosis(p.params, p.imageUrl)
       reconnectAttempts = 0
     } catch (error) {
       console.error('重连失败:', error)
@@ -346,7 +347,8 @@ const startStreamingDiagnosis = async (params: DiagnoseParams, imageUrl: string)
       
       setTimeout(() => {
         if (currentDiagnoseParams) {
-          startStreamingDiagnosis(currentDiagnoseParams.params, currentDiagnoseParams.imageUrl)
+          const p = currentDiagnoseParams as { params: DiagnoseParams; imageUrl: string }
+          startStreamingDiagnosis(p.params, p.imageUrl)
             .then(resolve)
             .catch(reject)
         }
@@ -625,11 +627,11 @@ const handleDiagnose = async (params: DiagnoseParams): Promise<void> => {
       const formData = new FormData()
       formData.append('file', params.image)
       
-      const uploadResponse = await http.post<{ url: string; success: boolean }>('/upload/image', formData, {
+      const uploadResponse = await http.post('/upload/image', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
-      })
+      }) as any
       
       if (uploadResponse && uploadResponse.success) {
         serverImageUrl = uploadResponse.url

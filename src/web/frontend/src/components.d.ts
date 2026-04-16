@@ -8,7 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AnnotatedImage: typeof import('./components/diagnosis/AnnotatedImage.vue')['default']
-    ComponentExample: typeof import('./components/ComponentExample.vue')['default']
+    BatchDiagnosis: typeof import('./components/diagnosis/BatchDiagnosis.vue')['default']
     DiagnosisResult: typeof import('./components/diagnosis/DiagnosisResult.vue')['default']
     DiseaseCard: typeof import('./components/knowledge/DiseaseCard.vue')['default']
     DiseaseChart: typeof import('./components/dashboard/DiseaseChart.vue')['default']
@@ -57,10 +57,11 @@ declare module 'vue' {
     ElTabPane: typeof import('element-plus/es')['ElTabPane']
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
+    ElText: typeof import('element-plus/es')['ElText']
     ElTimeline: typeof import('element-plus/es')['ElTimeline']
     ElTimelineItem: typeof import('element-plus/es')['ElTimelineItem']
     ElUpload: typeof import('element-plus/es')['ElUpload']
-    ErrorBoundary: typeof import('./components/ErrorBoundary.vue')['default']
+    ErrorBoundary: typeof import('./components/common/ErrorBoundary.vue')['default']
     FusionResult: typeof import('./components/diagnosis/FusionResult.vue')['default']
     ImageUploader: typeof import('./components/diagnosis/ImageUploader.vue')['default']
     InferenceProgress: typeof import('./components/diagnosis/InferenceProgress.vue')['default']

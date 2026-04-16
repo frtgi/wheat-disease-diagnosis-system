@@ -104,11 +104,11 @@ const handleLogin = async () => {
           password: loginForm.password
         })
         
-        // 适配新的响应格式 { success, data: { access_token, refresh_token, user }, message }
-        const data = response.data || response
+        // 适配响应格式 { success, data: { access_token, refresh_token, user }, message }
+        const data = (response as any).data || response
         
         if (!data.access_token) {
-          throw new Error(response.error || '登录失败')
+          throw new Error((response as any).error || '登录失败')
         }
         
         // Token 现在通过 httpOnly Cookie 传递，不再需要存储到 localStorage

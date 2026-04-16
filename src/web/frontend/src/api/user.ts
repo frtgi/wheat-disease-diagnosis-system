@@ -34,10 +34,15 @@ export interface LoginRequest {
  * 登录响应
  */
 export interface LoginResponse {
-  access_token: string
-  refresh_token?: string
-  token_type: string
-  user: User
+  success: boolean
+  data?: {
+    access_token: string
+    refresh_token?: string
+    token_type: string
+    user: User
+  }
+  error?: string
+  message?: string
 }
 
 /**
