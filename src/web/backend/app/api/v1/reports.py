@@ -11,6 +11,7 @@ import io
 
 from app.core.security import get_current_user
 from app.models.user import User
+from app.api.v1.diagnosis_validator import should_use_mock, get_mock_service
 
 logger = logging.getLogger(__name__)
 
@@ -43,21 +44,52 @@ async def generate_report(
         from app.services.qwen_service import get_qwen_service
         from app.services.report_generator import get_report_generator
         
-        # 处理图像
         pil_image = None
         image_bytes = None
         if image:
             image_bytes = await image.read()
-            pil_image = Image.open(io.BytesIO(image_bytes))
+            if not image_bytes or len(image_bytes) < 10:
+                raise HTTPException(
+                    status_code=422,
+                    detail="上传的图像文件为空或数据不完整，请提供有效的病害图像"
+                )
+            try:
+                pil_image = Image.open(io.BytesIO(image_bytes))
+                pil_image.verify()
+                pil_image = Image.open(io.BytesIO(image_bytes))
+            except Exception as img_err:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"图像文件格式无效或已损坏：{str(img_err)}"
+                )
         
-        # 执行诊断
-        qwen_service = get_qwen_service()
-        diagnosis_result = qwen_service.diagnose(
-            image=pil_image,
-            symptoms=symptoms,
-            enable_thinking=thinking_mode,
-            use_graph_rag=use_graph_rag
-        )
+        if not pil_image and not symptoms.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="请至少提供病害图像或症状描述中的一项"
+            )
+
+        if should_use_mock():
+            mock_service = get_mock_service()
+            if pil_image:
+                mock_result = await mock_service.diagnose_by_image(
+                    image_bytes or b"", symptoms
+                )
+            else:
+                mock_result = await mock_service.diagnose_by_text(symptoms)
+            diagnosis_result = {
+                "success": True,
+                "diagnosis": mock_result,
+                "model": "mock_service"
+            }
+        else:
+            qwen_service = get_qwen_service()
+            diagnosis_result = qwen_service.diagnose(
+                image=pil_image,
+                symptoms=symptoms,
+                enable_thinking=thinking_mode,
+                use_graph_rag=use_graph_rag
+            )
         
         if not diagnosis_result["success"]:
             raise HTTPException(status_code=500, detail=diagnosis_result.get("error", "诊断失败"))

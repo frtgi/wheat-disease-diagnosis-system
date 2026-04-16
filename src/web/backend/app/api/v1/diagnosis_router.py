@@ -1822,13 +1822,22 @@ async def diagnose_batch(
                         })
                         continue
 
-                qwen_service = get_qwen_service()
-                result = qwen_service.diagnose(
-                    image=pil_image,
-                    symptoms=symptoms,
-                    enable_thinking=thinking_mode,
-                    use_graph_rag=use_graph_rag
-                )
+                if should_use_mock():
+                    mock_service = get_mock_service()
+                    mock_result = await mock_service.diagnose_by_image(image_bytes, symptoms)
+                    result = {
+                        "success": True,
+                        "diagnosis": mock_result,
+                        "model": "mock_service"
+                    }
+                else:
+                    qwen_service = get_qwen_service()
+                    result = qwen_service.diagnose(
+                        image=pil_image,
+                        symptoms=symptoms,
+                        enable_thinking=thinking_mode,
+                        use_graph_rag=use_graph_rag
+                    )
 
                 if cache_manager and result["success"]:
                     cache_manager.set(
