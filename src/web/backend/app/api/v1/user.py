@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from ...core.database import get_db
+from ...core.config import settings
 from ...core.security import create_access_token, decode_access_token, add_token_to_blacklist
 from ...schemas.user import (
     UserCreate, UserResponse, UserLogin, Token, UserUpdate,
@@ -305,7 +306,7 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,
+            secure=not settings.DEBUG,
             samesite="lax",
             max_age=86400,
             path="/"
@@ -314,7 +315,7 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            secure=False,
+            secure=not settings.DEBUG,
             samesite="lax",
             max_age=604800,
             path="/"
@@ -912,8 +913,8 @@ async def logout(
 
     await add_token_to_blacklist(token)
 
-    response.delete_cookie(key="access_token", path="/")
-    response.delete_cookie(key="refresh_token", path="/")
+    response.delete_cookie(key="access_token", path="/", secure=not settings.DEBUG)
+    response.delete_cookie(key="refresh_token", path="/", secure=not settings.DEBUG)
 
     logger.info(f"用户登出成功：username={username}")
 

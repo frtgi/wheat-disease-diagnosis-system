@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Dict, Any
+from datetime import date, timedelta
 
 from ...core.database import get_db
 from ...core.security import get_current_user, require_admin
@@ -28,10 +29,40 @@ def get_overview_stats(db: Session = Depends(get_db), current_user: User = Depen
     diagnosis_count = db.query(func.count(Diagnosis.id)).scalar()
     disease_count = db.query(func.count(Disease.id)).scalar()
     
+    today = date.today()
+    today_diagnoses = db.query(func.count(Diagnosis.id)).filter(
+        func.date(Diagnosis.created_at) == today
+    ).scalar()
+    
+    avg_confidence = db.query(func.avg(Diagnosis.confidence)).filter(
+        Diagnosis.confidence.isnot(None)
+    ).scalar() or 0.0
+    avg_accuracy = round(float(avg_confidence) * 100, 1)
+    
+    trend = []
+    for i in range(6, -1, -1):
+        day = today - timedelta(days=i)
+        count = db.query(func.count(Diagnosis.id)).filter(
+            func.date(Diagnosis.created_at) == day
+        ).scalar()
+        trend.append({"date": day.isoformat(), "count": count})
+    
+    favorite_count = db.query(func.count(Diagnosis.id)).filter(
+        Diagnosis.confidence.isnot(None),
+        Diagnosis.confidence >= 0.8
+    ).scalar()
+    
+    points = diagnosis_count * 10
+    
     return {
         "total_users": user_count,
         "total_diagnoses": diagnosis_count,
-        "total_diseases": disease_count
+        "total_diseases": disease_count,
+        "today_diagnoses": today_diagnoses,
+        "avg_accuracy": avg_accuracy,
+        "diagnosis_trend": trend,
+        "favorite_count": favorite_count,
+        "points": points
     }
 
 

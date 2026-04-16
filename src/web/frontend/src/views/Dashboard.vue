@@ -99,11 +99,8 @@ const loadStats = async () => {
     stats.value.totalDiagnoses = overview.total_diagnoses
     stats.value.userCount = overview.total_users
 
-    // TODO: 后端 /stats/overview 尚未提供今日诊断数，待后端增加字段后替换
-    stats.value.todayDiagnoses = 0
-
-    // TODO: 后端 /stats/overview 尚未提供平均准确率，待后端增加字段后替换
-    stats.value.accuracy = 0
+    stats.value.todayDiagnoses = (overview as any).today_diagnoses ?? 0
+    stats.value.accuracy = (overview as any).avg_accuracy ?? 0
 
     const topDiseases = diagnosisStatsData.top_diseases || []
     const totalTopCount = topDiseases.reduce((sum, d) => sum + d.count, 0)
@@ -120,8 +117,7 @@ const loadStats = async () => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
 
-    // TODO: 后端 /stats/diagnoses 尚未提供按日期统计的趋势数据，待后端增加端点后替换
-    trendData.value = []
+    trendData.value = (diagnosisStatsData as any).trend_data ?? []
 
   } catch (error: unknown) {
     console.error('加载统计数据失败:', error)

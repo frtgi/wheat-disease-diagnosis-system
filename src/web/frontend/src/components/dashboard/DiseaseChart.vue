@@ -69,8 +69,21 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { PieChart, TrendCharts, DataLine } from '@element-plus/icons-vue'
-import { echarts } from '@/utils/echarts'
 import type { EChartsOption } from 'echarts'
+
+let echarts: any = null
+
+/**
+ * 动态加载 echarts 模块，避免首屏静态导入增大 bundle 体积
+ * @returns echarts 模块实例
+ */
+async function loadEcharts() {
+  if (!echarts) {
+    const module = await import('@/utils/echarts')
+    echarts = module.echarts || module.default
+  }
+  return echarts
+}
 
 /**
  * 病害分布数据类型
@@ -131,9 +144,9 @@ const barChartRef = ref<HTMLElement | null>(null)
 const lineChartRef = ref<HTMLElement | null>(null)
 
 // 图表实例
-let pieChartInstance: echarts.ECharts | null = null
-let barChartInstance: echarts.ECharts | null = null
-let lineChartInstance: echarts.ECharts | null = null
+let pieChartInstance: any = null
+let barChartInstance: any = null
+let lineChartInstance: any = null
 
 // 时间范围
 const timeRange = ref<string>('week')
@@ -144,10 +157,11 @@ const resizeObserver = ref<ResizeObserver | null>(null)
 /**
  * 初始化饼图
  */
-const initPieChart = () => {
+const initPieChart = async () => {
   if (!pieChartRef.value) return
 
-  pieChartInstance = echarts.init(pieChartRef.value)
+  const echartsInstance = await loadEcharts()
+  pieChartInstance = echartsInstance.init(pieChartRef.value)
 
   const option: EChartsOption = {
     tooltip: {
@@ -186,10 +200,11 @@ const initPieChart = () => {
 /**
  * 初始化柱状图
  */
-const initBarChart = () => {
+const initBarChart = async () => {
   if (!barChartRef.value) return
 
-  barChartInstance = echarts.init(barChartRef.value)
+  const echartsInstance = await loadEcharts()
+  barChartInstance = echartsInstance.init(barChartRef.value)
 
   const option: EChartsOption = {
     tooltip: {
@@ -221,7 +236,7 @@ const initBarChart = () => {
         type: 'bar',
         data: props.statsData.map(item => item.count),
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new echartsInstance.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#83bff6' },
             { offset: 0.5, color: '#188df0' },
             { offset: 1, color: '#188df0' }
@@ -241,10 +256,11 @@ const initBarChart = () => {
 /**
  * 初始化折线图
  */
-const initLineChart = () => {
+const initLineChart = async () => {
   if (!lineChartRef.value) return
 
-  lineChartInstance = echarts.init(lineChartRef.value)
+  const echartsInstance = await loadEcharts()
+  lineChartInstance = echartsInstance.init(lineChartRef.value)
 
   const option: EChartsOption = {
     tooltip: {
@@ -271,7 +287,7 @@ const initLineChart = () => {
         data: props.trendData.map(item => item.count),
         smooth: true,
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new echartsInstance.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(64, 158, 255, 0.5)' },
             { offset: 1, color: 'rgba(64, 158, 255, 0.01)' }
           ])
@@ -355,17 +371,17 @@ watch(
 )
 
 // 组件挂载时初始化
-onMounted(() => {
-  nextTick(() => {
-    initPieChart()
-    initBarChart()
+onMounted(async () => {
+  await nextTick()
+  await Promise.all([
+    initPieChart(),
+    initBarChart(),
     initLineChart()
+  ])
 
-    // 监听窗口大小变化
-    if (props.autoResize) {
-      window.addEventListener('resize', resizeCharts)
-    }
-  })
+  if (props.autoResize) {
+    window.addEventListener('resize', resizeCharts)
+  }
 })
 
 // 组件卸载时清理

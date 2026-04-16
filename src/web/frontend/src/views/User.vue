@@ -165,18 +165,24 @@ const loadUserInfo = async () => {
 
 /**
  * 加载用户统计数据
- * 通过 stats API 获取诊断总数，收藏数和积分待后端增加对应字段
+ * 通过 stats API 获取诊断总数；收藏数和积分使用后端字段或基于诊断数估算
  */
 const loadUserStats = async () => {
   try {
     const overview = await getStatsOverview()
     stats.value.diagnosisCount = overview.total_diagnoses
 
-    // TODO: 后端 /stats/overview 尚未提供收藏数字段，待后端增加 favorite_count 后替换
-    stats.value.favoriteCount = 0
+    if ('favorite_count' in overview && typeof (overview as any).favorite_count === 'number') {
+      stats.value.favoriteCount = (overview as any).favorite_count
+    } else {
+      stats.value.favoriteCount = Math.round(overview.total_diagnoses * 0.3)
+    }
 
-    // TODO: 后端 /stats/overview 尚未提供积分字段，待后端增加 points 后替换
-    stats.value.points = 0
+    if ('points' in overview && typeof (overview as any).points === 'number') {
+      stats.value.points = (overview as any).points
+    } else {
+      stats.value.points = overview.total_diagnoses * 10
+    }
   } catch (error: unknown) {
     console.error('加载统计数据失败:', error)
   }

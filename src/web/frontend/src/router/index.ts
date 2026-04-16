@@ -98,12 +98,21 @@ router.beforeEach((to) => {
   // 检查是否需要登录
   const requiresAuth = to.meta.requiresAuth
   const token = localStorage.getItem('token')
+  const hasUserInfo = (() => {
+    try {
+      const info = JSON.parse(localStorage.getItem('userInfo') || '{}')
+      return !!info.id
+    } catch {
+      return false
+    }
+  })()
   
-  if (requiresAuth && !token) {
-    // 需要登录但没有 token，跳转到登录页
+  // Cookie 会自动携带，即使 localStorage 无 token，有 userInfo 也视为已登录
+  const isAuthenticated = !!token || hasUserInfo
+
+  if (requiresAuth && !isAuthenticated) {
     return { name: 'Login' }
-  } else if ((to.name === 'Login' || to.name === 'Register') && token) {
-    // 已有 token 但访问登录/注册页，跳转到首页
+  } else if ((to.name === 'Login' || to.name === 'Register') && isAuthenticated) {
     return { path: '/' }
   }
   

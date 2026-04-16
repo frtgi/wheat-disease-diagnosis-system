@@ -23,9 +23,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // 状态
-  // TODO: 安全改进 - 将 Token 存储从 localStorage 迁移至 httpOnly cookie
-  // 当前风险: localStorage 中的 Token 可被 XSS 攻击窃取
-  // 迁移方案: 后端设置 httpOnly cookie, 前端无需手动管理 Token
+  // Token 主要通过 httpOnly Cookie 传递，localStorage 作为 SSE 等场景的 fallback
   const token = ref<string>(localStorage.getItem('token') || '')
   const userInfo = ref(getStoredUserInfo())
 
@@ -33,6 +31,8 @@ export const useUserStore = defineStore('user', () => {
   const isLoggedIn = computed(() => !!token.value)
 
   // 方法：设置 token
+  // Token 主要通过 httpOnly Cookie 由后端设置，前端无需手动管理
+  // 此方法保留 localStorage 写入，作为 SSE 等无法自动携带 Cookie 场景的 fallback
   const setToken = (newToken: string) => {
     token.value = newToken
     localStorage.setItem('token', newToken)

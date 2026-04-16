@@ -1,6 +1,6 @@
 """
 诊断路由注册模块
-定义所有 AI 诊断相关的 API 端点，包括：
+定义所有诊断相关的 API 端点，包括：
 - 多模态融合诊断（POST /fusion）
 - SSE 流式融合诊断（GET/POST /fusion/stream）
 - 图像诊断（POST /image）
@@ -10,6 +10,7 @@
 - 缓存管理（GET /cache/stats, POST /cache/clear）
 - 批量诊断（POST /batch）
 - 模型预加载（POST /admin/ai/preload）
+- 诊断记录 CRUD（GET /records, GET /{id}, PUT /{id}, DELETE /{id}）
 
 本模块作为路由注册层，负责：
 - API 路由定义和参数校验
@@ -22,17 +23,26 @@ import time
 import json
 import asyncio
 import os
+from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Depends, Query
 from fastapi.responses import StreamingResponse
 from typing import Optional, Dict, Any, List, AsyncGenerator, Union
 from PIL import Image
 import io
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.core.security import get_current_user, require_admin
+from app.core.dependencies import get_pagination_params
 from app.models.diagnosis import Diagnosis, DiagnosisConfidence
 from app.models.user import User
+from app.schemas.common import PaginationParams
+from app.schemas.diagnosis import (
+    DiagnosisResponse,
+    DiagnosisUpdate,
+    DiagnosisListResponse,
+)
+from app.utils.xss_protection import sanitize_response
 
 from .sse_stream_manager import (
     ProgressEvent,
@@ -1982,3 +1992,191 @@ async def preload_ai_models(
                 "suggestion": "请检查日志获取详细错误信息"
             }
         )
+
+
+RECORD_TAG = "诊断记录"
+
+
+@router.get(
+    "/records",
+    response_model=DiagnosisListResponse,
+    summary="查询诊断记录",
+    description="获取当前用户的诊断历史记录列表，支持分页查询。",
+    tags=[RECORD_TAG],
+)
+@sanitize_response(fields_to_sanitize=["symptoms", "diagnosis_result", "suggestions"])
+async def get_diagnosis_records(
+    pagination: PaginationParams = Depends(get_pagination_params),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    查询诊断历史记录
+
+    获取当前用户的诊断历史记录列表，支持分页查询。
+    """
+    from ...services.optimized_queries import get_optimized_query_service
+
+    query_service = get_optimized_query_service(db)
+    result = query_service.get_user_diagnoses_paginated(
+        user_id=current_user.id,
+        skip=pagination.skip,
+        limit=pagination.limit
+    )
+
+    total_pages = (result["total"] + pagination.limit - 1) // pagination.limit if result["total"] > 0 else 0
+
+    record_responses = [
+        DiagnosisResponse(
+            id=record.id,
+            user_id=record.user_id,
+            disease_id=record.disease_id,
+            symptoms=record.symptoms,
+            diagnosis_result=record.disease.name if record.disease else None,
+            confidence=float(record.primary_confidence) if record.primary_confidence else None,
+            suggestions=record.recommendations if isinstance(record.recommendations, list) else (json.loads(record.recommendations) if isinstance(record.recommendations, str) and record.recommendations else None),
+            status=record.status,
+            created_at=record.created_at,
+            updated_at=record.updated_at
+        )
+        for record in result["records"]
+    ]
+
+    return DiagnosisListResponse(
+        records=record_responses,
+        total=result["total"],
+        page=pagination.page,
+        page_size=pagination.page_size,
+        total_pages=total_pages
+    )
+
+
+@router.get(
+    "/{diagnosis_id}",
+    response_model=DiagnosisResponse,
+    summary="诊断详情",
+    description="根据诊断记录 ID 获取单条诊断记录的详细信息。",
+    tags=[RECORD_TAG],
+)
+@sanitize_response(fields_to_sanitize=["symptoms", "diagnosis_result", "suggestions"])
+async def get_diagnosis_detail(
+    diagnosis_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    获取诊断详情
+
+    根据诊断记录 ID 获取单条诊断记录的详细信息。
+    只能查询自己的诊断记录。
+    """
+    record = db.query(Diagnosis).options(
+        joinedload(Diagnosis.disease)
+    ).filter(
+        Diagnosis.id == diagnosis_id,
+        Diagnosis.user_id == current_user.id
+    ).first()
+
+    if not record:
+        raise HTTPException(status_code=404, detail="诊断记录不存在")
+
+    return DiagnosisResponse(
+        id=record.id,
+        user_id=record.user_id,
+        disease_id=record.disease_id,
+        symptoms=record.symptoms,
+        diagnosis_result=record.disease.name if record.disease else None,
+        confidence=float(record.primary_confidence) if record.primary_confidence else None,
+        suggestions=record.recommendations if isinstance(record.recommendations, list) else (json.loads(record.recommendations) if isinstance(record.recommendations, str) and record.recommendations else None),
+        status=record.status,
+        created_at=record.created_at,
+        updated_at=record.updated_at
+    )
+
+
+@router.put(
+    "/{diagnosis_id}",
+    response_model=DiagnosisResponse,
+    summary="更新诊断记录",
+    description="更新指定诊断记录的信息（如添加备注、修改状态等）。",
+    tags=[RECORD_TAG],
+)
+async def update_diagnosis_record(
+    diagnosis_id: int,
+    update_data: DiagnosisUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    更新诊断记录
+
+    更新指定诊断记录的信息，只能更新自己的诊断记录。
+    """
+    record = db.query(Diagnosis).options(
+        joinedload(Diagnosis.disease)
+    ).filter(
+        Diagnosis.id == diagnosis_id,
+        Diagnosis.user_id == current_user.id
+    ).first()
+
+    if not record:
+        raise HTTPException(status_code=404, detail="诊断记录不存在")
+
+    update_dict = update_data.model_dump(exclude_unset=True)
+    for field, value in update_dict.items():
+        if hasattr(record, field):
+            setattr(record, field, value)
+
+    db.commit()
+    db.refresh(record)
+
+    return DiagnosisResponse(
+        id=record.id,
+        user_id=record.user_id,
+        disease_id=record.disease_id,
+        symptoms=record.symptoms,
+        diagnosis_result=record.disease.name if record.disease else None,
+        confidence=float(record.primary_confidence) if record.primary_confidence else None,
+        suggestions=record.recommendations,
+        status=record.status,
+        created_at=record.created_at,
+        updated_at=record.updated_at
+    )
+
+
+@router.delete(
+    "/{diagnosis_id}",
+    summary="删除诊断记录",
+    description="删除指定的诊断记录及其关联的图像文件。",
+    tags=[RECORD_TAG],
+)
+async def delete_diagnosis_record(
+    diagnosis_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    删除诊断记录
+
+    删除指定的诊断记录及其关联的图像文件，只能删除自己的诊断记录。
+    """
+    record = db.query(Diagnosis).filter(
+        Diagnosis.id == diagnosis_id,
+        Diagnosis.user_id == current_user.id
+    ).first()
+
+    if not record:
+        raise HTTPException(status_code=404, detail="诊断记录不存在")
+
+    if record.image_url:
+        try:
+            image_path = Path(__file__).parent.parent.parent / "uploads" / "diagnosis" / record.image_url.split("/")[-1]
+            if image_path.exists():
+                image_path.unlink()
+        except Exception as e:
+            logger.warning(f"删除图像文件失败：{e}")
+
+    db.delete(record)
+    db.commit()
+
+    return {"message": "诊断记录已删除"}

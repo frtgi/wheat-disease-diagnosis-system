@@ -6,6 +6,8 @@ import json
 import hashlib
 from typing import Optional, Dict, Any
 from datetime import timedelta
+from collections import OrderedDict
+import time as _time
 from ..core.redis_client import get_async_redis
 import redis.asyncio as aioredis
 import logging
@@ -30,6 +32,11 @@ class CacheService:
     def __init__(self):
         """初始化缓存服务"""
         self._redis: Optional[aioredis.Redis] = None
+        self._local_token_blacklist: OrderedDict = OrderedDict()
+        self._local_token_blacklist_max = 1000
+        self._local_login_attempts: Dict[str, Dict] = {}
+        self._local_login_max_attempts = 5
+        self._local_login_lockout_seconds = 1800
     
     async def _get_redis(self) -> aioredis.Redis:
         """获取 Redis 连接"""
@@ -189,18 +196,20 @@ class CacheService:
         Returns:
             是否添加成功
         """
+        ttl = expire or self.TOKEN_BLACKLIST_TTL
+        expire_at = _time.time() + ttl
+        self._local_token_blacklist[token] = expire_at
+        self._local_token_blacklist.move_to_end(token)
+        if len(self._local_token_blacklist) > self._local_token_blacklist_max:
+            self._local_token_blacklist.popitem(last=False)
         try:
             redis_client = await self._get_redis()
             key = f"{self.TOKEN_BLACKLIST_PREFIX}{token}"
-            await redis_client.setex(
-                key,
-                expire or self.TOKEN_BLACKLIST_TTL,
-                "1"
-            )
+            await redis_client.setex(key, ttl, "1")
             return True
         except Exception as e:
-            logger.debug(f"添加 Token 黑名单失败：{e}")
-            return False
+            logger.debug(f"添加 Token 黑名单失败（已写入本地缓存）：{e}")
+            return True
     
     async def is_token_revoked(self, token: str) -> bool:
         """
@@ -217,7 +226,13 @@ class CacheService:
             key = f"{self.TOKEN_BLACKLIST_PREFIX}{token}"
             return await redis_client.exists(key) > 0
         except Exception as e:
-            logger.debug(f"检查 Token 黑名单失败：{e}")
+            logger.debug(f"检查 Token 黑名单失败，检查本地缓存：{e}")
+            expire_at = self._local_token_blacklist.get(token)
+            if expire_at is not None:
+                if _time.time() < expire_at:
+                    return True
+                else:
+                    del self._local_token_blacklist[token]
             return False
     
     async def record_login_attempt(self, email: str, success: bool) -> int:
@@ -237,6 +252,7 @@ class CacheService:
             
             if success:
                 await redis_client.delete(key)
+                self._local_login_attempts.pop(email, None)
                 return 0
             else:
                 count = await redis_client.incr(key)
@@ -244,8 +260,22 @@ class CacheService:
                     await redis_client.expire(key, self.LOGIN_ATTEMPTS_TTL)
                 return count
         except Exception as e:
-            logger.debug(f"记录登录尝试失败：{e}")
-            return 0
+            logger.debug(f"记录登录尝试失败，使用本地计数器：{e}")
+            if success:
+                self._local_login_attempts.pop(email, None)
+                return 0
+            else:
+                now = _time.time()
+                attempt = self._local_login_attempts.get(email, {"count": 0, "first_attempt_at": now})
+                attempt["count"] += 1
+                if attempt["count"] == 1:
+                    attempt["first_attempt_at"] = now
+                elapsed = now - attempt["first_attempt_at"]
+                if elapsed > self._local_login_lockout_seconds:
+                    attempt["count"] = 1
+                    attempt["first_attempt_at"] = now
+                self._local_login_attempts[email] = attempt
+                return attempt["count"]
     
     async def get_login_attempts(self, email: str) -> int:
         """
@@ -263,8 +293,16 @@ class CacheService:
             count = await redis_client.get(key)
             return int(count) if count else 0
         except Exception as e:
-            logger.debug(f"获取登录尝试次数失败：{e}")
-            return 0
+            logger.debug(f"获取登录尝试次数失败，从本地计数器返回：{e}")
+            attempt = self._local_login_attempts.get(email)
+            if attempt is None:
+                return 0
+            now = _time.time()
+            elapsed = now - attempt.get("first_attempt_at", now)
+            if elapsed > self._local_login_lockout_seconds:
+                self._local_login_attempts.pop(email, None)
+                return 0
+            return attempt.get("count", 0)
     
     async def get_stats(self) -> Dict[str, Any]:
         """获取缓存统计信息

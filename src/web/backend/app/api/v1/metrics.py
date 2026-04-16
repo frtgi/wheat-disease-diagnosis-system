@@ -387,16 +387,48 @@ async def get_metrics_history(
         历史指标数据
     """
     try:
-        # 这里简化实现，实际应该从数据库或时序数据库查询
+        current_time = time.time()
+        window_start = current_time - duration_minutes * 60
+        
+        result = {}
+        
+        if metric_type in ("latency", "all"):
+            latencies_in_window = [
+                x for x in metrics_collector._latencies
+                if x["timestamp"] >= window_start
+            ]
+            latency_series = _aggregate_by_minute(latencies_in_window, "value")
+            result["latency"] = {
+                "timestamps": [t for t, _ in latency_series],
+                "values": [v for _, v in latency_series]
+            }
+        
+        if metric_type in ("throughput", "all"):
+            requests_in_window = [
+                x for x in metrics_collector._requests
+                if x["timestamp"] >= window_start
+            ]
+            throughput_series = _aggregate_requests_by_minute(requests_in_window)
+            result["throughput"] = {
+                "timestamps": [t for t, _ in throughput_series],
+                "values": [v for _, v in throughput_series]
+            }
+        
+        if metric_type in ("gpu", "all"):
+            gpu_in_window = [
+                x for x in metrics_collector._gpu_memory
+                if x["timestamp"] >= window_start
+            ]
+            gpu_series = _aggregate_by_minute(gpu_in_window, "memory_mb")
+            result["gpu"] = {
+                "timestamps": [t for t, _ in gpu_series],
+                "values": [v for _, v in gpu_series]
+            }
+        
         return {
             "success": True,
-            "data": {
-                "metric_type": metric_type,
-                "duration_minutes": duration_minutes,
-                "message": "历史数据功能待实现",
-                "note": "当前仅返回实时指标"
-            },
-            "real_time": metrics_collector.get_all_metrics()
+            "data": result,
+            "duration_minutes": duration_minutes
         }
         
     except Exception as e:
@@ -416,6 +448,59 @@ def _get_latency_grade(p95_latency: float) -> str:
         return "poor"
     else:
         return "critical"
+
+
+def _aggregate_by_minute(data_points: list, value_key: str) -> list:
+    """按分钟聚合数据点，计算每分钟平均值
+    
+    Args:
+        data_points: 包含 timestamp 和 value_key 的数据点列表
+        value_key: 要聚合的值键名
+        
+    Returns:
+        [(timestamp_iso, avg_value), ...] 列表
+    """
+    if not data_points:
+        return []
+    
+    buckets: Dict[int, list] = {}
+    for point in data_points:
+        minute_key = int(point["timestamp"] // 60)
+        buckets.setdefault(minute_key, []).append(point[value_key])
+    
+    result = []
+    for minute_key in sorted(buckets.keys()):
+        values = buckets[minute_key]
+        avg_value = round(sum(values) / len(values), 2)
+        ts = datetime.fromtimestamp(minute_key * 60).isoformat()
+        result.append((ts, avg_value))
+    
+    return result
+
+
+def _aggregate_requests_by_minute(data_points: list) -> list:
+    """按分钟聚合请求数据，计算每分钟请求计数
+    
+    Args:
+        data_points: 包含 timestamp 和 success 的请求数据点列表
+        
+    Returns:
+        [(timestamp_iso, count), ...] 列表
+    """
+    if not data_points:
+        return []
+    
+    buckets: Dict[int, int] = {}
+    for point in data_points:
+        minute_key = int(point["timestamp"] // 60)
+        buckets[minute_key] = buckets.get(minute_key, 0) + 1
+    
+    result = []
+    for minute_key in sorted(buckets.keys()):
+        ts = datetime.fromtimestamp(minute_key * 60).isoformat()
+        result.append((ts, buckets[minute_key]))
+    
+    return result
 
 
 def record_inference(latency_ms: float, success: bool = True) -> None:

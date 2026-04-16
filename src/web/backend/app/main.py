@@ -27,7 +27,7 @@ from .core.startup_manager import initialize_startup_manager, get_startup_manage
 from .core.exceptions import register_exception_handlers
 from .services.ai_preloader import preload_ai_services
 from .services.cache_manager import get_cache_manager
-from .api.v1 import user, diagnosis, knowledge, stats, health, ai_diagnosis, metrics, logs, reports, upload
+from .api.v1 import user, knowledge, stats, health, ai_diagnosis, metrics, logs, reports, upload
 from .monitoring.monitoring_api import router as monitoring_router
 from .utils.gpu_monitor import log_gpu_memory, get_device_info, check_gpu_available
 
@@ -266,7 +266,6 @@ def create_application() -> FastAPI:
             raise last_exception
     
     app.include_router(user.router, prefix=settings.API_PREFIX)
-    app.include_router(diagnosis.router, prefix=settings.API_PREFIX)
     app.include_router(knowledge.router, prefix=settings.API_PREFIX)
     app.include_router(stats.router, prefix=settings.API_PREFIX)
     app.include_router(health.router, prefix=settings.API_PREFIX)

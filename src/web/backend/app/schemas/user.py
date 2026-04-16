@@ -46,7 +46,7 @@ class UserResponse(UserBase):
         populate_by_name = True
 
         @staticmethod
-        def schema_extra(schema: Dict[str, Any], model: Type['UserResponse']) -> None:
+        def json_schema_extra(schema: Dict[str, Any], model: Type['UserResponse']) -> None:
             """确保响应模式中不包含密码相关字段"""
             forbidden_fields = ['password', 'password_hash']
             for field in forbidden_fields:
