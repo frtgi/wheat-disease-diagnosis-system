@@ -80,8 +80,13 @@ IWDDA System
 | 视觉检测 | YOLOv8 (Ultralytics) | 目标检测与定位 |
 | 文本理解 | Transformers (BERT) | 语义相似度计算 |
 | 知识图谱 | Neo4j | 结构化知识存储与推理 |
-| Web界面 | Gradio | 交互式诊断界面 |
+| Web界面 | FastAPI + Vue.js | 交互式诊断界面 |
 | 深度学习 | PyTorch | 模型训练与推理 |
+| 视觉语言模型 | Qwen3-VL | 图像理解与文本生成 |
+| 知识表示 | TransE | 知识图谱嵌入 |
+| 检索增强 | GraphRAG | 知识图谱增强生成 |
+| 身份认证 | JWT | 用户认证与授权 |
+| 缓存管理 | Redis | 性能优化与缓存 |
 
 ## 🚀 快速开始
 
@@ -141,29 +146,32 @@ datasets/wheat_data/
 
 6. **启动 Web 界面**
 ```bash
-python app.py
+python run_web.py
 ```
 
-访问 `http://localhost:7860` 开始使用
+访问 `http://localhost:8000` 开始使用
 
 ### 命令行使用
 
 ```python
-from main import WheatDoctor
+from src.diagnosis.diagnosis_engine import create_diagnosis_engine
 
 # 初始化诊断系统
-doctor = WheatDoctor()
+diagnosis_engine = create_diagnosis_engine()
 
 # 执行诊断
-result = doctor.run_diagnosis(
+result = diagnosis_engine.diagnose(
     image_path="data/images/test_wheat.jpg",
-    user_text="叶片上有黄色条纹状锈斑"
+    user_description="叶片上有黄色条纹状锈斑"
 )
 
 # 查看结果
-print(f"诊断结果: {result['final_report']['diagnosis']}")
-print(f"置信度: {result['final_report']['confidence']:.2f}")
-print(f"推理过程: {result['final_report']['reasoning']}")
+print(f"诊断结果: {result.disease_name}")
+print(f"置信度: {result.confidence:.2f}")
+print(f"症状: {result.symptoms}")
+print(f"病原菌: {result.pathogen}")
+print(f"严重程度: {result.severity}")
+print(f"防治建议: {result.prevention}")
 ```
 
 ## 📊 支持的病害类别
@@ -231,33 +239,49 @@ print(f"推理过程: {result['final_report']['reasoning']}")
 WheatAgent/
 ├── main.py                    # 主程序入口
 ├── app.py                     # Gradio Web 界面
+├── run_web.py                 # 启动 Web 服务
 ├── configs/                   # 配置文件
 │   ├── config.yaml            # 全局配置
-│   └── wheat_disease.yaml     # 数据集配置
+│   ├── wheat_disease.yaml     # 数据集配置
+│   └── wheat_agent.yaml       # 智能体配置
 ├── src/                      # 源代码
-│   ├── vision/               # 视觉感知模块
-│   │   ├── vision_engine.py   # 视觉检测引擎
-│   │   └── train.py          # 模型训练脚本
-│   ├── text/                 # 文本理解模块
-│   │   └── text_engine.py    # 文本处理引擎
-│   ├── graph/                # 知识图谱模块
-│   │   └── graph_engine.py   # Neo4j 交互引擎
-│   ├── fusion/               # 融合模块
-│   │   └── fusion_engine.py # 多模态融合引擎
 │   ├── action/               # 行动模块
-│   │   ├── learner_engine.py # 反馈收集引擎
-│   │   └── evolve.py        # 增量训练引擎
-│   └── tools/               # 工具模块
-│       ├── label_generator.py # 标注生成工具
-│       └── data_converter.py # 数据转换工具
-├── datasets/                 # 数据集目录
-│   ├── wheat_data/          # 小麦病害数据集
-│   └── feedback_data/       # 用户反馈数据
-├── runs/                    # 训练输出目录
-├── models/                   # 模型权重目录
-└── data/                    # 数据目录
-    ├── images/              # 测试图片
-    └── texts/              # 文本数据
+│   ├── api/                  # API 模块
+│   ├── cognition/            # 认知模块
+│   ├── data/                 # 数据模块
+│   ├── database/             # 数据库模块
+│   ├── deploy/               # 部署模块
+│   ├── diagnosis/            # 诊断模块
+│   ├── evaluation/           # 评估模块
+│   ├── evolution/            # 进化模块
+│   ├── fusion/               # 融合模块
+│   ├── graph/                # 知识图谱模块
+│   ├── input/                # 输入处理模块
+│   ├── memory/               # 记忆模块
+│   ├── perception/           # 感知模块
+│   ├── planning/             # 规划模块
+│   ├── tests/                # 测试模块
+│   ├── text/                 # 文本处理模块
+│   ├── tools/                # 工具模块
+│   ├── training/             # 训练模块
+│   ├── utils/                # 工具库
+│   ├── vision/               # 视觉模块
+│   └── web/                  # Web 界面
+│       ├── backend/           # 后端 API
+│       ├── frontend/          # 前端界面
+│       └── tests/             # Web 测试
+├── data/                     # 数据目录
+│   ├── case_records/         # 病例记录
+│   └── followup_tasks/       # 后续任务
+├── deploy/                   # 部署相关文件
+│   ├── edge/                 # 边缘部署
+│   ├── k8s/                  # Kubernetes 部署
+│   └── docker-compose.yml
+├── docs/                     # 项目文档
+├── runs/                     # 训练输出目录
+├── scripts/                  # 脚本文件
+├── tests/                    # 测试文件
+└── models/                   # 模型权重目录
 ```
 
 ## 🔧 配置说明
