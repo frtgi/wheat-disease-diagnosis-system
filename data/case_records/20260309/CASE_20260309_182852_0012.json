@@ -1,0 +1,50 @@
+{
+  "case_id": "CASE_20260309_182852_0012",
+  "record_time": "2026-03-09T18:28:52.760856",
+  "basic_info": {
+    "image_path": "",
+    "image_name": "",
+    "user_info": {}
+  },
+  "diagnosis_info": {
+    "disease_name": "条锈病",
+    "confidence": 0.92,
+    "main_features": [],
+    "pathogen": "未知",
+    "conclusion": ""
+  },
+  "severity_info": {
+    "severity_level": "中度",
+    "severity_score": 0.45,
+    "impact_assessment": "",
+    "recommendation": ""
+  },
+  "treatment_info": {
+    "recommended_agents": [
+      {
+        "name": "三唑酮"
+      }
+    ],
+    "application_concentration": "",
+    "treatment_steps": [
+      "喷施药剂"
+    ],
+    "application_timing": "",
+    "safety_interval": "",
+    "precautions": []
+  },
+  "followup_info": {
+    "followup_time": "2026-03-16",
+    "followup_interval": "7 天",
+    "urgency": "",
+    "followup_content": [],
+    "expected_goal": "",
+    "task_id": ""
+  },
+  "reasoning_basis": {},
+  "risk_level": {},
+  "metadata": {
+    "version": "1.0",
+    "tool": "CaseRecordTool"
+  }
+}

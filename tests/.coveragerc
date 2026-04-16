@@ -1,0 +1,31 @@
+# 覆盖率配置文件
+# 使用方法: pytest --cov-config=tests/.coveragerc --cov=src --cov-report=html
+
+[run]
+source = src
+omit =
+    */tests/*
+    */__pycache__/*
+    */site-packages/*
+    */migrations/*
+    */__init__.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+show_missing = True
+skip_covered = False
+precision = 2
+
+[html]
+directory = htmlcov
+title = WheatAgent 测试覆盖率报告
+
+[xml]
+output = coverage.xml

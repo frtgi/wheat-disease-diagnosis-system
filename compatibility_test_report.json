@@ -1,0 +1,188 @@
+{
+  "test_time": "2026-04-01 18:59:58",
+  "python_environment": {
+    "python_version": {
+      "status": "pass",
+      "version": "3.10.20"
+    },
+    "os_info": "Windows 10",
+    "architecture": "AMD64",
+    "conda_env": {
+      "status": "pass",
+      "name": "wheatagent-py310"
+    },
+    "python_path": "C:\\Users\\Administrator\\.conda\\envs\\wheatagent-py310\\python.exe"
+  },
+  "cuda_environment": {
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "cuda_version": "12.4",
+    "cudnn_version": 90100,
+    "gpu_count": 1,
+    "gpu_0": {
+      "name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+      "memory_gb": 4.0,
+      "compute_capability": "8.6"
+    },
+    "gpu_inference": {
+      "status": "pass"
+    },
+    "gpu_memory": {
+      "allocated_gb": 0.01,
+      "reserved_gb": 0.02
+    },
+    "cuda_path": "未设置",
+    "cuda_home": "未设置"
+  },
+  "dependency_versions": {
+    "torch": {
+      "installed": true,
+      "version": "2.6.0+cu124",
+      "required": "2.0.0",
+      "status": "pass"
+    },
+    "torchvision": {
+      "installed": true,
+      "version": "0.21.0+cu124",
+      "required": "0.15.0",
+      "status": "pass"
+    },
+    "transformers": {
+      "installed": true,
+      "version": "5.3.0",
+      "required": "4.30.0",
+      "status": "pass"
+    },
+    "ultralytics": {
+      "installed": true,
+      "version": "8.4.21",
+      "required": "8.0.0",
+      "status": "pass"
+    },
+    "fastapi": {
+      "installed": true,
+      "version": "0.135.1",
+      "required": "0.109.0",
+      "status": "pass"
+    },
+    "uvicorn": {
+      "installed": true,
+      "version": "0.41.0",
+      "required": "0.27.0",
+      "status": "pass"
+    },
+    "sqlalchemy": {
+      "installed": true,
+      "version": "2.0.48",
+      "required": "2.0.0",
+      "status": "pass"
+    },
+    "pydantic": {
+      "installed": true,
+      "version": "2.12.5",
+      "required": "2.5.0",
+      "status": "pass"
+    },
+    "redis": {
+      "installed": true,
+      "version": "7.3.0",
+      "required": "5.0.0",
+      "status": "pass"
+    },
+    "numpy": {
+      "installed": true,
+      "version": "2.2.6",
+      "required": "1.24.0",
+      "status": "pass"
+    },
+    "pillow": {
+      "installed": true,
+      "version": "12.0.0",
+      "required": "10.0.0",
+      "status": "pass"
+    },
+    "opencv-python": {
+      "installed": true,
+      "version": "4.13.0",
+      "required": "4.8.0",
+      "status": "pass"
+    },
+    "accelerate": {
+      "installed": true,
+      "version": "1.13.0",
+      "required": "0.20.0",
+      "status": "pass"
+    },
+    "bitsandbytes": {
+      "installed": true,
+      "version": "0.49.2",
+      "required": "0.41.0",
+      "status": "pass"
+    },
+    "peft": {
+      "installed": true,
+      "version": "0.18.1",
+      "required": "0.5.0",
+      "status": "pass"
+    },
+    "neo4j": {
+      "installed": true,
+      "version": "6.1.0",
+      "required": "5.0.0",
+      "status": "pass"
+    },
+    "gradio": {
+      "installed": false,
+      "required": "4.0.0",
+      "status": "warning"
+    },
+    "celery": {
+      "installed": false,
+      "required": "5.3.0",
+      "status": "warning"
+    },
+    "minio": {
+      "installed": false,
+      "required": "7.1.0",
+      "status": "warning"
+    },
+    "module_src.vision.vision_engine": {
+      "status": "warning",
+      "error": "No module named 'src.vision'"
+    },
+    "module_src.perception.yolo_engine": {
+      "status": "warning",
+      "error": "No module named 'src.perception'"
+    },
+    "module_src.cognition.qwen_engine": {
+      "status": "warning",
+      "error": "No module named 'src.cognition'"
+    },
+    "module_src.fusion.fusion_engine": {
+      "status": "warning",
+      "error": "No module named 'src.fusion'"
+    },
+    "module_src.graph.graph_engine": {
+      "status": "warning",
+      "error": "No module named 'src.graph'"
+    }
+  },
+  "overall_status": "warning",
+  "model_loading": {
+    "yolo_model": {
+      "status": "pass",
+      "path": "./models/wheat_disease_v10_yolov8s/phase1_warmup/weights/best.pt"
+    },
+    "qwen_tokenizer": {
+      "status": "warning",
+      "path": "./models/Qwen3-VL-4B-Instruct"
+    }
+  },
+  "summary": {
+    "total_tests": 30,
+    "passed": 21,
+    "failed": 0,
+    "warnings": 9,
+    "overall_status": "warning"
+  }
+}

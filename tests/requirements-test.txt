@@ -1,0 +1,30 @@
+# IWDDA Agent 测试依赖
+# 核心测试框架
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0
+
+# 性能基准测试
+pytest-benchmark>=4.0.0
+
+# 代码质量
+pytest-xdist>=3.3.0
+
+# 测试数据生成
+faker>=19.0.0
+
+# 断言辅助
+pytest-icdiff>=0.8
+
+# 系统资源监控
+psutil>=5.9.0
+
+# HTTP 测试
+httpx>=0.24.0
+
+# 异步测试支持
+pytest-aiohttp>=1.0.0
+
+# 测试覆盖率 HTML 报告
+coverage>=7.3.0

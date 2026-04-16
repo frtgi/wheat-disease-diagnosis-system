@@ -1,0 +1,31 @@
+{
+  "environment": {
+    "python_version": true,
+    "pytorch": true,
+    "cuda": true,
+    "ultralytics": true,
+    "transformers": true,
+    "neo4j_driver": true
+  },
+  "models": {
+    "vision_model": false,
+    "backup_vision_model": false,
+    "projection_layer": false,
+    "knowledge_graph": false,
+    "transe_embeddings": false
+  },
+  "services": {
+    "neo4j": true
+  },
+  "e2e": {
+    "success": false,
+    "vision": {
+      "success": false,
+      "detections": [],
+      "error": "[Errno 2] No such file or directory: 'D:\\\\Project\\\\WheatAgent\\\\scripts\\\\models\\\\wheat_disease_v5_optimized_phase2\\\\weights\\\\best.pt'"
+    },
+    "knowledge": null,
+    "diagnosis": null,
+    "error": "视觉检测失败"
+  }
+}

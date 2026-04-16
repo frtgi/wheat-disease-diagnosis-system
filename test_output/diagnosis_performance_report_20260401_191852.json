@@ -1,0 +1,115 @@
+{
+  "test_date": "2026-04-01 19:18:52",
+  "total_tests": 5,
+  "passed_tests": 5,
+  "failed_tests": 0,
+  "avg_inference_time": 66.225590244929,
+  "max_inference_time": 121.97177290916443,
+  "min_inference_time": 43.768858909606934,
+  "meets_requirement": false,
+  "results": [
+    {
+      "test_name": "单次诊断推理",
+      "success": true,
+      "inference_time": 68.93132328987122,
+      "disease_name": "未知病害",
+      "confidence": 0.9170860648155212,
+      "error_message": null,
+      "details": {
+        "yolo_time": 0.6036288738250732,
+        "qwen_time": 68.32769441604614,
+        "meets_requirement": false,
+        "image_size": [
+          720,
+          540
+        ],
+        "image_name": "Aphid_0.png"
+      }
+    },
+    {
+      "test_name": "高分辨率图像推理 (原始分辨率)",
+      "success": true,
+      "inference_time": 49.91154980659485,
+      "disease_name": "未知病害",
+      "confidence": 0.9170860648155212,
+      "error_message": null,
+      "details": {
+        "resolution": "原始分辨率",
+        "scale_factor": 1,
+        "image_size": [
+          720,
+          540
+        ]
+      }
+    },
+    {
+      "test_name": "高分辨率图像推理 (2倍分辨率)",
+      "success": true,
+      "inference_time": 43.768858909606934,
+      "disease_name": "未知病害",
+      "confidence": 0.9114258885383606,
+      "error_message": null,
+      "details": {
+        "resolution": "2倍分辨率",
+        "scale_factor": 2,
+        "image_size": [
+          1440,
+          1080
+        ]
+      }
+    },
+    {
+      "test_name": "高分辨率图像推理 (4倍分辨率)",
+      "success": true,
+      "inference_time": 121.97177290916443,
+      "disease_name": "未知病害",
+      "confidence": 0.9160324335098267,
+      "error_message": null,
+      "details": {
+        "resolution": "4倍分辨率",
+        "scale_factor": 4,
+        "image_size": [
+          2880,
+          2160
+        ]
+      }
+    },
+    {
+      "test_name": "多轮对话推理",
+      "success": true,
+      "inference_time": 46.544446309407554,
+      "disease_name": "未知病害",
+      "confidence": 0.85,
+      "error_message": null,
+      "details": {
+        "total_rounds": 3,
+        "total_time": 139.63333892822266,
+        "round_times": [
+          46.48803639411926,
+          46.7918815612793,
+          46.3534209728241
+        ],
+        "round_results": [
+          {
+            "round": 1,
+            "inference_time": 46.48803639411926,
+            "disease_name": "未知病害",
+            "confidence": 0.85
+          },
+          {
+            "round": 2,
+            "inference_time": 46.7918815612793,
+            "disease_name": "未知病害",
+            "confidence": 0.85
+          },
+          {
+            "round": 3,
+            "inference_time": 46.3534209728241,
+            "disease_name": "未知病害",
+            "confidence": 0.85
+          }
+        ]
+      }
+    }
+  ]
+}

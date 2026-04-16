@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iwdda
+  labels:
+    name: iwdda
+    environment: production
+    app.kubernetes.io/name: iwdda
+    app.kubernetes.io/version: "v1.0.0"

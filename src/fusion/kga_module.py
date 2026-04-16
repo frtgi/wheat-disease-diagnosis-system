@@ -134,7 +134,7 @@ class KADFusion(nn.Module):
     KAD-Fusion: Knowledge-Aware Diffusion Transformer
     融合视觉、文本和知识特征
     """
-    def __init__(self, vision_dim=256, text_dim=768, knowledge_dim=768, num_heads=8):
+    def __init__(self, vision_dim=512, text_dim=768, knowledge_dim=256, num_heads=8):
         super(KADFusion, self).__init__()
         
         # 知识引导注意力
@@ -193,9 +193,9 @@ def create_kad_fusion_model():
     创建 KAD-Fusion 模型
     """
     model = KADFusion(
-        vision_dim=256,
+        vision_dim=512,
         text_dim=768,
-        knowledge_dim=768,
+        knowledge_dim=256,
         num_heads=8
     )
     

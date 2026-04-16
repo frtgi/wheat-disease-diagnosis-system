@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-03-20T00:02:01.245629",
+  "gpu": {
+    "cuda_available": false
+  },
+  "cpu": {
+    "cores": 16,
+    "frequency_mhz": 2500.0,
+    "utilization_percent": 8.9
+  },
+  "memory": {
+    "total_gb": 39.63,
+    "available_gb": 18.55,
+    "used_gb": 21.08,
+    "utilization_percent": 53.2
+  },
+  "bottlenecks": [],
+  "recommendations": []
+}

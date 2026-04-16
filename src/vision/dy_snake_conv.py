@@ -2,6 +2,7 @@
 """
 动态蛇形卷积模块 (Dynamic Snake Convolution)
 根据研究文档，该模块用于处理小麦条锈病等细长、弯曲的病斑特征
+优化版本：使用 grid_sample 实现高效可变形卷积
 """
 import torch
 import torch.nn as nn
@@ -11,7 +12,7 @@ import math
 
 class DySnakeConv(nn.Module):
     """
-    动态蛇形卷积 - Dynamic Snake Convolution
+    动态蛇形卷积 - Dynamic Snake Convolution (高效版本)
     允许卷积核产生形变，自适应地贴合细长、弯曲的病斑边缘
     
     数学原理:
@@ -28,7 +29,6 @@ class DySnakeConv(nn.Module):
         self.stride = stride
         self.padding = padding
         
-        # 标准卷积权重
         self.weight = nn.Parameter(
             torch.Tensor(out_channels, in_channels, kernel_size, kernel_size)
         )
@@ -37,98 +37,103 @@ class DySnakeConv(nn.Module):
         else:
             self.register_parameter('bias', None)
         
-        # 偏移量预测网络 - 预测每个采样点的偏移
-        # 对于 k×k 卷积核，需要预测 k×k×2 个偏移量 (x, y方向)
         self.offset_conv = nn.Sequential(
             nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=True),
             nn.BatchNorm2d(in_channels),
-            nn.ReLU(inplace=True),
+            nn.SiLU(inplace=True),
             nn.Conv2d(in_channels, kernel_size * kernel_size * 2, kernel_size, 
                      padding=padding, stride=stride, bias=True)
         )
         
-        # 初始化
+        self.modulator = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=True),
+            nn.BatchNorm2d(in_channels),
+            nn.SiLU(inplace=True),
+            nn.Conv2d(in_channels, kernel_size * kernel_size, kernel_size, 
+                     padding=padding, stride=stride, bias=True),
+            nn.Sigmoid()
+        )
+        
         nn.init.kaiming_normal_(self.weight, mode='fan_out', nonlinearity='relu')
         if self.bias is not None:
             nn.init.constant_(self.bias, 0)
         nn.init.constant_(self.offset_conv[-1].weight, 0)
         nn.init.constant_(self.offset_conv[-1].bias, 0)
+        nn.init.constant_(self.modulator[-2].weight, 0)
+        nn.init.constant_(self.modulator[-2].bias, 0)
     
     def forward(self, x):
         """
-        前向传播
+        前向传播 - 使用 grid_sample 实现高效可变形卷积
         :param x: 输入特征图 [batch, in_channels, height, width]
         :return: 输出特征图 [batch, out_channels, height, width]
         """
         batch_size, _, height, width = x.shape
         
-        # 1. 预测偏移量
-        offset = self.offset_conv(x)  # [batch, k*k*2, h, w]
+        offset = self.offset_conv(x)
+        modulator = self.modulator(x)
         
-        # 2. 构建采样网格
-        # 生成基础网格坐标
-        grid_y, grid_x = torch.meshgrid(
-            torch.arange(-(self.kernel_size//2), self.kernel_size//2 + 1),
-            torch.arange(-(self.kernel_size//2), self.kernel_size//2 + 1),
-            indexing='ij'
-        )
-        grid_y = grid_y.float().to(x.device)
-        grid_x = grid_x.float().to(x.device)
-        
-        # 3. 应用可变形卷积
-        output = self._deform_conv2d(
-            x, offset, self.weight, self.bias,
-            self.stride, self.padding
-        )
+        output = self._deform_conv_grid_sample(x, offset, modulator)
         
         return output
     
-    def _deform_conv2d(self, input, offset, weight, bias, stride, padding):
+    def _deform_conv_grid_sample(self, x, offset, modulator):
         """
-        可变形卷积实现
+        使用 grid_sample 实现高效的可变形卷积
         """
-        batch_size, _, in_height, in_width = input.shape
-        out_channels, in_channels, k_h, k_w = weight.shape
+        batch_size, channels, in_h, in_w = x.shape
+        k = self.kernel_size
         
-        # 计算输出尺寸
-        out_height = (in_height + 2 * padding - k_h) // stride + 1
-        out_width = (in_width + 2 * padding - k_w) // stride + 1
+        out_h = (in_h + 2 * self.padding - k) // self.stride + 1
+        out_w = (in_w + 2 * self.padding - k) // self.stride + 1
         
-        # 使用 F.unfold 提取滑动窗口
-        # 首先对输入进行padding
-        if padding > 0:
-            input_padded = F.pad(input, (padding, padding, padding, padding), mode='constant', value=0)
-        else:
-            input_padded = input
+        offset = offset.view(batch_size, k, k, 2, out_h, out_w)
+        modulator = modulator.view(batch_size, k, k, 1, out_h, out_w)
         
-        # 使用 unfold 提取所有采样位置
-        # [batch, in_channels*k*k, out_height*out_width]
-        cols = F.unfold(input_padded, kernel_size=k_h, stride=stride)
-        cols = cols.view(batch_size, in_channels, k_h * k_w, out_height, out_width)
+        grid_y, grid_x = torch.meshgrid(
+            torch.arange(0, out_h, device=x.device, dtype=torch.float32),
+            torch.arange(0, out_w, device=x.device, dtype=torch.float32),
+            indexing='ij'
+        )
         
-        # 调整偏移量形状
-        offset = offset.view(batch_size, 2, k_h * k_w, out_height, out_width)
+        grid_y = grid_y * self.stride + (k - 1) // 2 - self.padding
+        grid_x = grid_x * self.stride + (k - 1) // 2 - self.padding
         
-        # 应用偏移量进行双线性插值采样
-        # 这里简化处理，使用标准卷积 + 偏移量调制
+        center_y = grid_y.unsqueeze(0).unsqueeze(0).unsqueeze(0)
+        center_x = grid_x.unsqueeze(0).unsqueeze(0).unsqueeze(0)
         
-        # 计算输出
-        output = torch.zeros(batch_size, out_channels, out_height, out_width, device=input.device)
+        kernel_offsets_y = torch.arange(-(k // 2), k // 2 + 1, device=x.device, dtype=torch.float32)
+        kernel_offsets_x = torch.arange(-(k // 2), k // 2 + 1, device=x.device, dtype=torch.float32)
+        kernel_offsets_y, kernel_offsets_x = torch.meshgrid(kernel_offsets_y, kernel_offsets_x, indexing='ij')
+        kernel_offsets_y = kernel_offsets_y.view(1, k, k, 1, 1, 1)
+        kernel_offsets_x = kernel_offsets_x.view(1, k, k, 1, 1, 1)
         
-        for b in range(batch_size):
-            for oc in range(out_channels):
-                for i in range(k_h * k_w):
-                    # 获取当前位置的输入特征
-                    in_feat = cols[b, :, i, :, :]  # [in_channels, h, w]
-                    
-                    # 应用权重
-                    w = weight[oc, :, i // k_w, i % k_w]  # [in_channels]
-                    out_feat = (in_feat * w.view(-1, 1, 1)).sum(dim=0)  # [h, w]
-                    
-                    output[b, oc] += out_feat
+        sample_y = center_y + kernel_offsets_y + offset[:, :, :, 1:2, :, :]
+        sample_x = center_x + kernel_offsets_x + offset[:, :, :, 0:1, :, :]
         
-        if bias is not None:
-            output = output + bias.view(1, -1, 1, 1)
+        sample_y = sample_y.view(batch_size, k * k, out_h, out_w)
+        sample_x = sample_x.view(batch_size, k * k, out_h, out_w)
+        
+        sample_y_norm = 2.0 * sample_y / (in_h - 1) - 1.0
+        sample_x_norm = 2.0 * sample_x / (in_w - 1) - 1.0
+        
+        grid = torch.stack([sample_x_norm, sample_y_norm], dim=-1)
+        
+        sampled_features = F.grid_sample(
+            x, grid.view(batch_size, out_h, out_w * k * k, 2),
+            mode='bilinear', padding_mode='zeros', align_corners=True
+        )
+        
+        sampled_features = sampled_features.view(batch_size, channels, k * k, out_h, out_w)
+        
+        modulator = modulator.view(batch_size, 1, k * k, out_h, out_w)
+        sampled_features = sampled_features * modulator
+        
+        weight = self.weight.view(self.out_channels, channels, k * k)
+        output = torch.einsum('ock,bckhw->bohw', weight, sampled_features)
+        
+        if self.bias is not None:
+            output = output + self.bias.view(1, -1, 1, 1)
         
         return output
 
@@ -145,7 +150,6 @@ class C2f_DySnake(nn.Module):
         self.cv1 = nn.Conv2d(in_channels, 2 * self.c, 1, 1)
         self.cv2 = nn.Conv2d((2 + n) * self.c, out_channels, 1)
         
-        # 使用 DySnakeConv 替代标准卷积
         self.m = nn.ModuleList(
             DySnakeConv(self.c, self.c, kernel_size=3, stride=1, padding=1) 
             for _ in range(n)
@@ -182,52 +186,42 @@ class SerpensGate_YOLOv8(nn.Module):
             for child_name, child_module in module.named_children():
                 full_name = f"{name}.{child_name}" if name else child_name
                 
-                # 检查是否是 C2f 模块
                 if child_module.__class__.__name__ == 'C2f':
-                    # 获取 C2f 的参数
                     in_ch = child_module.cv1.in_channels
                     out_ch = child_module.cv2.out_channels
                     
-                    # 创建 DySnake 版本
                     dysnake_module = C2f_DySnake(in_ch, out_ch)
                     
-                    # 替换
                     setattr(module, child_name, dysnake_module)
                     print(f"✅ 已替换 {full_name} 为 DySnake 版本")
                 else:
-                    # 递归替换
                     replace_module(child_module, full_name)
         
         replace_module(model)
         return model
 
 
-# 测试函数
 def test_dysnake_conv():
     """
     测试动态蛇形卷积模块
     """
     print("=" * 60)
-    print("🧪 测试动态蛇形卷积 (DySnakeConv)")
+    print("🧪 测试动态蛇形卷积 (DySnakeConv) - 高效版本")
     print("=" * 60)
     
-    # 创建测试输入
     batch_size = 2
     in_channels = 64
     height, width = 32, 32
     x = torch.randn(batch_size, in_channels, height, width)
     
-    # 创建 DySnakeConv 层
     dysnake = DySnakeConv(in_channels, 128, kernel_size=3, padding=1)
     
-    # 前向传播
     output = dysnake(x)
     
     print(f"✅ 输入形状: {x.shape}")
     print(f"✅ 输出形状: {output.shape}")
     print(f"✅ 参数数量: {sum(p.numel() for p in dysnake.parameters()):,}")
     
-    # 测试 C2f_DySnake
     print("\n" + "=" * 60)
     print("🧪 测试 C2f_DySnake 模块")
     print("=" * 60)

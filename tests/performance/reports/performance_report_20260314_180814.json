@@ -1,0 +1,196 @@
+{
+  "timestamp": "2026-03-14T18:08:14.126598",
+  "base_url": "http://localhost:8000",
+  "api_tests": {
+    "summary": [
+      {
+        "endpoint": "/health",
+        "method": "GET",
+        "avg_ms": 2047.77,
+        "p95_ms": 2065.08,
+        "p99_ms": 2076.58,
+        "target_ms": 50,
+        "passed": false,
+        "success_rate": 100.0
+      },
+      {
+        "endpoint": "/api/v1/diagnosis/health/ai",
+        "method": "GET",
+        "avg_ms": 2036.33,
+        "p95_ms": 2069.45,
+        "p99_ms": 2069.45,
+        "target_ms": 100,
+        "passed": false,
+        "success_rate": 100.0
+      },
+      {
+        "endpoint": "/api/v1/knowledge/search",
+        "method": "GET",
+        "avg_ms": 2044.34,
+        "p95_ms": 2074.72,
+        "p99_ms": 2074.72,
+        "target_ms": 100,
+        "passed": false,
+        "success_rate": 100.0
+      },
+      {
+        "endpoint": "/api/v1/stats/overview",
+        "method": "GET",
+        "avg_ms": 2044.68,
+        "p95_ms": 2060.6,
+        "p99_ms": 2060.6,
+        "target_ms": 100,
+        "passed": false,
+        "success_rate": 100.0
+      },
+      {
+        "endpoint": "/api/v1/diagnosis/text",
+        "method": "POST",
+        "avg_ms": 0,
+        "p95_ms": 0,
+        "p99_ms": 0,
+        "target_ms": 3000,
+        "passed": false,
+        "success_rate": 0.0
+      }
+    ],
+    "details": {
+      "health": {
+        "endpoint": "/health",
+        "method": "GET",
+        "total_requests": 30,
+        "success_count": 30,
+        "fail_count": 0,
+        "avg_ms": 2047.7688933329773,
+        "min_ms": 2023.4342999901855,
+        "max_ms": 2076.5786999982083,
+        "p50_ms": 2046.8064000015147,
+        "p95_ms": 2065.081900000223,
+        "p99_ms": 2076.5786999982083,
+        "std_ms": 12.618302208195672,
+        "target_ms": 50,
+        "passed": false,
+        "errors": []
+      },
+      "ai_health": {
+        "endpoint": "/api/v1/diagnosis/health/ai",
+        "method": "GET",
+        "total_requests": 20,
+        "success_count": 20,
+        "fail_count": 0,
+        "avg_ms": 2036.3300849981897,
+        "min_ms": 2020.3401999897324,
+        "max_ms": 2069.45129999076,
+        "p50_ms": 2033.06829999201,
+        "p95_ms": 2069.45129999076,
+        "p99_ms": 2069.45129999076,
+        "std_ms": 13.357976243270063,
+        "target_ms": 100,
+        "passed": false,
+        "errors": []
+      },
+      "knowledge_search": {
+        "endpoint": "/api/v1/knowledge/search",
+        "method": "GET",
+        "total_requests": 20,
+        "success_count": 20,
+        "fail_count": 0,
+        "avg_ms": 2044.336450000992,
+        "min_ms": 2023.801100003766,
+        "max_ms": 2074.7239000047557,
+        "p50_ms": 2042.917300001136,
+        "p95_ms": 2074.7239000047557,
+        "p99_ms": 2074.7239000047557,
+        "std_ms": 15.209626840551692,
+        "target_ms": 100,
+        "passed": false,
+        "errors": []
+      },
+      "stats_overview": {
+        "endpoint": "/api/v1/stats/overview",
+        "method": "GET",
+        "total_requests": 20,
+        "success_count": 20,
+        "fail_count": 0,
+        "avg_ms": 2044.6758149992093,
+        "min_ms": 2018.509700006689,
+        "max_ms": 2060.598600000958,
+        "p50_ms": 2044.982000006712,
+        "p95_ms": 2060.598600000958,
+        "p99_ms": 2060.598600000958,
+        "std_ms": 11.635394199466532,
+        "target_ms": 100,
+        "passed": false,
+        "errors": []
+      },
+      "diagnosis_text": {
+        "endpoint": "/api/v1/diagnosis/text",
+        "method": "POST",
+        "total_requests": 10,
+        "success_count": 0,
+        "fail_count": 10,
+        "avg_ms": 0,
+        "min_ms": 0,
+        "max_ms": 0,
+        "p50_ms": 0,
+        "p95_ms": 0,
+        "p99_ms": 0,
+        "std_ms": 0,
+        "target_ms": 3000,
+        "passed": false,
+        "errors": [
+          "请求 1: HTTP 401: {\"detail\":\"Not authenticated\"}",
+          "请求 2: HTTP 401: {\"detail\":\"Not authenticated\"}",
+          "请求 3: HTTP 401: {\"detail\":\"Not authenticated\"}",
+          "请求 4: HTTP 401: {\"detail\":\"Not authenticated\"}",
+          "请求 5: HTTP 401: {\"detail\":\"Not authenticated\"}",
+          "请求 6: HTTP 401: {\"detail\":\"Not authenticated\"}",
+          "请求 7: HTTP 401: {\"detail\":\"Not authenticated\"}",
+          "请求 8: HTTP 401: {\"detail\":\"Not authenticated\"}",
+          "请求 9: HTTP 401: {\"detail\":\"Not authenticated\"}",
+          "请求 10: HTTP 401: {\"detail\":\"Not authenticated\"}"
+        ]
+      }
+    }
+  },
+  "concurrency_tests": [
+    {
+      "concurrent_users": 10,
+      "total_requests": 50,
+      "success_count": 50,
+      "fail_count": 0,
+      "success_rate": 100.0,
+      "avg_response_ms": 2042.7651019988116,
+      "p95_response_ms": 2054.2600999906426,
+      "p99_response_ms": 2061.5715000021737,
+      "throughput_rps": 4.88,
+      "errors": []
+    },
+    {
+      "concurrent_users": 50,
+      "total_requests": 150,
+      "success_count": 150,
+      "fail_count": 0,
+      "success_rate": 100.0,
+      "avg_response_ms": 2047.2138553331995,
+      "p95_response_ms": 2063.5448999964865,
+      "p99_response_ms": 2073.916100009228,
+      "throughput_rps": 24.2,
+      "errors": []
+    }
+  ],
+  "overall": {
+    "api_pass_rate": 0.0,
+    "total_api_tests": 5,
+    "passed_api_tests": 0
+  },
+  "bottleneck_analysis": [
+    "health 响应时间严重超标 (2048ms > 50ms)，建议检查数据库查询或模型推理性能",
+    "ai_health 响应时间严重超标 (2036ms > 100ms)，建议检查数据库查询或模型推理性能",
+    "knowledge_search 响应时间严重超标 (2044ms > 100ms)，建议检查数据库查询或模型推理性能",
+    "stats_overview 响应时间严重超标 (2045ms > 100ms)，建议检查数据库查询或模型推理性能",
+    "diagnosis_text 响应时间略超目标 (0ms > 3000ms)，建议优化网络或服务配置",
+    "10 并发用户平均响应时间过长 (2043ms)，建议优化服务性能或限制并发数",
+    "50 并发用户平均响应时间过长 (2047ms)，建议优化服务性能或限制并发数"
+  ]
+}

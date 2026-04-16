@@ -1,0 +1,44 @@
+{
+  "all_tests_passed": false,
+  "api_tests": {
+    "single_diagnosis": {
+      "test": "single_diagnosis",
+      "success": false,
+      "error": "Cannot connect to host localhost:8000 ssl:default [远程计算机拒绝网络连接。]"
+    },
+    "batch_diagnosis": {
+      "test": "batch_diagnosis",
+      "success": false,
+      "error": "Cannot connect to host localhost:8000 ssl:default [远程计算机拒绝网络连接。]"
+    },
+    "cache_stats": {
+      "test": "cache_stats",
+      "success": false,
+      "error": "Cannot connect to host localhost:8000 ssl:default [远程计算机拒绝网络连接。]"
+    },
+    "metrics": {
+      "test": "metrics",
+      "success": false,
+      "error": "Cannot connect to host localhost:8000 ssl:default [远程计算机拒绝网络连接。]"
+    },
+    "logs": {
+      "test": "logs",
+      "success": false,
+      "error": "Cannot connect to host localhost:8000 ssl:default [远程计算机拒绝网络连接。]"
+    },
+    "alerts": {
+      "test": "alerts",
+      "success": false,
+      "error": "Cannot connect to host localhost:8000 ssl:default [远程计算机拒绝网络连接。]"
+    }
+  },
+  "performance": {
+    "total_requests": 10,
+    "successful_requests": 0,
+    "avg_latency_ms": 0,
+    "p50_latency_ms": 0,
+    "p95_latency_ms": 0,
+    "cache_hit_rate": 0
+  },
+  "timestamp": "2026-03-17 16:04:19"
+}

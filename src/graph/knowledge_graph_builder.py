@@ -655,6 +655,61 @@ class AgriKnowledgeGraph:
         
         return results
     
+    def get_disease_info(self, disease_name: str) -> Dict[str, Any]:
+        """
+        获取病害信息
+        
+        :param disease_name: 病害名称（中文或英文）
+        :return: 病害信息字典
+        """
+        result = {
+            "name": disease_name,
+            "symptoms": [],
+            "pathogen": None,
+            "treatment": [],
+            "prevention": [],
+            "environment": []
+        }
+        
+        # 查找病害实体
+        disease_entity = None
+        for entity in self.entities.values():
+            if entity.name == disease_name or disease_name in entity.name:
+                if entity.entity_type == EntityType.DISEASE or "disease" in entity.id.lower():
+                    disease_entity = entity
+                    break
+        
+        if disease_entity is None:
+            # 尝试通过ID查找
+            for eid, entity in self.entities.items():
+                if disease_name.lower() in eid.lower() or disease_name.lower() in entity.name.lower():
+                    disease_entity = entity
+                    break
+        
+        if disease_entity is None:
+            return result
+        
+        result["name"] = disease_entity.name
+        
+        # 查找相关关系
+        for relation in self.relations:
+            if relation.source == disease_entity.id:
+                target_entity = self.entities.get(relation.target)
+                if target_entity:
+                    rel_type = relation.type.value
+                    if "SYMPTOM" in rel_type:
+                        result["symptoms"].append(target_entity.name)
+                    elif "PATHOGEN" in rel_type or "CAUSED" in rel_type:
+                        result["pathogen"] = target_entity.name
+                    elif "TREAT" in rel_type:
+                        result["treatment"].append(target_entity.name)
+                    elif "PREVENT" in rel_type:
+                        result["prevention"].append(target_entity.name)
+                    elif "FAVOR" in rel_type or "ENVIRON" in rel_type:
+                        result["environment"].append(target_entity.name)
+        
+        return result
+    
     def save(self, output_dir: str):
         """保存知识图谱"""
         os.makedirs(output_dir, exist_ok=True)

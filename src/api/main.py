@@ -4,30 +4,74 @@ WheatAgent FastAPI 主应用
 
 提供RESTful API服务，支持：
 - 图像病害诊断
+- 文本症状诊断
+- 批量诊断
+- 反馈提交
 - 健康检查
 - 模型管理
+
+根据文档8.2节软件技术栈实现
+
+优化特性:
+- 请求日志记录
+- 请求限流
+- 响应缓存
+- 安全检查
 """
 import os
 import sys
+import asyncio
+import uuid
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Callable
 from datetime import datetime
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, status, BackgroundTasks, Query, Request
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 import uvicorn
 
-# 添加项目根目录到路径
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.vision.vision_engine import VisionAgent as VisionEngine
-from src.cognition.cognition_engine import CognitionEngine
-from src.fusion.fusion_engine import FusionAgent as FusionEngine
-from src.graph.graph_engine import KnowledgeAgent as GraphEngine
+from src.api.middleware import (
+    RequestLoggerMiddleware,
+    RateLimitMiddleware,
+    RateLimiter,
+    SecurityMiddleware,
+    ResponseCache,
+    global_rate_limiter,
+    global_response_cache
+)
+
+# 尝试导入各模块，提供优雅降级
+VisionEngine = None
+CognitionEngine = None
+FusionEngine = None
+GraphEngine = None
+
+try:
+    from src.vision.vision_engine import VisionAgent as VisionEngine
+except ImportError as e:
+    print(f"⚠️ 视觉引擎导入失败: {e}")
+
+try:
+    from src.cognition.cognition_engine import CognitionEngine
+except ImportError as e:
+    print(f"⚠️ 认知引擎导入失败: {e}")
+
+try:
+    from src.fusion.fusion_engine import FusionAgent as FusionEngine
+except ImportError as e:
+    print(f"⚠️ 融合引擎导入失败: {e}")
+
+try:
+    from src.graph.graph_engine import KnowledgeAgent as GraphEngine
+except ImportError as e:
+    print(f"⚠️ 知识图谱引擎导入失败: {e}")
 
 
 # ============ Pydantic模型定义 ============
@@ -38,6 +82,24 @@ class DiagnosisRequest(BaseModel):
     text_description: Optional[str] = Field(None, description="文本症状描述")
     use_knowledge: bool = Field(True, description="是否使用知识图谱")
     top_k: int = Field(3, ge=1, le=10, description="返回前K个结果")
+
+
+class BatchDiagnosisRequest(BaseModel):
+    """批量诊断请求模型"""
+    image_paths: List[str] = Field(..., description="图像文件路径列表")
+    use_knowledge: bool = Field(True, description="是否使用知识图谱")
+    top_k: int = Field(3, ge=1, le=10, description="返回前K个结果")
+
+
+class FeedbackRequest(BaseModel):
+    """反馈请求模型"""
+    diagnosis_id: str = Field(..., description="诊断ID")
+    image_path: str = Field(..., description="图像路径")
+    system_diagnosis: str = Field(..., description="系统诊断结果")
+    confidence: float = Field(..., ge=0, le=1, description="置信度")
+    user_correction: Optional[str] = Field(None, description="用户修正")
+    comments: Optional[str] = Field(None, description="评论")
+    reviewer_id: Optional[str] = Field(None, description="审核人ID")
 
 
 class DiagnosisResult(BaseModel):
@@ -55,7 +117,18 @@ class DiagnosisResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     message: str = Field(..., description="状态消息")
     timestamp: str = Field(..., description="时间戳")
+    diagnosis_id: Optional[str] = Field(None, description="诊断ID")
     data: Dict[str, Any] = Field(..., description="诊断数据")
+
+
+class BatchDiagnosisResponse(BaseModel):
+    """批量诊断响应模型"""
+    success: bool = Field(..., description="是否成功")
+    message: str = Field(..., description="状态消息")
+    batch_id: str = Field(..., description="批量任务ID")
+    total: int = Field(..., description="总数量")
+    completed: int = Field(..., description="已完成数量")
+    results: List[Dict[str, Any]] = Field(..., description="诊断结果列表")
 
 
 class HealthResponse(BaseModel):
@@ -63,7 +136,9 @@ class HealthResponse(BaseModel):
     status: str = Field(..., description="服务状态")
     version: str = Field(..., description="API版本")
     timestamp: str = Field(..., description="时间戳")
+    uptime_seconds: Optional[float] = Field(None, description="运行时间(秒)")
     components: Dict[str, bool] = Field(..., description="组件状态")
+    gpu_available: bool = Field(..., description="GPU是否可用")
 
 
 class ModelInfo(BaseModel):
@@ -72,12 +147,29 @@ class ModelInfo(BaseModel):
     version: str = Field(..., description="模型版本")
     status: str = Field(..., description="模型状态")
     loaded_at: Optional[str] = Field(None, description="加载时间")
+    params_count: Optional[int] = Field(None, description="参数量")
 
 
 class ModelsResponse(BaseModel):
     """模型列表响应模型"""
     success: bool = Field(..., description="是否成功")
     models: List[ModelInfo] = Field(..., description="模型列表")
+
+
+class FeedbackResponse(BaseModel):
+    """反馈响应模型"""
+    success: bool = Field(..., description="是否成功")
+    message: str = Field(..., description="状态消息")
+    feedback_id: str = Field(..., description="反馈ID")
+    status: str = Field(..., description="反馈状态")
+
+
+class SystemStats(BaseModel):
+    """系统统计模型"""
+    total_diagnoses: int = Field(0, description="总诊断次数")
+    total_feedbacks: int = Field(0, description="总反馈次数")
+    avg_response_time_ms: float = Field(0, description="平均响应时间(毫秒)")
+    uptime_seconds: float = Field(0, description="运行时间(秒)")
 
 
 # ============ 全局组件实例 ============
@@ -90,6 +182,17 @@ class AppState:
         self.fusion_engine: Optional[FusionEngine] = None
         self.graph_engine: Optional[GraphEngine] = None
         self.startup_time: Optional[datetime] = None
+        
+        # 统计信息
+        self.total_diagnoses: int = 0
+        self.total_feedbacks: int = 0
+        self.response_times: List[float] = []
+        
+        # 线程池用于异步处理
+        self.executor = ThreadPoolExecutor(max_workers=4)
+        
+        # 诊断历史记录
+        self.diagnosis_history: Dict[str, Dict] = {}
         
     def initialize(self):
         """初始化所有组件"""
@@ -129,6 +232,41 @@ class AppState:
             "fusion": self.fusion_engine is not None,
             "graph": self.graph_engine is not None
         }
+    
+    def is_gpu_available(self) -> bool:
+        """检查GPU是否可用"""
+        try:
+            import torch
+            return torch.cuda.is_available()
+        except:
+            return False
+    
+    def get_uptime_seconds(self) -> float:
+        """获取运行时间（秒）"""
+        if self.startup_time:
+            return (datetime.now() - self.startup_time).total_seconds()
+        return 0
+    
+    def record_diagnosis(self, diagnosis_id: str, result: Dict):
+        """记录诊断结果"""
+        self.diagnosis_history[diagnosis_id] = {
+            "result": result,
+            "timestamp": datetime.now().isoformat()
+        }
+        self.total_diagnoses += 1
+    
+    def record_response_time(self, response_time: float):
+        """记录响应时间"""
+        self.response_times.append(response_time)
+        # 只保留最近1000条记录
+        if len(self.response_times) > 1000:
+            self.response_times = self.response_times[-1000:]
+    
+    def get_avg_response_time(self) -> float:
+        """获取平均响应时间"""
+        if not self.response_times:
+            return 0
+        return sum(self.response_times) / len(self.response_times) * 1000  # 转换为毫秒
 
 
 # 全局状态实例
@@ -152,11 +290,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="WheatAgent API",
     description="基于多模态特征融合的小麦病害诊断智能体API服务",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan
 )
 
-# 添加CORS中间件
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -164,6 +301,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SecurityMiddleware, max_content_length=50 * 1024 * 1024)
+app.add_middleware(RateLimitMiddleware, rate_limiter=global_rate_limiter)
+app.add_middleware(RequestLoggerMiddleware)
 
 
 # ============ API端点 ============
@@ -187,8 +328,63 @@ async def health_check():
         status="healthy" if all(app_state.get_component_status().values()) else "degraded",
         version="1.0.0",
         timestamp=datetime.now().isoformat(),
-        components=app_state.get_component_status()
+        uptime_seconds=app_state.get_uptime_seconds(),
+        components=app_state.get_component_status(),
+        gpu_available=app_state.is_gpu_available()
     )
+
+
+@app.get("/stats", response_model=SystemStats)
+async def get_system_stats():
+    """获取系统统计信息"""
+    return SystemStats(
+        total_diagnoses=app_state.total_diagnoses,
+        total_feedbacks=app_state.total_feedbacks,
+        avg_response_time_ms=app_state.get_avg_response_time(),
+        uptime_seconds=app_state.get_uptime_seconds()
+    )
+
+
+@app.get("/stats/rate-limit")
+async def get_rate_limit_stats(request: Request):
+    """
+    获取限流统计信息
+    
+    返回当前客户端的请求统计
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    stats = global_rate_limiter.get_stats(client_ip)
+    return {
+        "success": True,
+        "data": stats
+    }
+
+
+@app.get("/stats/cache")
+async def get_cache_stats():
+    """
+    获取缓存统计信息
+    
+    返回响应缓存的统计信息
+    """
+    return {
+        "success": True,
+        "data": global_response_cache.get_stats()
+    }
+
+
+@app.post("/cache/clear")
+async def clear_cache():
+    """
+    清空响应缓存
+    
+    管理员操作，清空所有缓存数据
+    """
+    global_response_cache.clear()
+    return {
+        "success": True,
+        "message": "缓存已清空"
+    }
 
 
 @app.post("/diagnose/image", response_model=DiagnosisResponse)
@@ -202,6 +398,9 @@ async def diagnose_image(
     
     上传小麦病害图像，返回诊断结果
     """
+    start_time = datetime.now()
+    diagnosis_id = str(uuid.uuid4())
+    
     try:
         # 验证文件类型
         if not file.content_type.startswith("image/"):
@@ -226,20 +425,31 @@ async def diagnose_image(
             results = app_state.fusion_engine.diagnose(
                 image_path=str(file_path),
                 use_knowledge=use_knowledge,
-                top_k=top_k
+                top_k=top_k,
+                vision_engine=app_state.vision_engine,
+                cognition_engine=app_state.cognition_engine
             )
         else:
             # 降级处理：仅使用视觉引擎
             results = app_state.vision_engine.detect(str(file_path))
         
+        # 记录诊断结果
+        app_state.record_diagnosis(diagnosis_id, results)
+        
+        # 记录响应时间
+        response_time = (datetime.now() - start_time).total_seconds()
+        app_state.record_response_time(response_time)
+        
         return DiagnosisResponse(
             success=True,
             message="诊断成功",
             timestamp=datetime.now().isoformat(),
+            diagnosis_id=diagnosis_id,
             data={
                 "image_path": str(file_path),
                 "results": results,
-                "model_used": "fusion" if app_state.fusion_engine else "vision_only"
+                "model_used": "fusion" if app_state.fusion_engine else "vision_only",
+                "response_time_ms": response_time * 1000
             }
         )
         
@@ -249,6 +459,120 @@ async def diagnose_image(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"诊断失败: {str(e)}"
+        )
+
+
+@app.post("/diagnose/batch", response_model=BatchDiagnosisResponse)
+async def batch_diagnose(
+    request: BatchDiagnosisRequest,
+    background_tasks: BackgroundTasks
+):
+    """
+    批量诊断端点
+    
+    对多张图像进行批量诊断
+    """
+    batch_id = str(uuid.uuid4())
+    results = []
+    
+    for image_path in request.image_paths:
+        try:
+            if not os.path.exists(image_path):
+                results.append({
+                    "image_path": image_path,
+                    "success": False,
+                    "error": "文件不存在"
+                })
+                continue
+            
+            if app_state.fusion_engine:
+                result = app_state.fusion_engine.diagnose(
+                    image_path=image_path,
+                    use_knowledge=request.use_knowledge,
+                    top_k=request.top_k,
+                    vision_engine=app_state.vision_engine,
+                    cognition_engine=app_state.cognition_engine
+                )
+            else:
+                result = app_state.vision_engine.detect(image_path)
+            
+            results.append({
+                "image_path": image_path,
+                "success": True,
+                "result": result
+            })
+            
+        except Exception as e:
+            results.append({
+                "image_path": image_path,
+                "success": False,
+                "error": str(e)
+            })
+    
+    app_state.total_diagnoses += len(request.image_paths)
+    
+    return BatchDiagnosisResponse(
+        success=True,
+        message=f"批量诊断完成: {len(results)}/{len(request.image_paths)}",
+        batch_id=batch_id,
+        total=len(request.image_paths),
+        completed=len([r for r in results if r.get("success")]),
+        results=results
+    )
+
+
+@app.post("/feedback", response_model=FeedbackResponse)
+async def submit_feedback(request: FeedbackRequest):
+    """
+    提交诊断反馈端点
+    
+    用户可以提交对诊断结果的反馈，用于模型改进
+    """
+    feedback_id = str(uuid.uuid4())
+    
+    try:
+        # 保存反馈
+        feedback_dir = Path("data/human_feedback")
+        feedback_dir.mkdir(parents=True, exist_ok=True)
+        
+        feedback_data = {
+            "feedback_id": feedback_id,
+            "diagnosis_id": request.diagnosis_id,
+            "image_path": request.image_path,
+            "system_diagnosis": request.system_diagnosis,
+            "confidence": request.confidence,
+            "user_correction": request.user_correction,
+            "comments": request.comments,
+            "reviewer_id": request.reviewer_id,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        feedback_file = feedback_dir / f"feedback_{feedback_id}.json"
+        import json
+        with open(feedback_file, 'w', encoding='utf-8') as f:
+            json.dump(feedback_data, f, ensure_ascii=False, indent=2)
+        
+        app_state.total_feedbacks += 1
+        
+        # 判断反馈状态
+        if request.confidence < 0.6:
+            status_msg = "pending_review"
+        elif request.user_correction:
+            status_msg = "correction_submitted"
+        else:
+            status_msg = "accepted"
+        
+        return FeedbackResponse(
+            success=True,
+            message="反馈提交成功",
+            feedback_id=feedback_id,
+            status=status_msg
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"反馈提交失败: {str(e)}"
         )
 
 

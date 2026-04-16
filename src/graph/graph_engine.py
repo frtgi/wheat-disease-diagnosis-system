@@ -1,26 +1,91 @@
 # 文件路径: WheatAgent/src/graph/graph_engine.py
+import os
 from neo4j import GraphDatabase
+import warnings
+
+
+def get_neo4j_config():
+    """
+    获取 Neo4j 连接配置
+    
+    :return: 包含 uri, user, password 的配置字典
+    """
+    return {
+        "uri": os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+        "user": os.getenv("NEO4J_USER", "neo4j"),
+        "password": os.getenv("NEO4J_PASSWORD", "123456789s"),
+        "database": os.getenv("NEO4J_DATABASE", "neo4j"),
+        "max_connection_pool_size": int(os.getenv("NEO4J_MAX_CONNECTION_POOL_SIZE", "50")),
+        "connection_timeout": int(os.getenv("NEO4J_CONNECTION_TIMEOUT", "30"))
+    }
+
 
 class KnowledgeAgent:
-    def __init__(self, uri="neo4j://localhost:7687", user="neo4j", password="123456789s"):
-        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+    def __init__(self, uri=None, user=None, password=None, force_init=False):
+        """
+        初始化知识图谱代理
+        
+        :param uri: Neo4j连接URI (可选，默认从环境变量读取)
+        :param user: 用户名 (可选，默认从环境变量读取)
+        :param password: 密码 (可选，默认从环境变量读取)
+        :param force_init: 是否强制重新初始化知识库
+        """
+        config = get_neo4j_config()
+        uri = uri or config["uri"]
+        user = user or config["user"]
+        password = password or config["password"]
+        max_pool_size = config["max_connection_pool_size"]
+        connection_timeout = config["connection_timeout"]
+        
+        print(f"📚 [KnowledgeAgent] 正在连接Neo4j数据库: {uri}", flush=True)
+        
+        print("   [KG] 创建Neo4j驱动...", flush=True)
+        self.driver = GraphDatabase.driver(
+            uri, 
+            auth=(user, password),
+            max_connection_lifetime=30,
+            max_connection_pool_size=max_pool_size,
+            connection_timeout=float(connection_timeout)
+        )
+        print("   [KG] Neo4j驱动创建完成", flush=True)
+        self.force_init = force_init
+        
         try:
+            print("   [KG] 验证连接...", flush=True)
             self.driver.verify_connectivity()
-            # 初始化知识库
-            self._init_knowledge_base()
+            print("✅ [KnowledgeAgent] Neo4j连接成功", flush=True)
+            print("   [KG] 检查知识库状态...", flush=True)
+            self._check_and_init_knowledge_base()
         except Exception as e:
-            print(f"❌ 图数据库连接失败: {e}")
+            print(f"❌ 图数据库连接失败: {e}", flush=True)
+            raise
 
     def close(self):
         self.driver.close()
+    
+    def _check_and_init_knowledge_base(self):
+        """检查并初始化知识库（避免重复清空）"""
+        with self.driver.session() as session:
+            # 检查是否已有数据
+            result = session.run("MATCH (n) RETURN count(n) as count")
+            count = result.single()['count']
+            
+            if count > 0 and not self.force_init:
+                print(f"✅ 知识库已存在 {count} 个节点，跳过初始化")
+                return
+            
+            if self.force_init and count > 0:
+                print(f"🔄 强制重新初始化知识库（当前 {count} 个节点）")
+            
+            self._init_knowledge_base()
 
     def _init_knowledge_base(self):
         print("📥 [初始化] 正在注入全维度小麦病害知识库 (含成因与预防)...")
         
-        # 1. 拆分出的清空语句
+        # 1. 清空语句
         clear_query = "MATCH (n) DETACH DELETE n"
         
-        # 2. 初始化语句 (去掉开头的 clear 语句)
+        # 2. 初始化语句
         init_query = """
         // --- 1. 定义核心病害节点 (16类) ---
         CREATE (d0:Disease {name: '蚜虫', type: 'Insect'})

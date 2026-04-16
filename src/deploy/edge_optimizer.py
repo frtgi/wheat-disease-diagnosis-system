@@ -574,5 +574,324 @@ def test_edge_optimizer():
     print("=" * 70)
 
 
+class CalibrationDataGenerator:
+    """
+    校准数据生成器
+    
+    用于生成INT8量化所需的校准数据
+    """
+    
+    def __init__(
+        self,
+        input_shape: Tuple[int, ...] = (3, 640, 640),
+        num_samples: int = 100,
+        output_dir: str = "data/calibration"
+    ):
+        """
+        初始化校准数据生成器
+        
+        :param input_shape: 输入形状 (C, H, W)
+        :param num_samples: 样本数量
+        :param output_dir: 输出目录
+        """
+        self.input_shape = input_shape
+        self.num_samples = num_samples
+        self.output_dir = output_dir
+    
+    def generate_synthetic_data(
+        self,
+        method: str = "random"
+    ) -> torch.Tensor:
+        """
+        生成合成校准数据
+        
+        :param method: 生成方法 (random, gaussian, uniform)
+        :return: 校准数据张量
+        """
+        print(f"🔧 生成合成校准数据 (方法: {method})...")
+        
+        if method == "random":
+            data = torch.rand(self.num_samples, *self.input_shape)
+        elif method == "gaussian":
+            data = torch.randn(self.num_samples, *self.input_shape)
+            data = (data - data.min()) / (data.max() - data.min())
+        elif method == "uniform":
+            data = torch.rand(self.num_samples, *self.input_shape) * 2 - 1
+        else:
+            data = torch.rand(self.num_samples, *self.input_shape)
+        
+        print(f"✅ 生成 {self.num_samples} 个校准样本")
+        return data
+    
+    def generate_from_real_images(
+        self,
+        image_dir: str,
+        transform: Optional[Any] = None
+    ) -> torch.Tensor:
+        """
+        从真实图像生成校准数据
+        
+        :param image_dir: 图像目录
+        :param transform: 图像变换
+        :return: 校准数据张量
+        """
+        import os
+        from PIL import Image
+        
+        print(f"🔧 从图像生成校准数据: {image_dir}")
+        
+        if transform is None:
+            from torchvision import transforms
+            transform = transforms.Compose([
+                transforms.Resize((self.input_shape[1], self.input_shape[2])),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+        
+        images = []
+        image_files = [f for f in os.listdir(image_dir) if f.endswith(('.jpg', '.png', '.jpeg'))]
+        
+        for i, img_file in enumerate(image_files[:self.num_samples]):
+            img_path = os.path.join(image_dir, img_file)
+            try:
+                img = Image.open(img_path).convert('RGB')
+                img_tensor = transform(img)
+                images.append(img_tensor)
+            except Exception as e:
+                print(f"   警告: 无法加载图像 {img_file}: {e}")
+        
+        if not images:
+            print("⚠️ 未找到有效图像，使用合成数据")
+            return self.generate_synthetic_data()
+        
+        data = torch.stack(images)
+        print(f"✅ 加载 {len(images)} 个校准样本")
+        return data
+    
+    def save_calibration_data(
+        self,
+        data: torch.Tensor,
+        filename: str = "calibration_data.pt"
+    ) -> str:
+        """
+        保存校准数据
+        
+        :param data: 校准数据
+        :param filename: 文件名
+        :return: 保存路径
+        """
+        os.makedirs(self.output_dir, exist_ok=True)
+        save_path = os.path.join(self.output_dir, filename)
+        torch.save(data, save_path)
+        print(f"✅ 校准数据已保存: {save_path}")
+        return save_path
+    
+    def load_calibration_data(
+        self,
+        filename: str = "calibration_data.pt"
+    ) -> torch.Tensor:
+        """
+        加载校准数据
+        
+        :param filename: 文件名
+        :return: 校准数据
+        """
+        load_path = os.path.join(self.output_dir, filename)
+        data = torch.load(load_path)
+        print(f"✅ 校准数据已加载: {load_path}")
+        return data
+
+
+class ModelExporter:
+    """
+    模型导出器
+    
+    支持多种导出格式：ONNX, TensorRT, TorchScript, OpenVINO
+    """
+    
+    def __init__(self, config: EdgeConfig):
+        """
+        初始化模型导出器
+        
+        :param config: 边缘端配置
+        """
+        self.config = config
+    
+    def export_to_torchscript(
+        self,
+        model: nn.Module,
+        output_path: str,
+        input_shape: Tuple[int, ...] = (1, 3, 640, 640),
+        method: str = "trace"
+    ) -> str:
+        """
+        导出为TorchScript格式
+        
+        :param model: PyTorch模型
+        :param output_path: 输出路径
+        :param input_shape: 输入形状
+        :param method: 导出方法 (trace, script)
+        :return: 导出文件路径
+        """
+        print(f"📦 导出TorchScript: {output_path}")
+        
+        model.eval()
+        device = torch.device(self.config.device)
+        model = model.to(device)
+        
+        if method == "trace":
+            dummy_input = torch.randn(*input_shape).to(device)
+            traced_model = torch.jit.trace(model, dummy_input)
+            traced_model.save(output_path)
+        else:
+            scripted_model = torch.jit.script(model)
+            scripted_model.save(output_path)
+        
+        print(f"✅ TorchScript导出完成: {output_path}")
+        return output_path
+    
+    def export_to_onnx(
+        self,
+        model: nn.Module,
+        output_path: str,
+        input_shape: Tuple[int, ...] = (1, 3, 640, 640),
+        opset_version: int = 11,
+        simplify: bool = True
+    ) -> str:
+        """
+        导出为ONNX格式
+        
+        :param model: PyTorch模型
+        :param output_path: 输出路径
+        :param input_shape: 输入形状
+        :param opset_version: ONNX算子集版本
+        :param simplify: 是否简化ONNX模型
+        :return: 导出文件路径
+        """
+        print(f"📦 导出ONNX: {output_path}")
+        
+        model.eval()
+        device = torch.device(self.config.device)
+        model = model.to(device)
+        
+        dummy_input = torch.randn(*input_shape).to(device)
+        
+        torch.onnx.export(
+            model,
+            dummy_input,
+            output_path,
+            export_params=True,
+            opset_version=opset_version,
+            do_constant_folding=True,
+            input_names=['images'],
+            output_names=['output'],
+            dynamic_axes={
+                'images': {0: 'batch_size'},
+                'output': {0: 'batch_size'}
+            }
+        )
+        
+        if simplify:
+            try:
+                import onnx
+                from onnxsim import simplify as onnx_simplify
+                
+                onnx_model = onnx.load(output_path)
+                onnx_model_simplified, check = onnx_simplify(onnx_model)
+                
+                if check:
+                    onnx.save(onnx_model_simplified, output_path)
+                    print("   ONNX模型已简化")
+            except ImportError:
+                print("   警告: onnx-simplifier未安装，跳过简化")
+        
+        print(f"✅ ONNX导出完成: {output_path}")
+        return output_path
+    
+    def export_to_openvino(
+        self,
+        onnx_path: str,
+        output_dir: str,
+        precision: str = "FP16"
+    ) -> str:
+        """
+        导出为OpenVINO IR格式
+        
+        :param onnx_path: ONNX模型路径
+        :param output_dir: 输出目录
+        :param precision: 精度 (FP32, FP16, INT8)
+        :return: 输出目录
+        """
+        try:
+            from openvino.tools.mo import convert_model
+        except ImportError:
+            print("⚠️ OpenVINO未安装，跳过导出")
+            return onnx_path
+        
+        print(f"📦 导出OpenVINO IR: {output_dir}")
+        
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # 转换模型
+        ov_model = convert_model(onnx_path)
+        
+        # 保存模型
+        from openvino.runtime import serialize
+        xml_path = os.path.join(output_dir, "model.xml")
+        serialize(ov_model, xml_path)
+        
+        print(f"✅ OpenVINO IR导出完成: {xml_path}")
+        return output_dir
+    
+    def get_model_info(self, model_path: str) -> Dict[str, Any]:
+        """
+        获取模型信息
+        
+        :param model_path: 模型路径
+        :return: 模型信息字典
+        """
+        info = {
+            "path": model_path,
+            "size_mb": 0,
+            "format": "unknown"
+        }
+        
+        if not os.path.exists(model_path):
+            return info
+        
+        info["size_mb"] = os.path.getsize(model_path) / (1024 * 1024)
+        
+        if model_path.endswith('.pt') or model_path.endswith('.pth'):
+            info["format"] = "PyTorch"
+        elif model_path.endswith('.onnx'):
+            info["format"] = "ONNX"
+        elif model_path.endswith('.engine') or model_path.endswith('.trt'):
+            info["format"] = "TensorRT"
+        elif model_path.endswith('.xml'):
+            info["format"] = "OpenVINO"
+        elif model_path.endswith('.torchscript'):
+            info["format"] = "TorchScript"
+        
+        return info
+
+
+def create_calibration_dataloader(
+    data: torch.Tensor,
+    batch_size: int = 1
+) -> DataLoader:
+    """
+    创建校准数据加载器
+    
+    :param data: 校准数据张量
+    :param batch_size: 批大小
+    :return: DataLoader实例
+    """
+    from torch.utils.data import TensorDataset
+    
+    dataset = TensorDataset(data, torch.zeros(data.size(0)))
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    return dataloader
+
+
 if __name__ == "__main__":
     test_edge_optimizer()

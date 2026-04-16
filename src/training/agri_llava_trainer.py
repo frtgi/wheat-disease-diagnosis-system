@@ -728,6 +728,290 @@ def create_sample_training_data(output_dir: str = "datasets/agri_instruct"):
     print(f"✅ 示例训练数据已创建: {output_dir}")
 
 
+class AdvancedTrainingFeatures:
+    """
+    高级训练功能 - 根据文档4.2节
+    
+    包含：
+    - 梯度检查点（Gradient Checkpointing）
+    - 混合精度训练（Mixed Precision）
+    - 学习率调度（Learning Rate Scheduling）
+    - 训练监控（Training Monitoring）
+    """
+    
+    @staticmethod
+    def enable_gradient_checkpointing(model: nn.Module):
+        """
+        启用梯度检查点以节省显存
+        
+        :param model: 模型
+        """
+        if hasattr(model, 'gradient_checkpointing_enable'):
+            model.gradient_checkpointing_enable()
+            print("✅ 梯度检查点已启用")
+        elif hasattr(model, 'llm') and hasattr(model.llm, 'gradient_checkpointing_enable'):
+            model.llm.gradient_checkpointing_enable()
+            print("✅ LLM梯度检查点已启用")
+    
+    @staticmethod
+    def create_optimizer_grouped_parameters(
+        model: nn.Module,
+        weight_decay: float = 0.01,
+        lr: float = 2e-4
+    ) -> List[Dict]:
+        """
+        创建分组优化器参数（不同层使用不同学习率）
+        
+        :param model: 模型
+        :param weight_decay: 权重衰减
+        :param lr: 基础学习率
+        :return: 参数组
+        """
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in model.named_parameters() if "projection" in n and p.requires_grad],
+                "weight_decay": weight_decay,
+                "lr": lr
+            },
+            {
+                "params": [p for n, p in model.named_parameters() if "lora" in n.lower() and p.requires_grad],
+                "weight_decay": 0.0,  # LoRA参数不使用权重衰减
+                "lr": lr / 10
+            }
+        ]
+        return optimizer_grouped_parameters
+    
+    @staticmethod
+    def create_lr_scheduler(
+        optimizer,
+        num_training_steps: int,
+        warmup_steps: int = 100,
+        scheduler_type: str = "cosine"
+    ):
+        """
+        创建学习率调度器
+        
+        :param optimizer: 优化器
+        :param num_training_steps: 总训练步数
+        :param warmup_steps: 预热步数
+        :param scheduler_type: 调度器类型
+        :return: 学习率调度器
+        """
+        from transformers import get_scheduler
+        
+        scheduler = get_scheduler(
+            name=scheduler_type,
+            optimizer=optimizer,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=num_training_steps
+        )
+        
+        print(f"✅ 学习率调度器已创建: {scheduler_type}")
+        return scheduler
+    
+    @staticmethod
+    def compute_training_metrics(
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        prefix: str = "train"
+    ) -> Dict[str, float]:
+        """
+        计算训练指标
+        
+        :param logits: 模型输出
+        :param labels: 标签
+        :param prefix: 指标前缀
+        :return: 指标字典
+        """
+        # 计算困惑度
+        shift_logits = logits[..., :-1, :].contiguous()
+        shift_labels = labels[..., 1:].contiguous()
+        
+        loss_fct = nn.CrossEntropyLoss(reduction='none')
+        loss = loss_fct(
+            shift_logits.view(-1, shift_logits.size(-1)),
+            shift_labels.view(-1)
+        )
+        
+        perplexity = torch.exp(loss.mean()).item()
+        
+        # 计算准确率
+        predictions = shift_logits.argmax(dim=-1)
+        mask = shift_labels != -100
+        accuracy = (predictions == shift_labels).masked_select(mask).float().mean().item()
+        
+        return {
+            f"{prefix}/perplexity": perplexity,
+            f"{prefix}/accuracy": accuracy
+        }
+
+
+class TrainingMonitor:
+    """
+    训练监控器 - 实时监控训练进度
+    """
+    
+    def __init__(self, log_dir: str = "logs/training"):
+        """
+        初始化监控器
+        
+        :param log_dir: 日志目录
+        """
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.history = {
+            "train_loss": [],
+            "val_loss": [],
+            "learning_rate": [],
+            "epoch": []
+        }
+    
+    def log_step(
+        self,
+        step: int,
+        loss: float,
+        learning_rate: float,
+        metrics: Optional[Dict] = None
+    ):
+        """
+        记录训练步骤
+        
+        :param step: 步骤
+        :param loss: 损失
+        :param learning_rate: 学习率
+        :param metrics: 其他指标
+        """
+        self.history["train_loss"].append(loss)
+        self.history["learning_rate"].append(learning_rate)
+        
+        if metrics:
+            for key, value in metrics.items():
+                if key not in self.history:
+                    self.history[key] = []
+                self.history[key].append(value)
+    
+    def log_epoch(
+        self,
+        epoch: int,
+        train_loss: float,
+        val_loss: Optional[float] = None
+    ):
+        """
+        记录epoch
+        
+        :param epoch: epoch数
+        :param train_loss: 训练损失
+        :param val_loss: 验证损失
+        """
+        self.history["epoch"].append(epoch)
+        
+        if val_loss is not None:
+            self.history["val_loss"].append(val_loss)
+    
+    def save_history(self, filename: str = "training_history.json"):
+        """
+        保存训练历史
+        
+        :param filename: 文件名
+        """
+        history_path = self.log_dir / filename
+        with open(history_path, 'w', encoding='utf-8') as f:
+            json.dump(self.history, f, ensure_ascii=False, indent=2)
+        
+        print(f"✅ 训练历史已保存: {history_path}")
+    
+    def plot_training_curves(self, output_path: Optional[str] = None):
+        """
+        绘制训练曲线
+        
+        :param output_path: 输出路径
+        """
+        try:
+            import matplotlib.pyplot as plt
+            
+            fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+            
+            # 损失曲线
+            axes[0].plot(self.history["train_loss"], label="Train Loss")
+            if self.history["val_loss"]:
+                axes[0].plot(self.history["val_loss"], label="Val Loss")
+            axes[0].set_xlabel("Step")
+            axes[0].set_ylabel("Loss")
+            axes[0].set_title("Training Loss")
+            axes[0].legend()
+            axes[0].grid(True)
+            
+            # 学习率曲线
+            axes[1].plot(self.history["learning_rate"])
+            axes[1].set_xlabel("Step")
+            axes[1].set_ylabel("Learning Rate")
+            axes[1].set_title("Learning Rate Schedule")
+            axes[1].grid(True)
+            
+            plt.tight_layout()
+            
+            if output_path:
+                plt.savefig(output_path, dpi=150)
+                print(f"✅ 训练曲线已保存: {output_path}")
+            else:
+                plt.savefig(self.log_dir / "training_curves.png", dpi=150)
+            
+            plt.close()
+            
+        except ImportError:
+            print("⚠️ matplotlib未安装，跳过绘图")
+
+
+def run_two_stage_training(
+    phase1_data_path: str = None,
+    phase2_data_path: str = None,
+    output_dir: str = "checkpoints/agri_llava",
+    config: Optional[AgriLLaVAConfig] = None
+):
+    """
+    执行完整的两阶段训练流程 - 根据文档4.2节
+    
+    :param phase1_data_path: 第一阶段数据路径
+    :param phase2_data_path: 第二阶段数据路径
+    :param output_dir: 输出目录
+    :param config: 训练配置
+    """
+    print("=" * 70)
+    print("🚀 Agri-LLaVA 两阶段训练流程")
+    print("=" * 70)
+    
+    # 创建默认配置
+    if config is None:
+        config = AgriLLaVAConfig()
+    
+    # 创建训练器
+    trainer = AgriLLaVATrainer(config)
+    
+    # 创建监控器
+    monitor = TrainingMonitor(log_dir=os.path.join(output_dir, "logs"))
+    
+    # 执行训练
+    trainer.train(
+        phase1_data_path=phase1_data_path,
+        phase2_data_path=phase2_data_path,
+        output_dir=output_dir
+    )
+    
+    # 保存训练历史
+    monitor.save_history()
+    
+    print("\n" + "=" * 70)
+    print("🎉 两阶段训练流程完成！")
+    print("=" * 70)
+    print(f"模型保存路径: {output_dir}")
+    print("\n训练建议:")
+    print("1. 第一阶段建议使用约60万条图文对数据")
+    print("2. 第二阶段建议使用AgroInstruct数据集（70k+条）")
+    print("3. 推荐使用LoRA进行高效微调")
+    print("4. 建议启用梯度检查点以节省显存")
+
+
 def test_agri_llava_trainer():
     """测试Agri-LLaVA训练器"""
     print("=" * 70)

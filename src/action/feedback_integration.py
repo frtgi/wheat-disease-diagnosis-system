@@ -9,32 +9,40 @@
 3. 增量学习触发与管理
 4. 知识图谱自动更新
 5. 系统性能持续优化
+
+文档参考:
+- 7.2 人机协同反馈闭环
+- 5.2 知识抽取与图谱构建自动化
 """
 import os
 import json
 import datetime
+import math
 from typing import Dict, Any, Optional, List, Callable, Tuple
 from dataclasses import dataclass
 from enum import Enum
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
 
 # 导入相关模块
 try:
-    from .human_in_the_loop import HumanInTheLoop, FeedbackRecord, FeedbackStatus
-    from .enhanced_learner_engine import EnhancedActiveLearner
+    from ..evolution.human_in_the_loop import HumanInTheLoop, FeedbackRecord, FeedbackStatus
+    from .learner_engine import ActiveLearner as EnhancedActiveLearner
     from ..graph.graph_engine import KnowledgeAgent
 except ImportError:
     try:
-        from human_in_the_loop import HumanInTheLoop, FeedbackRecord, FeedbackStatus
-        from enhanced_learner_engine import EnhancedActiveLearner
+        from evolution.human_in_the_loop import HumanInTheLoop, FeedbackRecord, FeedbackStatus
+        from action.learner_engine import ActiveLearner as EnhancedActiveLearner
         from graph.graph_engine import KnowledgeAgent
     except ImportError:
         import sys
-        import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-        from graph.graph_engine import KnowledgeAgent
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+        from src.graph.graph_engine import KnowledgeAgent
+        from src.action.learner_engine import ActiveLearner as EnhancedActiveLearner
+        from src.evolution.human_in_the_loop import HumanInTheLoop, FeedbackRecord, FeedbackStatus
 
 
 class LearningTrigger(Enum):
@@ -43,6 +51,346 @@ class LearningTrigger(Enum):
     AUTO_THRESHOLD = "auto_threshold"    # 自动阈值触发
     SCHEDULED = "scheduled"              # 定时触发
     FEEDBACK_COUNT = "feedback_count"    # 反馈数量触发
+    UNCERTAINTY_SPIKE = "uncertainty_spike"  # 不确定性突增触发
+
+
+class UncertaintyDetector:
+    """
+    不确定性检测器
+    
+    文档参考: 7.2 人机协同反馈闭环 - 不确定性预警
+    
+    实现多维度的不确定性评估：
+    1. 置信度阈值检测
+    2. 熵值计算
+    3. OOD (Out-of-Distribution) 检测
+    4. 预测方差分析
+    """
+    
+    def __init__(
+        self,
+        confidence_threshold: float = 0.5,
+        entropy_threshold: float = 1.5,
+        ood_threshold: float = 0.3
+    ):
+        """
+        初始化不确定性检测器
+        
+        :param confidence_threshold: 置信度阈值
+        :param entropy_threshold: 熵值阈值
+        :param ood_threshold: OOD检测阈值
+        """
+        self.confidence_threshold = confidence_threshold
+        self.entropy_threshold = entropy_threshold
+        self.ood_threshold = ood_threshold
+        
+        # 历史预测分布（用于OOD检测）
+        self.prediction_history: List[np.ndarray] = []
+        self.history_size = 100
+    
+    def compute_uncertainty(
+        self,
+        probabilities: np.ndarray,
+        features: Optional[np.ndarray] = None
+    ) -> Dict[str, Any]:
+        """
+        计算综合不确定性
+        
+        :param probabilities: 预测概率分布 [num_classes]
+        :param features: 特征向量（可选，用于OOD检测）
+        :return: 不确定性评估结果
+        """
+        result = {
+            "is_uncertain": False,
+            "uncertainty_score": 0.0,
+            "confidence": float(np.max(probabilities)),
+            "entropy": 0.0,
+            "is_ood": False,
+            "uncertainty_factors": []
+        }
+        
+        # 1. 置信度检测
+        max_confidence = np.max(probabilities)
+        if max_confidence < self.confidence_threshold:
+            result["uncertainty_factors"].append("low_confidence")
+            result["is_uncertain"] = True
+        
+        # 2. 熵值计算
+        entropy = self._compute_entropy(probabilities)
+        result["entropy"] = entropy
+        if entropy > self.entropy_threshold:
+            result["uncertainty_factors"].append("high_entropy")
+            result["is_uncertain"] = True
+        
+        # 3. OOD检测（如果有特征）
+        if features is not None:
+            is_ood, ood_score = self._detect_ood(features)
+            result["is_ood"] = is_ood
+            result["ood_score"] = ood_score
+            if is_ood:
+                result["uncertainty_factors"].append("ood_detected")
+                result["is_uncertain"] = True
+        
+        # 4. 预测方差分析
+        if len(self.prediction_history) > 10:
+            variance = self._compute_prediction_variance(probabilities)
+            result["prediction_variance"] = variance
+            if variance > 0.3:
+                result["uncertainty_factors"].append("high_variance")
+        
+        # 综合不确定性评分
+        result["uncertainty_score"] = self._compute_overall_uncertainty(
+            max_confidence, entropy, result.get("ood_score", 0)
+        )
+        
+        # 更新历史
+        self._update_history(probabilities)
+        
+        return result
+    
+    def _compute_entropy(self, probabilities: np.ndarray) -> float:
+        """
+        计算预测熵
+        
+        :param probabilities: 概率分布
+        :return: 熵值
+        """
+        # 避免log(0)
+        probs = np.clip(probabilities, 1e-10, 1.0)
+        entropy = -np.sum(probs * np.log(probs))
+        return float(entropy)
+    
+    def _detect_ood(self, features: np.ndarray) -> Tuple[bool, float]:
+        """
+        OOD检测
+        
+        :param features: 特征向量
+        :return: (是否OOD, OOD分数)
+        """
+        if len(self.prediction_history) < 10:
+            return False, 0.0
+        
+        # 简化的OOD检测：基于马氏距离
+        # 实际应用中可以使用更复杂的方法
+        try:
+            history_matrix = np.array(self.prediction_history[-self.history_size:])
+            mean = np.mean(history_matrix, axis=0)
+            cov = np.cov(history_matrix.T) + np.eye(len(mean)) * 1e-6
+            
+            # 计算马氏距离
+            diff = features - mean
+            if len(cov.shape) == 0:
+                mahal_dist = abs(diff) / np.sqrt(cov)
+            else:
+                inv_cov = np.linalg.inv(cov)
+                mahal_dist = np.sqrt(np.dot(np.dot(diff, inv_cov), diff))
+            
+            ood_score = min(mahal_dist / 10.0, 1.0)  # 归一化
+            is_ood = ood_score > self.ood_threshold
+            
+            return is_ood, float(ood_score)
+        except Exception:
+            return False, 0.0
+    
+    def _compute_prediction_variance(self, probabilities: np.ndarray) -> float:
+        """
+        计算预测方差
+        
+        :param probabilities: 当前预测
+        :return: 方差值
+        """
+        history = np.array(self.prediction_history[-20:])
+        variance = np.mean(np.var(history, axis=0))
+        return float(variance)
+    
+    def _compute_overall_uncertainty(
+        self,
+        confidence: float,
+        entropy: float,
+        ood_score: float
+    ) -> float:
+        """
+        计算综合不确定性评分
+        
+        :param confidence: 置信度
+        :param entropy: 熵值
+        :param ood_score: OOD分数
+        :return: 综合不确定性评分 [0, 1]
+        """
+        # 归一化各项指标
+        conf_score = 1.0 - confidence
+        entropy_score = min(entropy / 2.0, 1.0)  # 假设最大熵为2
+        
+        # 加权平均
+        overall = 0.4 * conf_score + 0.4 * entropy_score + 0.2 * ood_score
+        return float(min(overall, 1.0))
+    
+    def _update_history(self, probabilities: np.ndarray):
+        """更新预测历史"""
+        self.prediction_history.append(probabilities)
+        if len(self.prediction_history) > self.history_size:
+            self.prediction_history.pop(0)
+
+
+class KnowledgeExtractor:
+    """
+    知识提取器
+    
+    文档参考: 5.2 知识抽取与图谱构建自动化
+    
+    从专家反馈中提取结构化知识三元组
+    """
+    
+    def __init__(self, knowledge_agent: 'KnowledgeAgent'):
+        """
+        初始化知识提取器
+        
+        :param knowledge_agent: 知识图谱智能体
+        """
+        self.knowledge_agent = knowledge_agent
+        
+        # 知识模板
+        self.templates = {
+            "correction": {
+                "pattern": "{correct_disease}易被误诊为{wrong_disease}",
+                "relation": "易混淆为"
+            },
+            "symptom": {
+                "pattern": "{disease}表现为{symptom}",
+                "relation": "表现为"
+            },
+            "treatment": {
+                "pattern": "{disease}可使用{treatment}防治",
+                "relation": "防治措施"
+            },
+            "condition": {
+                "pattern": "{disease}易在{condition}条件下发生",
+                "relation": "发病条件"
+            }
+        }
+    
+    def extract_from_feedback(
+        self,
+        system_diagnosis: str,
+        user_correction: Optional[str],
+        comments: str
+    ) -> List[Dict[str, Any]]:
+        """
+        从专家反馈中提取知识三元组
+        
+        :param system_diagnosis: 系统诊断
+        :param user_correction: 用户修正
+        :param comments: 评论
+        :return: 知识三元组列表
+        """
+        triples = []
+        
+        # 1. 如果有修正，提取混淆关系
+        if user_correction and user_correction != system_diagnosis:
+            triples.append({
+                "subject": user_correction,
+                "predicate": "易混淆为",
+                "object": system_diagnosis,
+                "confidence": 0.9,
+                "source": "expert_feedback"
+            })
+        
+        # 2. 从评论中提取知识
+        if comments:
+            extracted = self._extract_from_text(comments)
+            triples.extend(extracted)
+        
+        return triples
+    
+    def _extract_from_text(self, text: str) -> List[Dict[str, Any]]:
+        """
+        从文本中提取知识
+        
+        :param text: 文本内容
+        :return: 知识三元组列表
+        """
+        triples = []
+        
+        # 简化的规则提取（实际应用可使用LLM）
+        # 检测症状描述
+        symptom_keywords = ["表现为", "症状是", "出现", "呈现"]
+        for keyword in symptom_keywords:
+            if keyword in text:
+                parts = text.split(keyword)
+                if len(parts) >= 2:
+                    triples.append({
+                        "subject": parts[0].strip(),
+                        "predicate": "表现为",
+                        "object": parts[1].strip()[:50],  # 限制长度
+                        "confidence": 0.7,
+                        "source": "expert_comment"
+                    })
+        
+        # 检测防治措施
+        treatment_keywords = ["使用", "喷施", "防治", "治疗"]
+        for keyword in treatment_keywords:
+            if keyword in text:
+                parts = text.split(keyword)
+                if len(parts) >= 2:
+                    triples.append({
+                        "subject": "病害",
+                        "predicate": "防治措施",
+                        "object": parts[1].strip()[:30],
+                        "confidence": 0.6,
+                        "source": "expert_comment"
+                    })
+        
+        return triples
+    
+    def inject_to_knowledge_graph(
+        self,
+        triples: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        将知识注入知识图谱
+        
+        :param triples: 知识三元组
+        :return: 注入结果
+        """
+        result = {
+            "success": True,
+            "injected_count": 0,
+            "failed_count": 0,
+            "details": []
+        }
+        
+        for triple in triples:
+            try:
+                subject = triple.get("subject", "")
+                predicate = triple.get("predicate", "")
+                obj = triple.get("object", "")
+                confidence = triple.get("confidence", 0.8)
+                
+                # 调用知识图谱添加关系
+                if hasattr(self.knowledge_agent, 'add_disease_relation'):
+                    self.knowledge_agent.add_disease_relation(
+                        disease_name=subject,
+                        relation_type=predicate,
+                        target_disease=obj,
+                        confidence=confidence,
+                        source=triple.get("source", "expert_feedback")
+                    )
+                
+                result["injected_count"] += 1
+                result["details"].append({
+                    "triple": f"{subject}--{predicate}-->{obj}",
+                    "status": "success"
+                })
+                
+            except Exception as e:
+                result["failed_count"] += 1
+                result["details"].append({
+                    "triple": f"{triple}",
+                    "status": "failed",
+                    "error": str(e)
+                })
+        
+        return result
 
 
 @dataclass
@@ -75,6 +423,8 @@ class FeedbackLoopIntegrator:
     反馈闭环集成器
     
     协调人机协同、主动学习和知识管理，形成完整的反馈闭环
+    
+    文档参考: 7.2 人机协同反馈闭环
     """
     
     def __init__(
@@ -93,6 +443,16 @@ class FeedbackLoopIntegrator:
         self.config = config or FeedbackLoopConfig()
         self.device = device
         self.knowledge_agent = knowledge_agent
+        
+        # 初始化不确定性检测器
+        self.uncertainty_detector = UncertaintyDetector(
+            confidence_threshold=self.config.high_uncertainty_threshold,
+            entropy_threshold=1.5,
+            ood_threshold=0.3
+        )
+        
+        # 初始化知识提取器
+        self.knowledge_extractor = KnowledgeExtractor(knowledge_agent)
         
         # 初始化人机协同模块
         self.human_in_the_loop = HumanInTheLoop(
@@ -119,7 +479,8 @@ class FeedbackLoopIntegrator:
             "is_learning": False,
             "last_learning_time": None,
             "total_learned_samples": 0,
-            "pending_learning_count": 0
+            "pending_learning_count": 0,
+            "uncertainty_trend": []
         }
         
         # 性能监控
@@ -135,6 +496,8 @@ class FeedbackLoopIntegrator:
         print(f"   自动学习阈值: {self.config.auto_learn_threshold} 个反馈")
         print(f"   经验缓冲区容量: {self.config.replay_buffer_capacity}")
         print(f"   知识图谱更新: {'启用' if self.config.update_knowledge_graph else '禁用'}")
+        print(f"   不确定性检测: 启用 (熵值阈值: 1.5)")
+        print(f"   OOD检测: 启用")
     
     def process_diagnosis_result(
         self,
@@ -142,7 +505,8 @@ class FeedbackLoopIntegrator:
         diagnosis: str,
         confidence: float,
         vision_features: Optional[Dict] = None,
-        user_description: str = ""
+        user_description: str = "",
+        probabilities: Optional[np.ndarray] = None
     ) -> Dict[str, Any]:
         """
         处理诊断结果
@@ -154,6 +518,7 @@ class FeedbackLoopIntegrator:
         :param confidence: 置信度
         :param vision_features: 视觉特征
         :param user_description: 用户描述
+        :param probabilities: 预测概率分布（用于不确定性检测）
         :return: 处理结果
         """
         result = {
@@ -161,27 +526,55 @@ class FeedbackLoopIntegrator:
             "confidence": confidence,
             "requires_review": False,
             "feedback_record_id": None,
+            "uncertainty_analysis": None,
             "message": ""
         }
         
-        # 提交到人机协同模块进行不确定性检查
-        feedback_record = self.human_in_the_loop.submit_prediction(
-            image_path=image_path,
-            system_diagnosis=diagnosis,
-            system_confidence=confidence,
-            features=vision_features
-        )
-        
-        if feedback_record:
-            # 需要专家审核
-            result["requires_review"] = True
-            result["feedback_record_id"] = feedback_record.id
-            result["uncertainty_level"] = feedback_record.uncertainty_level
-            result["message"] = f"⚠️ 诊断置信度较低 ({confidence:.2f})，已提交专家审核"
+        # 使用不确定性检测器进行多维度评估
+        if probabilities is not None:
+            features = None
+            if vision_features and "features" in vision_features:
+                features = np.array(vision_features["features"])
             
-            print(f"\n⚠️ [反馈闭环] 样本已标记待审核")
-            print(f"   记录ID: {feedback_record.id}")
-            print(f"   不确定性级别: {feedback_record.uncertainty_level}")
+            uncertainty_result = self.uncertainty_detector.compute_uncertainty(
+                probabilities, features
+            )
+            result["uncertainty_analysis"] = uncertainty_result
+            
+            # 记录不确定性趋势
+            self.learning_status["uncertainty_trend"].append(
+                uncertainty_result["uncertainty_score"]
+            )
+            if len(self.learning_status["uncertainty_trend"]) > 100:
+                self.learning_status["uncertainty_trend"].pop(0)
+            
+            # 基于综合不确定性决定是否需要审核
+            if uncertainty_result["is_uncertain"]:
+                result["requires_review"] = True
+                factors = ", ".join(uncertainty_result["uncertainty_factors"])
+                result["message"] = f"⚠️ 检测到不确定性 ({factors})，已提交专家审核"
+        else:
+            # 降级到简单的置信度检查
+            if confidence < self.config.high_uncertainty_threshold:
+                result["requires_review"] = True
+                result["message"] = f"⚠️ 诊断置信度较低 ({confidence:.2f})，已提交专家审核"
+        
+        # 提交到人机协同模块
+        if result["requires_review"]:
+            feedback_record = self.human_in_the_loop.submit_prediction(
+                image_path=image_path,
+                system_diagnosis=diagnosis,
+                system_confidence=confidence,
+                features=vision_features
+            )
+            
+            if feedback_record:
+                result["feedback_record_id"] = feedback_record.id
+                result["uncertainty_level"] = feedback_record.uncertainty_level
+                
+                print(f"\n⚠️ [反馈闭环] 样本已标记待审核")
+                print(f"   记录ID: {feedback_record.id}")
+                print(f"   不确定性级别: {feedback_record.uncertainty_level}")
         else:
             # 置信度足够，直接收集为确认样本
             self.active_learner.collect_feedback(
@@ -214,6 +607,8 @@ class FeedbackLoopIntegrator:
         result = {
             "success": False,
             "record_id": record_id,
+            "knowledge_extracted": [],
+            "knowledge_injected": None,
             "message": ""
         }
         
@@ -246,6 +641,25 @@ class FeedbackLoopIntegrator:
             user_correction=correction,
             comments=comments
         )
+        
+        # 提取知识三元组
+        if self.config.extract_knowledge:
+            knowledge_triples = self.knowledge_extractor.extract_from_feedback(
+                system_diagnosis=record.system_diagnosis,
+                user_correction=correction,
+                comments=comments
+            )
+            result["knowledge_extracted"] = knowledge_triples
+            
+            # 注入知识图谱
+            if knowledge_triples and self.config.update_knowledge_graph:
+                inject_result = self.knowledge_extractor.inject_to_knowledge_graph(
+                    knowledge_triples
+                )
+                result["knowledge_injected"] = inject_result
+                
+                print(f"\n📚 [知识提取] 提取到 {len(knowledge_triples)} 个三元组")
+                print(f"   成功注入: {inject_result['injected_count']}")
         
         # 更新学习状态
         self.learning_status["pending_learning_count"] += 1

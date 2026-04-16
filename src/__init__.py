@@ -41,6 +41,9 @@ def __getattr__(name):
     elif name == "evaluation":
         from . import evaluation
         return evaluation
+    elif name == "planning":
+        from . import planning
+        return planning
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
@@ -56,5 +59,6 @@ __all__ = [
     "evolution",
     "data",
     "deploy",
-    "evaluation"
+    "evaluation",
+    "planning"
 ]

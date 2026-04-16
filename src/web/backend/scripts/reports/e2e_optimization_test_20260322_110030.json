@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-03-22T11:00:30.086063",
+  "optimization_status": {
+    "int4_enabled": true,
+    "kv_cache_quantization": true,
+    "torch_compile": true,
+    "flash_attention": true,
+    "gpu_available": true,
+    "gpu_memory_mb": 4095.5
+  },
+  "results": [
+    {
+      "test_name": "纯文本诊断测试",
+      "passed": true,
+      "duration_ms": 100147.4859714508,
+      "error": null,
+      "details": {
+        "disease_name": "未知病害"
+      }
+    },
+    {
+      "test_name": "纯图像诊断测试",
+      "passed": true,
+      "duration_ms": 48418.11800003052,
+      "error": null,
+      "details": {
+        "disease_name": "Aphid"
+      }
+    },
+    {
+      "test_name": "多模态融合诊断测试",
+      "passed": true,
+      "duration_ms": 45357.08045959473,
+      "error": null,
+      "details": {
+        "disease_name": "Aphid"
+      }
+    },
+    {
+      "test_name": "SSE 实时进度测试",
+      "passed": false,
+      "duration_ms": 0.0,
+      "error": null,
+      "details": {
+        "events_count": 0
+      }
+    }
+  ]
+}

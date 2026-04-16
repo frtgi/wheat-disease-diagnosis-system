@@ -15,7 +15,7 @@ import tempfile
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.vision.vision_engine import VisionEngine
+from src.vision.vision_engine import VisionAgent as VisionEngine
 
 
 class TestVisionEngine:

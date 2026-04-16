@@ -1,0 +1,173 @@
+{
+  "timestamp": "2026-03-11 01:13:04",
+  "results": {
+    "startup_status": {
+      "success": true,
+      "data": {
+        "status": "ready",
+        "progress": 100,
+        "phase": "ready",
+        "components": {
+          "database": {
+            "name": "database",
+            "status": "ready",
+            "progress": 100,
+            "message": "数据库就绪",
+            "error": null,
+            "load_time": 0.13,
+            "metadata": {}
+          },
+          "yolo": {
+            "name": "yolo",
+            "status": "ready",
+            "progress": 100,
+            "message": "加载成功 (1.94s)",
+            "error": null,
+            "load_time": 2.08,
+            "metadata": {}
+          },
+          "qwen": {
+            "name": "qwen",
+            "status": "degraded",
+            "progress": 0,
+            "message": "降级模式：模型不可用",
+            "error": null,
+            "load_time": 0.0,
+            "metadata": {}
+          },
+          "cache": {
+            "name": "cache",
+            "status": "ready",
+            "progress": 100,
+            "message": "缓存就绪",
+            "error": null,
+            "load_time": 12.53,
+            "metadata": {}
+          }
+        },
+        "elapsed_time": 98.82,
+        "estimated_remaining_time": 0
+      }
+    },
+    "readiness_check": {
+      "success": true,
+      "data": {
+        "ready": true,
+        "degraded": true,
+        "failed": false,
+        "status": "ready",
+        "critical_components": {
+          "database": true,
+          "yolo": true,
+          "qwen": true
+        },
+        "all_components_ready": true,
+        "message": "服务已就绪"
+      }
+    },
+    "components_status": {
+      "success": true,
+      "data": {
+        "status": "healthy",
+        "components": {
+          "database": {
+            "status": "ready",
+            "name": "wheat_agent_db",
+            "connection_time_ms": 20.76
+          },
+          "yolo": {
+            "status": "ready",
+            "model_path": "D:\\Project\\WheatAgent\\models\\wheat_disease_v10_yolov8s\\phase1_warmup\\weights\\best.pt",
+            "confidence_threshold": 0.5
+          },
+          "qwen": {
+            "status": "ready",
+            "model_path": "D:\\Project\\WheatAgent\\models\\Qwen3-VL-4B-Instruct",
+            "device": "cuda",
+            "int4_quantization": false,
+            "features": {
+              "kad_former": false,
+              "graph_rag": false
+            }
+          },
+          "cache": {
+            "status": "ready",
+            "cache_size": 0
+          }
+        },
+        "summary": {
+          "total": 4,
+          "ready": 4,
+          "failed": 0,
+          "degraded": 0
+        }
+      }
+    },
+    "ai_health": {
+      "success": true,
+      "data": {
+        "status": "healthy",
+        "services": {
+          "yolov8": {
+            "model_type": "YOLOv8",
+            "model_path": "D:\\Project\\WheatAgent\\models\\wheat_disease_v10_yolov8s\\phase1_warmup\\weights\\best.pt",
+            "is_loaded": true,
+            "confidence_threshold": 0.5,
+            "classes": [
+              "Aphid",
+              "Black Rust",
+              "Blast",
+              "Brown Rust",
+              "Common Root Rot",
+              "Fusarium Head Blight",
+              "Healthy",
+              "Leaf Blight",
+              "Mildew",
+              "Mite",
+              "Septoria",
+              "Smut",
+              "Stem fly",
+              "Tan spot",
+              "Yellow Rust"
+            ]
+          },
+          "qwen3vl": {
+            "model_type": "Qwen3-VL-4B-Instruct",
+            "model_path": "D:\\Project\\WheatAgent\\models\\Qwen3-VL-4B-Instruct",
+            "is_loaded": true,
+            "device": "cuda",
+            "capabilities": [
+              "text-generation",
+              "image-analysis",
+              "multimodal"
+            ],
+            "features": {
+              "int4_quantization": false,
+              "kad_former": false,
+              "graph_rag": false,
+              "thinking_mode": true,
+              "early_fusion": true,
+              "deepstack": true
+            },
+            "estimated_vram": "~9.8GB (BF16)"
+          }
+        }
+      }
+    },
+    "database_health": {
+      "success": true,
+      "data": {
+        "status": "healthy",
+        "database": "wheat_agent_db",
+        "connection_time_ms": 2.47,
+        "table_count": 7,
+        "pool_status": "active"
+      }
+    }
+  },
+  "summary": {
+    "passed": 5,
+    "total": 5,
+    "pass_rate": "100.0%"
+  }
+}

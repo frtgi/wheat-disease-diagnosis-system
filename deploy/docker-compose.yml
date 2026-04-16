@@ -1,0 +1,253 @@
+version: '3.9'
+
+services:
+  # API 服务
+  api:
+    image: iwdda/api:latest
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      # 应用配置
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_LOG_LEVEL=info
+      
+      # Neo4j 配置
+      - NEO4J_URI=neo4j://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-neo4j_password}
+      
+      # Redis 配置
+      - REDIS_URL=redis://redis:6379
+      
+      # MinIO 配置
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin_password}
+      
+      # 模型配置
+      - MODEL_PATH=/models
+      - MODEL_CACHE_DIR=/cache/models
+      - MAX_BATCH_SIZE=32
+      
+      # 性能配置
+      - INFERENCE_TIMEOUT=30
+      - MAX_CONCURRENT_REQUESTS=100
+      
+      # API 密钥
+      - API_SECRET_KEY=${API_SECRET_KEY:-change_this_secret_key}
+    volumes:
+      - ./models:/models
+      - ./logs:/app/logs
+      - model_cache:/cache/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - iwdda-network
+
+  # Web 界面
+  web:
+    image: iwdda/web:latest
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.web
+    ports:
+      - "7860:7860"
+    environment:
+      - API_URL=http://api:8000
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - iwdda-network
+
+  # Neo4j 知识图谱
+  neo4j:
+    image: neo4j:5.12
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-neo4j_password}
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_memory_heap_initial__size=2G
+      - NEO4J_dbms_memory_heap_max__size=4G
+      - NEO4J_dbms_memory_pagecache_size=1G
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - ./checkpoints/knowledge_graph:/import
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7474"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - iwdda-network
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - iwdda-network
+
+  # MinIO 对象存储 (模型存储)
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin_password}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - iwdda-network
+
+  # 训练服务
+  training:
+    image: iwdda/training:latest
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.training
+    environment:
+      # MinIO 配置
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin_password}
+      
+      # 训练配置
+      - TRAINING_DATASETS_DIR=/datasets
+      - TRAINING_RUNS_DIR=/runs
+      
+      # 性能配置
+      - TRAINING_BATCH_SIZE=8
+      - TRAINING_EPOCHS=100
+    volumes:
+      - ./datasets:/datasets
+      - ./runs:/runs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - minio
+    networks:
+      - iwdda-network
+    profiles:
+      - training
+
+  # Prometheus 监控
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - iwdda-network
+    profiles:
+      - monitoring
+
+  # Grafana 可视化
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin_password}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - iwdda-network
+    profiles:
+      - monitoring
+
+volumes:
+  neo4j_data:
+    driver: local
+  neo4j_logs:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  model_cache:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  iwdda-network:
+    driver: bridge

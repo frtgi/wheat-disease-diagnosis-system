@@ -78,14 +78,14 @@ class PromptTemplate:
     
     def build_diagnosis_prompt(
         self,
-        detection_results: List[DetectionResult],
+        detection_results: List,
         user_description: Optional[str] = None,
         include_context: bool = True
     ) -> str:
         """
         构建诊断提示词
         
-        :param detection_results: YOLO检测结果列表
+        :param detection_results: YOLO检测结果列表（支持字典或 DetectionResult 对象）
         :param user_description: 用户提供的症状描述
         :param include_context: 是否包含上下文信息
         :return: 完整的提示词
@@ -106,11 +106,33 @@ class PromptTemplate:
         
         return "\n".join(prompt_parts)
     
-    def _build_detection_context(self, detection_results: List[DetectionResult]) -> str:
+    def _get_result_attr(self, result: Any, attr: str, default: Any = None) -> Any:
+        """
+        统一获取检测结果的属性，兼容字典和 DetectionResult 对象
+        
+        :param result: 检测结果（字典或 DetectionResult 对象）
+        :param attr: 属性名
+        :param default: 默认值
+        :return: 属性值
+        """
+        attr_mapping = {
+            'disease_name': 'name',
+            'confidence': 'confidence',
+            'bbox': 'bbox',
+            'severity': 'severity'
+        }
+        
+        if isinstance(result, dict):
+            mapped_key = attr_mapping.get(attr, attr)
+            return result.get(mapped_key, default)
+        else:
+            return getattr(result, attr, default)
+    
+    def _build_detection_context(self, detection_results: List) -> str:
         """
         构建检测结果的上下文描述
         
-        :param detection_results: 检测结果列表
+        :param detection_results: 检测结果列表（支持字典或 DetectionResult 对象）
         :return: 上下文描述文本
         """
         if not detection_results:
@@ -119,18 +141,22 @@ class PromptTemplate:
         context_parts = []
         
         for i, result in enumerate(detection_results, 1):
-            # 构建单个检测结果的描述
-            desc = f"{i}. 检测到'{result.disease_name}'"
+            disease_name = self._get_result_attr(result, 'disease_name', '未知病害')
+            confidence = self._get_result_attr(result, 'confidence', 0)
+            bbox = self._get_result_attr(result, 'bbox')
+            severity = self._get_result_attr(result, 'severity')
             
-            if result.confidence > 0:
-                desc += f"，置信度{result.confidence:.2%}"
+            desc = f"{i}. 检测到'{disease_name}'"
             
-            if result.bbox:
-                x1, y1, x2, y2 = result.bbox
+            if confidence > 0:
+                desc += f"，置信度{confidence:.2%}"
+            
+            if bbox:
+                x1, y1, x2, y2 = bbox
                 desc += f"，位置[{x1:.1f}, {y1:.1f}, {x2:.1f}, {y2:.1f}]"
             
-            if result.severity:
-                desc += f"，严重程度：{result.severity}"
+            if severity:
+                desc += f"，严重程度：{severity}"
             
             context_parts.append(desc)
         
@@ -139,14 +165,14 @@ class PromptTemplate:
     def build_interactive_prompt(
         self,
         user_question: str,
-        detection_results: Optional[List[DetectionResult]] = None,
+        detection_results: Optional[List] = None,
         chat_history: Optional[List[Dict[str, str]]] = None
     ) -> str:
         """
         构建交互式对话提示词
         
         :param user_question: 用户问题
-        :param detection_results: 可选的检测结果
+        :param detection_results: 可选的检测结果（支持字典或 DetectionResult 对象）
         :param chat_history: 可选的对话历史
         :return: 完整的提示词
         """
@@ -220,7 +246,7 @@ class PromptTemplate:
     
     def build_context_injection_prompt(
         self,
-        detection_result: DetectionResult,
+        detection_result,
         user_query: str
     ) -> str:
         """
@@ -230,23 +256,25 @@ class PromptTemplate:
         "检测模型已在坐标[x, y]处识别出'赤霉病'症状，置信度为0.92。
         请结合图像细节确认此诊断，并解释判断依据。"
         
-        :param detection_result: 单个检测结果
+        :param detection_result: 单个检测结果（支持字典或 DetectionResult 对象）
         :param user_query: 用户查询
         :return: 上下文注入提示词
         """
-        # 构建上下文描述
-        context = f"检测模型已识别出'{detection_result.disease_name}'症状"
+        disease_name = self._get_result_attr(detection_result, 'disease_name', '未知病害')
+        confidence = self._get_result_attr(detection_result, 'confidence', 0)
+        bbox = self._get_result_attr(detection_result, 'bbox')
         
-        if detection_result.confidence > 0:
-            context += f"，置信度为{detection_result.confidence:.2f}"
+        context = f"检测模型已识别出'{disease_name}'症状"
         
-        if detection_result.bbox:
-            x1, y1, x2, y2 = detection_result.bbox
+        if confidence > 0:
+            context += f"，置信度为{confidence:.2f}"
+        
+        if bbox:
+            x1, y1, x2, y2 = bbox
             center_x = (x1 + x2) / 2
             center_y = (y1 + y2) / 2
             context += f"，位置在坐标[{center_x:.1f}, {center_y:.1f}]"
         
-        # 结合用户查询
         prompt = f"{context}。{user_query}"
         
         return prompt

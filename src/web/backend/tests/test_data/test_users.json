@@ -1,0 +1,30 @@
+[
+  {
+    "username": "farmer1",
+    "email": "farmer1@test.com",
+    "password": "TestPass123!",
+    "role": "farmer",
+    "phone": "13800138001"
+  },
+  {
+    "username": "farmer2",
+    "email": "farmer2@test.com",
+    "password": "TestPass123!",
+    "role": "farmer",
+    "phone": "13800138002"
+  },
+  {
+    "username": "technician1",
+    "email": "technician1@test.com",
+    "password": "TechPass123!",
+    "role": "technician",
+    "phone": "13800138003"
+  },
+  {
+    "username": "admin1",
+    "email": "admin1@test.com",
+    "password": "AdminPass123!",
+    "role": "admin",
+    "phone": "13800138004"
+  }
+]

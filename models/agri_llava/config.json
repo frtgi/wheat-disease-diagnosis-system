@@ -1,8 +1,0 @@
-{
-  "model_type": "agri_llava",
-  "version": "1.0",
-  "vision_encoder": "clip",
-  "llm": "vicuna",
-  "embedding_dim": 512,
-  "num_classes": 17
-}

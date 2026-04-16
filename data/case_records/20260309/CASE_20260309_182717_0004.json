@@ -1,0 +1,56 @@
+{
+  "case_id": "CASE_20260309_182717_0004",
+  "record_time": "2026-03-09T18:27:17.942204",
+  "basic_info": {
+    "image_path": "test.jpg",
+    "image_name": "test.jpg",
+    "user_info": {
+      "user_id": "test_user"
+    }
+  },
+  "diagnosis_info": {
+    "disease_name": "条锈病",
+    "confidence": 0.92,
+    "main_features": [
+      "黄色条状孢子堆",
+      "沿叶脉排列"
+    ],
+    "pathogen": "条形柄锈菌",
+    "conclusion": "综合判断为条锈病"
+  },
+  "severity_info": {
+    "severity_level": "中度",
+    "severity_score": 0.45,
+    "impact_assessment": "病斑中等，对产量有一定影响",
+    "recommendation": ""
+  },
+  "treatment_info": {
+    "recommended_agents": [
+      {
+        "name": "三唑酮",
+        "concentration": "15% 可湿性粉剂"
+      }
+    ],
+    "application_concentration": "",
+    "treatment_steps": [
+      "立即喷施治疗性杀菌剂"
+    ],
+    "application_timing": "晴朗无风天气",
+    "safety_interval": "14 天",
+    "precautions": []
+  },
+  "followup_info": {
+    "followup_time": "2026-03-16",
+    "followup_interval": "7 天",
+    "urgency": "重要",
+    "followup_content": [],
+    "expected_goal": "",
+    "task_id": ""
+  },
+  "reasoning_basis": {},
+  "risk_level": {},
+  "metadata": {
+    "version": "1.0",
+    "tool": "CaseRecordTool"
+  }
+}

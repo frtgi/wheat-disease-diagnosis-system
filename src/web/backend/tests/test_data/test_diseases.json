@@ -1,0 +1,38 @@
+[
+  {
+    "name": "小麦锈病",
+    "category": "真菌病害",
+    "symptoms": "叶片出现黄色或褐色锈斑，严重时叶片枯黄",
+    "cause": "由锈菌引起，高温高湿环境易发",
+    "treatment": "喷洒三唑酮、丙环唑等杀菌剂",
+    "prevention": "选用抗病品种，合理轮作，清除病残体",
+    "severity": "medium"
+  },
+  {
+    "name": "小麦白粉病",
+    "category": "真菌病害",
+    "symptoms": "叶片表面出现白色粉状物，后期变为灰白色",
+    "cause": "由白粉菌引起，密度过大、氮肥过多易发",
+    "treatment": "喷洒三唑酮、腈菌唑等杀菌剂",
+    "prevention": "合理密植，控制氮肥用量，增强通风",
+    "severity": "medium"
+  },
+  {
+    "name": "小麦蚜虫",
+    "category": "虫害",
+    "symptoms": "叶片发黄卷曲，植株生长受阻",
+    "cause": "蚜虫吸食汁液，传播病毒",
+    "treatment": "喷洒吡虫啉、啶虫脒等杀虫剂",
+    "prevention": "清除田间杂草，保护天敌",
+    "severity": "low"
+  },
+  {
+    "name": "小麦赤霉病",
+    "category": "真菌病害",
+    "symptoms": "穗部出现粉红色霉层，籽粒干瘪",
+    "cause": "由禾谷镰刀菌引起，扬花期遇雨易发",
+    "treatment": "喷洒多菌灵、戊唑醇等杀菌剂",
+    "prevention": "选用抗病品种，适期播种，控制田间湿度",
+    "severity": "high"
+  }
+]

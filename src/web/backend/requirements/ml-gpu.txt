@@ -1,0 +1,60 @@
+# WheatAgent GPU 推理依赖
+# ========================
+# 本文件包含 AI/ML 模型推理所需的 GPU 加速依赖
+# 适用环境：NVIDIA GPU + CUDA 11.8/12.1
+#
+# 安装方式：
+#   pip install -r requirements/ml-gpu.txt
+#
+# 前置要求：
+#   - NVIDIA 驱动 >= 525.60.13
+#   - CUDA Toolkit 11.8 或 12.1
+#   - cuDNN >= 8.6
+
+# 继承基础 Web 后端依赖
+-r base.txt
+
+# ========== 深度学习框架 ==========
+# PyTorch 主框架（CUDA 版本，自动匹配已安装的 CUDA 版本）
+torch>=2.1.0,<2.3.0
+
+# PyTorch 计算机视觉工具包
+torchvision>=0.16.0,<0.18.0
+
+# ========== Transformer 与 NLP ==========
+# HuggingFace Transformers 库（大语言模型推理核心）
+transformers>=4.36.0,<4.40.0
+
+# HuggingFace 模型加载加速器
+accelerate>=0.25.0,<0.30.0
+
+# SentencePiece 分词器（多语言文本处理）
+sentencepiece>=0.1.99
+
+# 高性能 tokenizers 库（Rust 实现）
+tokenizers>=0.15.0
+
+# ========== 计算机视觉 ==========
+# YOLOv8 目标检测框架（小麦病害识别核心）
+ultralytics>=8.0.196,<8.1.0
+
+# OpenCV 图像处理库（无 GUI 版本，适合服务器环境）
+opencv-python-headless>=4.8.0,<4.9.0
+
+# Python 图像处理库
+Pillow>=10.0.0,<11.0.0
+
+# ========== 模型量化 ==========
+# bitsandbytes 库（INT4/INT8 量化，降低显存占用）
+bitsandbytes>=0.41.3,<0.43.0
+
+# ========== 性能优化（可选） ==========
+# Flash Attention 2（显著提升长序列推理速度，需要特定 GPU 架构）
+flash-attn>=2.3.0,<2.6.0; platform_machine != "arm64"
+
+# ========== 科学计算 ==========
+# NumPy 数值计算基础库
+numpy>=1.26.0,<2.0.0
+
+# SciPy 科学计算库（图像处理、优化算法等）
+scipy>=1.11.0,<1.13.0

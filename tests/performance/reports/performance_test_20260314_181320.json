@@ -1,0 +1,155 @@
+{
+  "timestamp": "2026-03-14T18:11:38.798805",
+  "base_url": "http://localhost:8000",
+  "api_tests": {
+    "health": {
+      "endpoint": "/health",
+      "method": "GET",
+      "iterations": 10,
+      "success_count": 10,
+      "fail_count": 0,
+      "avg_ms": 2039.29,
+      "min_ms": 2019.81,
+      "max_ms": 2052.98,
+      "p50_ms": 2043.2,
+      "p95_ms": 2052.98,
+      "p99_ms": 2052.98,
+      "target_ms": 50,
+      "passed": false,
+      "errors": []
+    },
+    "ai_health": {
+      "endpoint": "/api/v1/diagnosis/health/ai",
+      "method": "GET",
+      "iterations": 10,
+      "success_count": 10,
+      "fail_count": 0,
+      "avg_ms": 2047.21,
+      "min_ms": 2037.77,
+      "max_ms": 2063.41,
+      "p50_ms": 2046.6,
+      "p95_ms": 2063.41,
+      "p99_ms": 2063.41,
+      "target_ms": 100,
+      "passed": false,
+      "errors": []
+    },
+    "knowledge_search": {
+      "endpoint": "/api/v1/knowledge/search",
+      "method": "GET",
+      "iterations": 10,
+      "success_count": 10,
+      "fail_count": 0,
+      "avg_ms": 2051.0,
+      "min_ms": 2031.2,
+      "max_ms": 2061.95,
+      "p50_ms": 2055.35,
+      "p95_ms": 2061.95,
+      "p99_ms": 2061.95,
+      "target_ms": 100,
+      "passed": false,
+      "errors": []
+    },
+    "stats_overview": {
+      "endpoint": "/api/v1/stats/overview",
+      "method": "GET",
+      "iterations": 10,
+      "success_count": 10,
+      "fail_count": 0,
+      "avg_ms": 2055.16,
+      "min_ms": 2025.98,
+      "max_ms": 2085.95,
+      "p50_ms": 2056.73,
+      "p95_ms": 2085.95,
+      "p99_ms": 2085.95,
+      "target_ms": 100,
+      "passed": false,
+      "errors": []
+    }
+  },
+  "concurrency_tests": [
+    {
+      "concurrent_users": 10,
+      "total_requests": 50,
+      "success_count": 50,
+      "fail_count": 0,
+      "success_rate": 100.0,
+      "avg_response_ms": 2040.35,
+      "p95_response_ms": 2053.99,
+      "throughput_rps": 4.89,
+      "errors": []
+    },
+    {
+      "concurrent_users": 50,
+      "total_requests": 150,
+      "success_count": 150,
+      "fail_count": 0,
+      "success_rate": 100.0,
+      "avg_response_ms": 2047.8,
+      "p95_response_ms": 2063.9,
+      "throughput_rps": 24.22,
+      "errors": []
+    }
+  ],
+  "gpu_status": {
+    "available": false,
+    "device_name": "",
+    "total_memory_gb": 0,
+    "allocated_gb": 0,
+    "reserved_gb": 0
+  },
+  "model_status": {
+    "status": "healthy",
+    "mock_mode": false,
+    "services": {
+      "yolov8": {
+        "model_type": "YOLOv8",
+        "model_path": "D:\\Project\\WheatAgent\\models\\wheat_disease_v10_yolov8s\\phase1_warmup\\weights\\best.pt",
+        "is_loaded": true,
+        "confidence_threshold": 0.5,
+        "classes": [
+          "Aphid",
+          "Black Rust",
+          "Blast",
+          "Brown Rust",
+          "Common Root Rot",
+          "Fusarium Head Blight",
+          "Healthy",
+          "Leaf Blight",
+          "Mildew",
+          "Mite",
+          "Septoria",
+          "Smut",
+          "Stem fly",
+          "Tan spot",
+          "Yellow Rust"
+        ]
+      },
+      "qwen3vl": {
+        "model_type": "Qwen3-VL-4B-Instruct",
+        "model_path": "D:\\Project\\WheatAgent\\models\\Qwen3-VL-4B-Instruct",
+        "is_loaded": true,
+        "device": "cuda",
+        "capabilities": [
+          "text-generation",
+          "image-analysis",
+          "multimodal"
+        ],
+        "features": {
+          "int4_quantization": true,
+          "kad_former": false,
+          "graph_rag": false,
+          "thinking_mode": true,
+          "early_fusion": true,
+          "deepstack": true
+        },
+        "estimated_vram": "~2.6GB (INT4)"
+      }
+    }
+  },
+  "summary": {
+    "api_pass_rate": 0.0,
+    "passed_tests": 0,
+    "total_tests": 4
+  }
+}

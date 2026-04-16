@@ -1,0 +1,215 @@
+{
+  "total_endpoints": 54,
+  "diagnosis_endpoints": 12,
+  "endpoints": [
+    {
+      "path": "/api/v1/diagnosis/admin/ai/preload",
+      "method": "POST",
+      "operation_id": "preload_ai_models_api_v1_diagnosis_admin_ai_preload_post",
+      "summary": "Preload Ai Models",
+      "has_auth": false,
+      "auth_type": "无",
+      "param_count": 0,
+      "has_request_body": false,
+      "response_codes": [
+        "200"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/batch",
+      "method": "POST",
+      "operation_id": "diagnose_batch_api_v1_diagnosis_batch_post",
+      "summary": "Diagnose Batch",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 0,
+      "has_request_body": true,
+      "response_codes": [
+        "200",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/cache/clear",
+      "method": "POST",
+      "operation_id": "clear_cache_api_v1_diagnosis_cache_clear_post",
+      "summary": "Clear Cache",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 0,
+      "has_request_body": false,
+      "response_codes": [
+        "200"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/cache/stats",
+      "method": "GET",
+      "operation_id": "get_cache_stats_api_v1_diagnosis_cache_stats_get",
+      "summary": "Get Cache Stats",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 0,
+      "has_request_body": false,
+      "response_codes": [
+        "200"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/fusion",
+      "method": "POST",
+      "operation_id": "diagnose_fusion_api_v1_diagnosis_fusion_post",
+      "summary": "Diagnose Fusion",
+      "has_auth": false,
+      "auth_type": "无",
+      "param_count": 0,
+      "has_request_body": true,
+      "response_codes": [
+        "200",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/fusion/stream",
+      "method": "GET",
+      "operation_id": "diagnose_fusion_stream_get_api_v1_diagnosis_fusion_stream_get",
+      "summary": "Diagnose Fusion Stream Get",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 8,
+      "has_request_body": false,
+      "response_codes": [
+        "200",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/fusion/stream",
+      "method": "POST",
+      "operation_id": "diagnose_fusion_stream_api_v1_diagnosis_fusion_stream_post",
+      "summary": "Diagnose Fusion Stream",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 0,
+      "has_request_body": true,
+      "response_codes": [
+        "200",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/health/ai",
+      "method": "GET",
+      "operation_id": "ai_health_api_v1_diagnosis_health_ai_get",
+      "summary": "Ai Health",
+      "has_auth": false,
+      "auth_type": "无",
+      "param_count": 0,
+      "has_request_body": false,
+      "response_codes": [
+        "200"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/image",
+      "method": "POST",
+      "operation_id": "diagnose_image_api_v1_diagnosis_image_post",
+      "summary": "Diagnose Image",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 0,
+      "has_request_body": true,
+      "response_codes": [
+        "200",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/multimodal",
+      "method": "POST",
+      "operation_id": "diagnose_multimodal_api_v1_diagnosis_multimodal_post",
+      "summary": "Diagnose Multimodal",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 0,
+      "has_request_body": true,
+      "response_codes": [
+        "200",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/records",
+      "method": "GET",
+      "operation_id": "get_diagnosis_records_api_v1_diagnosis_records_get",
+      "summary": "查询诊断记录",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 2,
+      "has_request_body": false,
+      "response_codes": [
+        "200",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/text",
+      "method": "POST",
+      "operation_id": "diagnose_text_api_v1_diagnosis_text_post",
+      "summary": "Diagnose Text",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 0,
+      "has_request_body": true,
+      "response_codes": [
+        "200",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/{diagnosis_id}",
+      "method": "GET",
+      "operation_id": "get_diagnosis_detail_api_v1_diagnosis__diagnosis_id__get",
+      "summary": "诊断详情",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 1,
+      "has_request_body": false,
+      "response_codes": [
+        "200",
+        "404",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/{diagnosis_id}",
+      "method": "PUT",
+      "operation_id": "update_diagnosis_record_api_v1_diagnosis__diagnosis_id__put",
+      "summary": "更新诊断记录",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 1,
+      "has_request_body": true,
+      "response_codes": [
+        "200",
+        "404",
+        "422"
+      ]
+    },
+    {
+      "path": "/api/v1/diagnosis/{diagnosis_id}",
+      "method": "DELETE",
+      "operation_id": "delete_diagnosis_record_api_v1_diagnosis__diagnosis_id__delete",
+      "summary": "删除诊断记录",
+      "has_auth": true,
+      "auth_type": "用户认证 (get_current_user)",
+      "param_count": 1,
+      "has_request_body": false,
+      "response_codes": [
+        "200",
+        "404",
+        "422"
+      ]
+    }
+  ]
+}

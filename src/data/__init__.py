@@ -81,6 +81,31 @@ def __getattr__(name):
             return L3Sample
         except ImportError:
             return Any
+    elif name == "DataLayerManager":
+        try:
+            from .data_layers import DataLayerManager
+            return DataLayerManager
+        except ImportError as e:
+            print(f"⚠️ DataLayerManager 导入失败: {e}")
+            return None
+    elif name == "L1RawData":
+        try:
+            from .data_layers import L1RawData
+            return L1RawData
+        except ImportError:
+            return Any
+    elif name == "L2FeatureData":
+        try:
+            from .data_layers import L2FeatureData
+            return L2FeatureData
+        except ImportError:
+            return Any
+    elif name == "L3SemanticData":
+        try:
+            from .data_layers import L3SemanticData
+            return L3SemanticData
+        except ImportError:
+            return Any
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
@@ -96,5 +121,10 @@ __all__ = [
     "DataLevel",
     "L1Sample",
     "L2Sample",
-    "L3Sample"
+    "L3Sample",
+    # 数据分层架构
+    "DataLayerManager",
+    "L1RawData",
+    "L2FeatureData",
+    "L3SemanticData"
 ]

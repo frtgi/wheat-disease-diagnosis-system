@@ -33,36 +33,58 @@ def __getattr__(name):
             return ExperienceReplayTrainer
         except ImportError:
             return Any
-    elif name == "FeedbackType":
+    elif name == "HumanInTheLoop":
         try:
-            from .human_feedback import FeedbackType
-            return FeedbackType
+            from .human_in_the_loop import HumanInTheLoop
+            return HumanInTheLoop
+        except ImportError as e:
+            print(f"⚠️ HumanInTheLoop 导入失败: {e}")
+            return None
+    elif name == "FeedbackRecord":
+        try:
+            from .human_in_the_loop import FeedbackRecord
+            return FeedbackRecord
         except ImportError:
-            # 定义占位符
+            return Any
+    elif name == "FeedbackStatus":
+        try:
+            from .human_in_the_loop import FeedbackStatus
+            return FeedbackStatus
+        except ImportError:
             from enum import Enum
-            class FeedbackType(Enum):
-                CORRECTION = "correction"
-                CONFIRMATION = "confirmation"
-                REJECTION = "rejection"
-            return FeedbackType
-    elif name == "HumanFeedbackCollector":
+            class FeedbackStatus(Enum):
+                PENDING = "pending"
+                REVIEWED = "reviewed"
+                CONFIRMED = "confirmed"
+                CORRECTED = "corrected"
+                DISCARDED = "discarded"
+                PROCESSED = "processed"
+            return FeedbackStatus
+    elif name == "IncrementalLearner":
         try:
-            from .human_feedback import HumanFeedbackCollector
-            return HumanFeedbackCollector
-        except ImportError:
+            from .incremental_learning import IncrementalLearner
+            return IncrementalLearner
+        except ImportError as e:
+            print(f"⚠️ IncrementalLearner 导入失败: {e}")
             return None
-    elif name == "FeedbackAnalyzer":
+    elif name == "iCaRL":
         try:
-            from .human_feedback import FeedbackAnalyzer
-            return FeedbackAnalyzer
+            from .incremental_learning import iCaRL
+            return iCaRL
         except ImportError:
-            return None
-    elif name == "FeedbackIntegration":
+            return Any
+    elif name == "LwF":
         try:
-            from .human_feedback import FeedbackIntegration
-            return FeedbackIntegration
+            from .incremental_learning import LwF
+            return LwF
         except ImportError:
-            return None
+            return Any
+    elif name == "EWC":
+        try:
+            from .incremental_learning import EWC
+            return EWC
+        except ImportError:
+            return Any
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
@@ -72,9 +94,14 @@ __all__ = [
     "ExperienceReplayDataset",
     "ExperienceReplayTrainer",
     
-    # Human Feedback
-    "FeedbackType",
-    "HumanFeedbackCollector",
-    "FeedbackAnalyzer",
-    "FeedbackIntegration"
+    # Human-in-the-Loop
+    "HumanInTheLoop",
+    "FeedbackRecord",
+    "FeedbackStatus",
+    
+    # Incremental Learning
+    "IncrementalLearner",
+    "iCaRL",
+    "LwF",
+    "EWC"
 ]

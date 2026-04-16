@@ -1,0 +1,66 @@
+{
+  "test_date": "2026-04-01T22:14:02.155490",
+  "total_tests": 6,
+  "passed_tests": 0,
+  "failed_tests": 6,
+  "avg_inference_time": 0.0,
+  "max_inference_time": 0.0,
+  "min_inference_time": 0.0,
+  "meets_requirement": true,
+  "results": [
+    {
+      "test_name": "单图像诊断-Aphid_0.png",
+      "success": false,
+      "inference_time": 0.0,
+      "disease_name": "",
+      "confidence": 0.0,
+      "error_message": "No module named 'app'",
+      "details": null
+    },
+    {
+      "test_name": "单图像诊断-Blast_0.jpg",
+      "success": false,
+      "inference_time": 0.0,
+      "disease_name": "",
+      "confidence": 0.0,
+      "error_message": "No module named 'app'",
+      "details": null
+    },
+    {
+      "test_name": "单图像诊断-Mildew_0.jpg",
+      "success": false,
+      "inference_time": 0.0,
+      "disease_name": "",
+      "confidence": 0.0,
+      "error_message": "No module named 'app'",
+      "details": null
+    },
+    {
+      "test_name": "文本诊断-1",
+      "success": false,
+      "inference_time": 0.0,
+      "disease_name": "",
+      "confidence": 0.0,
+      "error_message": "No module named 'app'",
+      "details": null
+    },
+    {
+      "test_name": "文本诊断-2",
+      "success": false,
+      "inference_time": 0.0,
+      "disease_name": "",
+      "confidence": 0.0,
+      "error_message": "No module named 'app'",
+      "details": null
+    },
+    {
+      "test_name": "多模态诊断",
+      "success": false,
+      "inference_time": 0.0,
+      "disease_name": "",
+      "confidence": 0.0,
+      "error_message": "No module named 'app'",
+      "details": null
+    }
+  ]
+}

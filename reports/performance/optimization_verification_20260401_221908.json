@@ -1,0 +1,100 @@
+{
+  "test_date": "2026-04-01T22:19:08.918924",
+  "total_tests": 6,
+  "passed_tests": 6,
+  "failed_tests": 0,
+  "avg_inference_time": 36.79226473967234,
+  "max_inference_time": 38.61716365814209,
+  "min_inference_time": 35.298274755477905,
+  "meets_requirement": true,
+  "results": [
+    {
+      "test_name": "单图像诊断-Aphid_0.png",
+      "success": true,
+      "inference_time": 38.363720655441284,
+      "disease_name": "蚜虫",
+      "confidence": 0.7972013111114502,
+      "error_message": null,
+      "details": {
+        "image_path": "D:\\Project\\WheatAgent\\datasets\\wheat_data_unified\\images\\val\\Aphid_0.png",
+        "features": {
+          "visual_detection": true,
+          "textual_analysis": true
+        }
+      }
+    },
+    {
+      "test_name": "单图像诊断-Blast_0.jpg",
+      "success": true,
+      "inference_time": 35.298274755477905,
+      "disease_name": "稻瘟病",
+      "confidence": 0.813930799484253,
+      "error_message": null,
+      "details": {
+        "image_path": "D:\\Project\\WheatAgent\\datasets\\wheat_data_unified\\images\\val\\Blast_0.jpg",
+        "features": {
+          "visual_detection": true,
+          "textual_analysis": true
+        }
+      }
+    },
+    {
+      "test_name": "单图像诊断-Mildew_0.jpg",
+      "success": true,
+      "inference_time": 35.31537055969238,
+      "disease_name": "白粉病",
+      "confidence": 0.8032580966949463,
+      "error_message": null,
+      "details": {
+        "image_path": "D:\\Project\\WheatAgent\\datasets\\wheat_data_unified\\images\\val\\Mildew_0.jpg",
+        "features": {
+          "visual_detection": true,
+          "textual_analysis": true
+        }
+      }
+    },
+    {
+      "test_name": "文本诊断-1",
+      "success": true,
+      "inference_time": 38.61716365814209,
+      "disease_name": "未知病害",
+      "confidence": 0.44625000000000004,
+      "error_message": null,
+      "details": {
+        "symptoms": "小麦叶片上出现黄色条状斑点，沿叶脉排列",
+        "expected": "条锈病",
+        "is_correct": false
+      }
+    },
+    {
+      "test_name": "文本诊断-2",
+      "success": true,
+      "inference_time": 36.46063208580017,
+      "disease_name": "未知病害",
+      "confidence": 0.44625000000000004,
+      "error_message": null,
+      "details": {
+        "symptoms": "叶片表面覆盖白色粉状霉层",
+        "expected": "白粉病",
+        "is_correct": false
+      }
+    },
+    {
+      "test_name": "多模态诊断",
+      "success": true,
+      "inference_time": 36.698426723480225,
+      "disease_name": "白粉病",
+      "confidence": 0.6693817472457886,
+      "error_message": null,
+      "details": {
+        "image_path": "D:\\Project\\WheatAgent\\datasets\\wheat_data_unified\\images\\val\\Mildew_0.jpg",
+        "symptoms": "叶片上出现白色粉状物",
+        "features": {
+          "visual_detection": true,
+          "graph_rag_enabled": true,
+          "textual_analysis": true
+        }
+      }
+    }
+  ]
+}

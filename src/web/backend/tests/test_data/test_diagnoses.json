@@ -1,0 +1,56 @@
+[
+  {
+    "user_id": 1,
+    "disease_id": 1,
+    "image_url": "/test_data/images/wheat_rust.png",
+    "result": "小麦锈病",
+    "confidence": 0.95,
+    "status": "completed",
+    "location": {
+      "province": "河南省",
+      "city": "郑州市",
+      "latitude": 34.7466,
+      "longitude": 113.6253
+    },
+    "environment": {
+      "temperature": 25.5,
+      "humidity": 65.0
+    }
+  },
+  {
+    "user_id": 1,
+    "disease_id": 2,
+    "image_url": "/test_data/images/wheat_powdery_mildew.png",
+    "result": "小麦白粉病",
+    "confidence": 0.88,
+    "status": "completed",
+    "location": {
+      "province": "山东省",
+      "city": "济南市",
+      "latitude": 36.6512,
+      "longitude": 117.1201
+    },
+    "environment": {
+      "temperature": 22.0,
+      "humidity": 75.0
+    }
+  },
+  {
+    "user_id": 2,
+    "disease_id": 3,
+    "image_url": "/test_data/images/wheat_aphid.png",
+    "result": "小麦蚜虫",
+    "confidence": 0.92,
+    "status": "completed",
+    "location": {
+      "province": "河北省",
+      "city": "石家庄市",
+      "latitude": 38.0428,
+      "longitude": 114.5149
+    },
+    "environment": {
+      "temperature": 28.0,
+      "humidity": 55.0
+    }
+  }
+]

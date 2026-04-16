@@ -1,0 +1,103 @@
+﻿======================================================================
+  V17 Slow E2E Tests (SSE Diagnosis + Event Loop)
+======================================================================
+
+[Test 1] SSE Fusion Diagnosis
+  event: start
+  event: progress
+  event: progress
+  event: progress
+  event: progress
+  event: progress
+  event: progress
+  event: progress
+  event: progress
+  event: progress
+  event: progress
+  event: complete
+[PASS] SSE diagnosis: 绉嗛攬鐥?(conf=0.757, severity=high)
+  Fields: 15/15 present
+  Events: 24, Time: 520.6s
+
+[Test 2] Diagnosis Records & Detail
+[PASS] Diagnosis records: 9 records
+[PASS] Diagnosis detail: id=25, suggestions type=list
+
+[Test 3] Event Loop Non-Blocking
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+  [Health] OK during inference
+[PASS] Event loop non-blocking: health check OK during inference (347.1s)
+
+======================================================================
+  Results: 3/3 passed
+  [PASS] sse_diagnosis
+  [PASS] records_detail
+  [PASS] event_loop
+======================================================================

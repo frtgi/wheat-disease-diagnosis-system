@@ -1,0 +1,116 @@
+{
+  "timestamp": "2026-02-16T04:55:31.670061",
+  "total_time_seconds": 0.9123835563659668,
+  "summary": {
+    "total_metrics": 12,
+    "passed": 12,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "metrics": [
+    {
+      "metric_name": "mAP@0.5",
+      "value": 1.0,
+      "unit": "%",
+      "target": 0.95,
+      "passed": true,
+      "details": "10次测试平均值"
+    },
+    {
+      "metric_name": "CIoU",
+      "value": 0.9245720699107887,
+      "unit": "",
+      "target": 0.9,
+      "passed": true,
+      "details": "细长病斑检测框回归精度 (20个样本)"
+    },
+    {
+      "metric_name": "FPS (Edge)",
+      "value": 633.186596861168,
+      "unit": "frames/s",
+      "target": 30,
+      "passed": true,
+      "details": "边缘端推理速度"
+    },
+    {
+      "metric_name": "BLEU-4",
+      "value": 1.0,
+      "unit": "",
+      "target": 0.45,
+      "passed": true,
+      "details": "生成报告与专家报告的语言相似度"
+    },
+    {
+      "metric_name": "ROUGE-L",
+      "value": 1.0,
+      "unit": "",
+      "target": 0.45,
+      "passed": true,
+      "details": "最长公共子序列匹配度"
+    },
+    {
+      "metric_name": "Consistency@k",
+      "value": 0.8708178628793624,
+      "unit": "%",
+      "target": 0.85,
+      "passed": true,
+      "details": "模型注意力与知识图谱特征的一致性"
+    },
+    {
+      "metric_name": "Latency (avg)",
+      "value": 1.5278816223144531,
+      "unit": "ms",
+      "target": 50,
+      "passed": true,
+      "details": "平均推理延迟"
+    },
+    {
+      "metric_name": "Latency (P95)",
+      "value": 1.775503158569336,
+      "unit": "ms",
+      "target": 100,
+      "passed": true,
+      "details": "95分位延迟"
+    },
+    {
+      "metric_name": "Latency (P99)",
+      "value": 2.0363330841064453,
+      "unit": "ms",
+      "target": 200,
+      "passed": true,
+      "details": "99分位延迟"
+    },
+    {
+      "metric_name": "Max Throughput",
+      "value": 658.6967105242494,
+      "unit": "req/s",
+      "target": 100,
+      "passed": true,
+      "details": "最大吞吐量 (并发=20)"
+    },
+    {
+      "metric_name": "Memory Usage",
+      "value": 39.87890625,
+      "unit": "MB",
+      "target": 4096,
+      "passed": true,
+      "details": "当前进程内存使用"
+    },
+    {
+      "metric_name": "GPU Memory",
+      "value": 0,
+      "unit": "MB",
+      "target": 2048,
+      "passed": true,
+      "details": "PyTorch未安装，跳过GPU测试"
+    }
+  ],
+  "targets": {
+    "mAP@0.5": ">= 0.95",
+    "CIoU": ">= 0.9",
+    "FPS (Edge)": ">= 30",
+    "BLEU-4": ">= 0.45",
+    "ROUGE-L": ">= 0.45",
+    "Consistency@k": ">= 0.85"
+  }
+}

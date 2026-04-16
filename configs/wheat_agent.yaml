@@ -1,12 +1,13 @@
 # WheatAgent 配置文件
-# 基于多模态特征融合的小麦病害诊断智能体
-# 文档参考: 基于多模态特征融合的小麦病害诊断智能体开发方案深度研究报告
+# 基于多模态融合的小麦病害诊断系统
+# 文档参考: 基于多模态融合的小麦病害诊断系统开发方案深度研究报告
 
 # 项目基本信息
 project:
-  name: "WheatAgent"
-  version: "0.2.0"
-  description: "基于多模态特征融合的小麦病害诊断智能体"
+  name: "基于多模态融合的小麦病害诊断系统"
+  version: "1.0.0"
+  description: "基于多模态融合的小麦病害诊断系统"
+  completion: "97%"
 
 # 数据路径配置
 paths:
@@ -22,7 +23,7 @@ paths:
 vision:
   # 基础YOLOv8配置
   model_name: "yolov8"
-  model_path: "./models/yolov8_wheat.pt"
+  model_path: "./models/wheat_disease_v10_yolov8s/phase1_warmup/weights/best.pt"
   confidence_threshold: 0.25
   iou_threshold: 0.45
   image_size: 640
@@ -34,24 +35,56 @@ vision:
   use_sppelan: true            # SPPELAN多尺度特征聚合
   use_sta: true                # 超级令牌注意力
   
-  # 病害类别 (文档2.1节)
+  # 病害类别 (15类)
   classes:
-    - "aphid"                  # 蚜虫
-    - "blast"                  # 稻瘟病
-    - "mite"                   # 螨类
-    - "smut"                   # 黑穗病
-    - "stripe_rust"            # 条锈病
-    - "leaf_rust"              # 叶锈病
-    - "powdery_mildew"         # 白粉病
-    - "fusarium"               # 赤霉病
+    - "Aphid"                  # 蚜虫
+    - "Black Rust"             # 秆锈病
+    - "Blast"                  # 稻瘟病
+    - "Brown Rust"             # 叶锈病
+    - "Common Root Rot"        # 根腐病
+    - "Fusarium Head Blight"   # 赤霉病
+    - "Healthy"                # 健康
+    - "Leaf Blight"            # 叶斑病
+    - "Mildew"                 # 白粉病
+    - "Mite"                   # 螨虫
+    - "Septoria"               # 壳针孢叶斑病
+    - "Smut"                   # 黑粉病
+    - "Stem fly"               # 茎蝇
+    - "Tan spot"               # 褐斑病
+    - "Yellow Rust"            # 条锈病
 
-# 认知模块配置 (文档第4章)
+# 认知模块配置 (文档第 4 章)
 cognition:
-  # 视觉编码器 (CLIP)
+  # 默认模型类型：qwen (3GB 显存优化), minicpm (多模态), llava (备选)
+  model_type: "qwen"
+  
+  # Qwen3-VL-4B-Instruct 配置 (默认推荐，3GB 显存优化，原生多模态)
+  qwen:
+    model_id: "Qwen/Qwen3-VL-4B-Instruct"
+    local_path: "./models/Qwen3-VL-4B-Instruct"
+    load_in_4bit: true
+    max_new_tokens: 512
+    temperature: 0.7
+    top_p: 0.9
+    top_k: 50
+    repetition_penalty: 1.1
+    # 视觉配置
+    vision_config:
+      enabled: true
+      model_type: "qwen2_5_vl"
+  
+  # MiniCPM-V 4.5 配置 (多模态，需要更大显存)
+  minicpm:
+    model_id: "OpenBMB/MiniCPM-V-4_5"
+    local_path: "./models/OpenBMB/MiniCPM-V-4_5"
+    load_in_4bit: true
+    enable_thinking: false
+  
+  # 视觉编码器 (CLIP) - 用于LLaVA
   vision_encoder: "openai/clip-vit-large-patch14"
   vision_dim: 1024
   
-  # 语言模型 (Vicuna)
+  # 语言模型 (Vicuna) - 用于LLaVA
   llm_name: "lmsys/vicuna-7b-v1.5"
   llm_dim: 4096
   
@@ -65,6 +98,13 @@ cognition:
   max_new_tokens: 512
   temperature: 0.7
   top_p: 0.9
+  
+  # 4GB显存优化配置
+  memory_optimization:
+    low_cpu_mem_usage: true
+    offload_buffers: true
+    max_gpu_memory: "3.5GiB"
+    max_cpu_memory: "8GiB"
   
   # 提示工程 (文档4.3节)
   system_prompt: "你是一个经验丰富的小麦病理学专家。请基于提供的图像视觉特征和上下文信息，进行严谨的病害诊断，并给出科学的防治建议。如果视觉特征不明确，请指出不确定性，不要臆造。"
@@ -143,18 +183,22 @@ deployment:
 evaluation:
   metrics:
     vision:
-      - "mAP@0.5"
-      - "CIoU"
+      metrics:
+        - "mAP@0.5"
+        - "CIoU"
       target: "> 0.95"
     cognition:
-      - "BLEU-4"
-      - "ROUGE-L"
+      metrics:
+        - "BLEU-4"
+        - "ROUGE-L"
       target: "> 0.45"
     knowledge:
-      - "Consistency@k"
+      metrics:
+        - "Consistency@k"
       target: "> 0.85"
     efficiency:
-      - "FPS"
+      metrics:
+        - "FPS"
       target: "> 30"
 
 # 日志配置

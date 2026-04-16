@@ -1,32 +1,86 @@
-# 文件路径: WheatAgent/configs/wheat_disease.yaml
+# ============================================================
+# WheatAgent 统一数据集配置文件
+# 基于多模态特征融合的小麦病害诊断智能体
+# ============================================================
 
-# 1. 数据集路径 (请根据实际绝对路径或相对路径修改)
-path: ../datasets/wheat_data  # 数据集根目录
-train: images/train           # 训练集图片 (相对于path)
-val: images/val               # 验证集图片 (相对于path)
+# 数据集路径 (使用绝对路径)
+path: D:/Project/WheatAgent/datasets/wheat_data_unified
+train: images/train
+val: images/val
+test: images/val
 
-# 2. 类别定义 (与 main.py 中的映射保持一致)
+# 类别数量
+nc: 15
+
+# 类别名称
 names:
-  0: 蚜虫 (Aphids)
-  1: 螨虫 (Mites)
-  2: 茎蝇 (Stem Fly)
-  3: 锈病 (Rust - General)
-  4: 茎锈病 (Stem Rust)
-  5: 叶锈病 (Leaf Rust)
-  6: 条锈病 (Stripe Rust)
-  7: 黑粉病 (Smuts)
-  8: 根腐病 (Common Root Rot)
-  9: 叶斑病 (Spot Blotch)
-  10: 小麦爆发病 (Wheat Blast)
-  11: 赤霉病 (Fusarium Head Blight)
-  12: 壳针孢叶斑病 (Septoria Leaf Blotch)
-  13: 斑点叶斑病 (Speckled Leaf Blotch)
-  14: 褐斑病 (Brown Spot)
-  15: 白粉病 (Powdery Mildew)
-  16: 健康 (Healthy)
+  0: Aphid
+  1: Black Rust
+  2: Blast
+  3: Brown Rust
+  4: Common Root Rot
+  5: Fusarium Head Blight
+  6: Healthy
+  7: Leaf Blight
+  8: Mildew
+  9: Mite
+  10: Septoria
+  11: Smut
+  12: Stem fly
+  13: Tan spot
+  14: Yellow Rust
 
-# 3. 训练参数推荐
-nc: 17 # 类别总数
-box: 0.05  # 边框损失权重
-cls: 0.5   # 分类损失权重
-fliplr: 0.5 # 水平翻转增强
+# 中文名称
+names_cn:
+  0: 蚜虫
+  1: 秆锈病
+  2: 稻瘟病
+  3: 叶锈病
+  4: 根腐病
+  5: 赤霉病
+  6: 健康
+  7: 叶斑病
+  8: 白粉病
+  9: 螨虫
+  10: 壳针孢叶斑病
+  11: 黑粉病
+  12: 茎蝇
+  13: 褐斑病
+  14: 条锈病
+
+# 病害详细信息
+disease_info:
+  Yellow Rust:
+    pathogen: Puccinia striiformis
+    symptoms: ["黄色条状孢子堆", "沿叶脉排列", "叶片褪绿"]
+    environment: ["温度9-16°C", "高湿度", "有露水"]
+    treatment: ["三唑酮", "戊唑醇", "丙环唑"]
+    
+  Brown Rust:
+    pathogen: Puccinia triticina
+    symptoms: ["橙褐色圆形孢子堆", "散生叶片表面"]
+    environment: ["温度15-22°C", "高湿度"]
+    treatment: ["三唑酮", "戊唑醇"]
+    
+  Black Rust:
+    pathogen: Puccinia graminis
+    symptoms: ["深褐色长椭圆形孢子堆", "茎秆破裂"]
+    environment: ["温度20-30°C", "高湿度"]
+    treatment: ["三唑酮", "戊唑醇"]
+    
+  Mildew:
+    pathogen: Blumeria graminis
+    symptoms: ["白色粉状霉层", "叶片发黄", "黑色小点"]
+    environment: ["温度15-20°C", "中等湿度"]
+    treatment: ["三唑酮", "腈菌唑", "丙环唑"]
+    
+  Fusarium Head Blight:
+    pathogen: Fusarium graminearum
+    symptoms: ["穗部漂白", "粉红色霉层", "籽粒干瘪"]
+    environment: ["花期连阴雨", "温度25-30°C"]
+    treatment: ["多菌灵", "戊唑醇"]
+
+# 训练参数
+box: 0.05
+cls: 0.5
+fliplr: 0.5

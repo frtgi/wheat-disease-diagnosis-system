@@ -10,10 +10,12 @@ from pathlib import Path
 from typing import Any
 
 # Neo4j 默认连接配置
+# 注意：生产环境应使用环境变量 NEO4J_PASSWORD
+import os
 NEO4J_CONFIG = {
-    "uri": "bolt://localhost:7687",
-    "user": "neo4j",
-    "password": "password"
+    "uri": os.environ.get("NEO4J_URI", "bolt://localhost:7687"),
+    "user": os.environ.get("NEO4J_USER", "neo4j"),
+    "password": os.environ.get("NEO4J_PASSWORD", "123456789s")
 }
 
 # 延迟导入，避免循环导入问题

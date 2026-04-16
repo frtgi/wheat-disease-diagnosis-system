@@ -1,0 +1,39 @@
+[
+  {
+    "entity_type": "disease",
+    "entity_name": "小麦锈病",
+    "attributes": {
+      "category": "真菌病害",
+      "severity": "medium",
+      "season": "春季"
+    }
+  },
+  {
+    "entity_type": "pathogen",
+    "entity_name": "锈菌",
+    "attributes": {
+      "type": "真菌",
+      "spread": "风传"
+    }
+  },
+  {
+    "entity_type": "treatment",
+    "entity_name": "三唑酮",
+    "attributes": {
+      "type": "杀菌剂",
+      "usage": "叶面喷施"
+    }
+  },
+  {
+    "entity_type": "relation",
+    "source": "小麦锈病",
+    "target": "锈菌",
+    "relation_type": "致病因子"
+  },
+  {
+    "entity_type": "relation",
+    "source": "小麦锈病",
+    "target": "三唑酮",
+    "relation_type": "治疗方法"
+  }
+]

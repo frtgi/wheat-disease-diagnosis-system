@@ -1,0 +1,32 @@
+{
+  "task_id": "FOLLOWUP_20260309_182648_0001",
+  "created_time": "2026-03-09T18:26:48.214422",
+  "scheduled_time": "2026-03-16 00:00",
+  "disease_info": {
+    "disease_name": "",
+    "severity_level": ""
+  },
+  "followup_details": {
+    "followup_interval": "7 天",
+    "urgency": "常规",
+    "followup_content": [],
+    "expected_goal": ""
+  },
+  "reminder": {
+    "enabled": true,
+    "reminder_time": "2026-03-15 00:00",
+    "reminder_method": "系统通知"
+  },
+  "status": "待执行",
+  "priority": "低",
+  "notes": [],
+  "completion_info": {
+    "completed": false,
+    "completed_time": null,
+    "completion_notes": null
+  },
+  "metadata": {
+    "version": "1.0",
+    "tool": "FollowupTool"
+  }
+}

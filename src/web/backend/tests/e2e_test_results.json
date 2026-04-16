@@ -1,0 +1,123 @@
+{
+  "all_tests_passed": false,
+  "api_tests": {
+    "health_check": {
+      "test": "health_check",
+      "success": false,
+      "root_health": true,
+      "ai_health": false
+    },
+    "single_diagnosis": {
+      "test": "single_diagnosis",
+      "success": true,
+      "status_code": 200,
+      "latency_ms": 6102.65,
+      "result": {
+        "success": false,
+        "error": "模型未加载",
+        "fallback_suggestion": "请稍后重试或仅使用症状描述进行诊断"
+      },
+      "cache_hit": false
+    },
+    "cache_stats": {
+      "test": "cache_stats",
+      "success": true,
+      "result": {
+        "success": true,
+        "data": {
+          "uptime_seconds": 0.0,
+          "total_requests": 0,
+          "cache_hits": 0,
+          "overall_hit_rate": 0.0,
+          "image_cache": {
+            "capacity": 1000,
+            "size": 0,
+            "hits": 0,
+            "misses": 0,
+            "evictions": 0,
+            "hit_rate": 0.0,
+            "utilization": 0.0
+          },
+          "semantic_cache": {
+            "size": 0,
+            "capacity": 500
+          },
+          "enabled": {
+            "image_cache": true,
+            "semantic_cache": true
+          }
+        }
+      }
+    },
+    "metrics": {
+      "test": "metrics",
+      "success": true,
+      "result": {
+        "success": true,
+        "data": {
+          "uptime_seconds": 39.86,
+          "latency": {
+            "count": 0,
+            "avg": 0,
+            "min": 0,
+            "max": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "throughput": 0.0,
+          "error_rate": {
+            "total_requests": 0,
+            "total_errors": 0,
+            "error_rate": 0.0
+          },
+          "gpu_memory": {
+            "current": null,
+            "avg_utilization": 0,
+            "max_utilization": 0
+          },
+          "total_requests": 0,
+          "total_errors": 0
+        },
+        "timestamp": "2026-03-10T23:44:56.177556"
+      }
+    },
+    "logs": {
+      "test": "logs",
+      "success": true,
+      "result": {
+        "success": true,
+        "data": {
+          "total_requests": 0,
+          "success_rate": 0,
+          "top_diseases": [],
+          "avg_confidence": 0,
+          "avg_processing_time": 0
+        },
+        "timestamp": "2026-03-10T23:44:56.181024"
+      }
+    },
+    "alerts": {
+      "test": "alerts",
+      "success": true,
+      "result": {
+        "success": true,
+        "data": {
+          "alerts": [],
+          "alert_count": 0,
+          "health_status": "healthy"
+        }
+      }
+    }
+  },
+  "performance": {
+    "total_requests": 10,
+    "successful_requests": 10,
+    "avg_latency_ms": 2.41,
+    "p50_latency_ms": 2.33,
+    "p95_latency_ms": 2.97,
+    "p99_latency_ms": 2.97,
+    "cache_hit_rate": 0.0
+  },
+  "timestamp": "2026-03-10T23:44:56.209290"
+}

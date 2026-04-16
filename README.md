@@ -1,14 +1,14 @@
-# 🌾 IWDDA: 基于多模态特征融合的小麦病害诊断智能体
+# 🌾 基于多模态融合的小麦病害诊断系统
 
 <div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-1.10+-orange.svg)
 ![YOLO](https://img.shields.io/badge/YOLOv8-green.svg)
 ![Neo4j](https://img.shields.io/badge/Neo4j-5.x-008cc1.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-**Intelligent Wheat Disease Diagnosis Agent (IWDDA)**
+**Wheat Disease Diagnosis System based on Multimodal Fusion**
 
 一个融合视觉感知、语义理解和知识推理的智能农业诊断系统
 
@@ -87,7 +87,7 @@ IWDDA System
 
 ### 环境要求
 
-- Python 3.8+
+- Python 3.10+
 - PyTorch 1.10+ (推荐使用 CUDA 支持)
 - Neo4j 5.x
 - 8GB+ RAM (推荐 16GB)
