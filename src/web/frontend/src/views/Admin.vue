@@ -192,9 +192,9 @@
                 {{ row.confidence ? `${Math.round(row.confidence * 100)}%` : '-' }}
               </template>
             </el-table-column>
-            <el-table-column prop="inference_time_ms" label="耗时" width="100">
+            <el-table-column prop="processing_time_ms" label="耗时" width="100">
               <template #default="{ row }">
-                {{ row.inference_time_ms ? `${row.inference_time_ms}ms` : '-' }}
+                {{ row.processing_time_ms ? `${row.processing_time_ms}ms` : '-' }}
               </template>
             </el-table-column>
             <el-table-column prop="error" label="错误信息" show-overflow-tooltip>
@@ -259,10 +259,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, DataAnalysis, Reading, Monitor } from '@element-plus/icons-vue'
+import { echarts } from '@/utils/echarts'
 import {
   getOverviewStats,
   getUserStats,
@@ -328,7 +329,7 @@ const loadOverviewStats = async () => {
     const data = await getOverviewStats()
     overviewStats.value = data || {}
   } catch (e) {
-    console.error('加载概览统计失败:', e)
+    ElMessage.error('加载概览统计失败')
   }
 }
 
@@ -340,7 +341,7 @@ const loadUserStats = async () => {
     const data = await getUserStats()
     userStats.value = data || {}
   } catch (e) {
-    console.error('加载用户统计失败:', e)
+    ElMessage.error('加载用户统计失败')
   }
 }
 
@@ -352,7 +353,7 @@ const loadDiagnosisStats = async () => {
     const data = await getDiagnosisStats()
     diagnosisStats.value = data || {}
   } catch (e) {
-    console.error('加载诊断统计失败:', e)
+    ElMessage.error('加载诊断统计失败')
   }
 }
 
@@ -363,9 +364,9 @@ const refreshVramStatus = async () => {
   vramLoading.value = true
   try {
     const res = await getVramStatus()
-    vramStatus.value = res?.data || res || {}
+    vramStatus.value = res?.data || {}
   } catch (e) {
-    console.error('获取显存状态失败:', e)
+    ElMessage.error('获取显存状态失败')
   } finally {
     vramLoading.value = false
   }
@@ -395,9 +396,9 @@ const refreshCacheStats = async () => {
   cacheLoading.value = true
   try {
     const res = await getCacheStats()
-    cacheStats.value = res?.data || res || {}
+    cacheStats.value = res?.data || {}
   } catch (e) {
-    console.error('获取缓存统计失败:', e)
+    ElMessage.error('获取缓存统计失败')
   } finally {
     cacheLoading.value = false
   }
@@ -429,10 +430,10 @@ const refreshLogStats = async () => {
       getLogStatistics(logDuration.value),
       getRecentLogs({ page_size: 20 })
     ])
-    logStatistics.value = statsRes || {}
+    logStatistics.value = statsRes?.data || statsRes || {}
     recentLogs.value = logsRes?.data?.logs || []
   } catch (e) {
-    console.error('加载日志统计失败:', e)
+    ElMessage.error('加载日志统计失败')
   } finally {
     logLoading.value = false
   }
@@ -458,13 +459,13 @@ const handlePreloadModels = async () => {
  */
 const loadDiseaseDistribution = async () => {
   try {
+    if (!diseaseChartRef.value) return
     const data = await getDiseaseDistribution(logDuration.value)
     if (diseaseChartRef.value && data) {
-      const echarts = (await import('@/utils/echarts')).echarts || (await import('@/utils/echarts')).default
       if (!diseaseChartInstance) {
         diseaseChartInstance = echarts.init(diseaseChartRef.value)
       }
-      const resData = data?.data || data || {}
+      const resData = data?.data || {}
       const items = resData.distribution || (Array.isArray(resData) ? resData : [])
       const chartData = Array.isArray(items) ? items : []
       diseaseChartInstance.setOption({
@@ -483,9 +484,17 @@ const loadDiseaseDistribution = async () => {
       })
     }
   } catch (e) {
-    console.error('加载病害分布失败:', e)
+    ElMessage.error('加载病害分布失败')
   }
 }
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'distribution') {
+    loadDiseaseDistribution()
+  } else if (newTab === 'logs') {
+    refreshLogStats()
+  }
+})
 
 onMounted(async () => {
   await Promise.all([
