@@ -111,6 +111,105 @@ async def generate_report(
         raise HTTPException(status_code=500, detail=f"报告生成失败：{str(e)}")
 
 
+@router.post("/generate-from-record/{diagnosis_id}")
+async def generate_report_from_record(
+    diagnosis_id: int,
+    report_format: str = Form("both", description="报告格式：pdf/html/both"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    从诊断记录生成报告
+
+    参数:
+        diagnosis_id: 诊断记录 ID
+        report_format: 报告格式（pdf/html/both）
+
+    返回:
+        诊断结果和报告文件路径
+    """
+    try:
+        from app.core.database import SyncSessionLocal
+        from app.models.diagnosis import Diagnosis
+        from app.services.report_generator import get_report_generator
+        import json
+
+        db = SyncSessionLocal()
+        try:
+            diagnosis = db.query(Diagnosis).filter(Diagnosis.id == diagnosis_id).first()
+            if not diagnosis:
+                raise HTTPException(status_code=404, detail="诊断记录不存在")
+
+            if diagnosis.user_id != current_user.id and current_user.role != 'admin':
+                raise HTTPException(status_code=403, detail="无权访问此诊断记录")
+
+            disease_name = None
+            if diagnosis.disease_id:
+                from app.models.disease import Disease
+                disease = db.query(Disease).filter(Disease.id == diagnosis.disease_id).first()
+                if disease:
+                    disease_name = disease.name
+
+            diagnosis_data = {
+                "disease_name": disease_name or getattr(diagnosis, 'disease_name', None) or "未知",
+                "confidence": float(diagnosis.confidence) if diagnosis.confidence else 0.0,
+                "severity": diagnosis.severity or "未知",
+                "symptoms": diagnosis.symptoms or "无详细描述",
+                "prevention_methods": "请咨询专业农技人员",
+                "treatment_methods": "请咨询专业农技人员"
+            }
+
+            if diagnosis.recommendations:
+                try:
+                    recs = diagnosis.recommendations if isinstance(diagnosis.recommendations, list) else json.loads(diagnosis.recommendations)
+                    if isinstance(recs, list) and len(recs) > 0:
+                        diagnosis_data["prevention_methods"] = "\n".join(str(r) for r in recs)
+                        diagnosis_data["treatment_methods"] = "\n".join(str(r) for r in recs)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            adapted_result = {
+                "data": diagnosis_data
+            }
+
+            image_data = None
+            if diagnosis.image_id:
+                try:
+                    from app.models.image import ImageMetadata
+                    image_meta = db.query(ImageMetadata).filter(ImageMetadata.id == diagnosis.image_id).first()
+                    if image_meta and image_meta.file_path:
+                        import os
+                        if os.path.exists(image_meta.file_path):
+                            with open(image_meta.file_path, 'rb') as f:
+                                image_data = f.read()
+                except Exception as img_err:
+                    logger.warning(f"获取诊断图像失败：{img_err}")
+
+            report_generator = get_report_generator()
+            report_files = report_generator.generate_report(
+                diagnosis_result=adapted_result,
+                image_data=image_data,
+                format=report_format
+            )
+
+            return {
+                "success": True,
+                "diagnosis": diagnosis_data,
+                "report_files": {
+                    fmt: str(path) for fmt, path in report_files.items()
+                },
+                "has_image": image_data is not None,
+                "message": f"报告生成成功，共 {len(report_files)} 个文件" + ("（含诊断图像）" if image_data else "（无诊断图像）")
+            }
+        finally:
+            db.close()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"从记录生成报告失败：{e}")
+        raise HTTPException(status_code=500, detail=f"报告生成失败：{str(e)}")
+
+
 @router.get("/download/{filename}")
 async def download_report(filename: str, current_user: User = Depends(get_current_user)):
     """

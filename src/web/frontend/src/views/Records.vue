@@ -52,6 +52,9 @@
             <el-button link type="primary" @click="handleViewDetail(row)">
               查看详情
             </el-button>
+            <el-button link type="warning" @click="handleExportReport(row)">
+              导出报告
+            </el-button>
             <el-button link type="danger" @click="handleDelete(row)">
               删除
             </el-button>
@@ -81,6 +84,7 @@ import {
   deleteDiagnosis as apiDeleteDiagnosis,
   type DiagnosisRecordItem
 } from '@/api/diagnosis'
+import { generateReportFromRecord, getReportDownloadUrl } from '@/api/report'
 
 const searchQuery = ref('')
 
@@ -206,6 +210,28 @@ const handleDelete = async (row: DiagnosisRecordItem) => {
     }
   }).catch(() => {
   })
+}
+
+/**
+ * 导出诊断报告
+ */
+const handleExportReport = async (row: DiagnosisRecordItem) => {
+  try {
+    const result = await generateReportFromRecord(row.id, 'both')
+    if (result.report_files) {
+      ElMessage.success(`报告生成成功${result.has_image ? '（含诊断图像）' : '（无诊断图像）'}`)
+      const firstFile = Object.values(result.report_files)[0]
+      if (firstFile) {
+        const filename = String(firstFile).split(/[/\\]/).pop()
+        if (filename) {
+          window.open(getReportDownloadUrl(filename), '_blank')
+        }
+      }
+    }
+  } catch (error: unknown) {
+    console.error('导出报告失败:', error)
+    ElMessage.error('导出报告失败')
+  }
 }
 
 const handlePageChange = () => {
