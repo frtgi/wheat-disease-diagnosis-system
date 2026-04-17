@@ -83,8 +83,9 @@ export async function searchDiseaseKnowledge(
   skip: number = 0,
   limit: number = 20
 ): Promise<DiseaseKnowledge[]> {
+  const page = Math.floor(skip / limit) + 1
   return http.get<DiseaseKnowledge[]>(`${API_BASE}/search`, {
-    params: { keyword, skip, limit }
+    params: { keyword, page, page_size: limit }
   })
 }
 
