@@ -99,8 +99,8 @@ const loadStats = async () => {
     stats.value.totalDiagnoses = overview.total_diagnoses
     stats.value.userCount = overview.total_users
 
-    stats.value.todayDiagnoses = (overview as any).today_diagnoses ?? 0
-    stats.value.accuracy = (overview as any).avg_accuracy ?? 0
+    stats.value.todayDiagnoses = overview.today_diagnoses ?? 0
+    stats.value.accuracy = overview.avg_accuracy ?? 0
 
     const topDiseases = diagnosisStatsData.top_diseases || []
     const totalTopCount = topDiseases.reduce((sum, d) => sum + d.count, 0)
@@ -116,7 +116,7 @@ const loadStats = async () => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
 
-    trendData.value = (overview as any).diagnosis_trend ?? []
+    trendData.value = overview.diagnosis_trend ?? []
 
   } catch (error: unknown) {
     console.error('加载统计数据失败:', error)
