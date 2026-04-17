@@ -49,18 +49,23 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/users/token/refresh`,
+    const response = await service.post(
+      '/users/token/refresh',
       { refresh_token: refreshToken }
     )
-    const { access_token, refresh_token: newRefreshToken } = response.data
+    const resData = response as any
+    const access_token = resData?.data?.access_token || resData?.access_token
+    const newRefreshToken = resData?.data?.refresh_token || resData?.refresh_token
     
-    localStorage.setItem('token', access_token)
-    if (newRefreshToken) {
-      localStorage.setItem('refresh_token', newRefreshToken)
+    if (access_token) {
+      localStorage.setItem('token', access_token)
+      if (newRefreshToken) {
+        localStorage.setItem('refresh_token', newRefreshToken)
+      }
+      return access_token
     }
     
-    return access_token
+    return null
   } catch (error) {
     console.error('刷新令牌失败:', error)
     return null

@@ -22,7 +22,7 @@ def generate_placeholder_images():
 
     for i, d in enumerate(diseases):
         code = d.code or f'disease_{d.id}'
-        filename = f'{code.lower()}.jpg'
+        filename = f'{code.lower()}.svg'
         color = colors[i % len(colors)]
         name = d.name or 'Unknown'
         sci = d.scientific_name or ''
