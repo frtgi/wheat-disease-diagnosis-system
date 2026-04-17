@@ -54,8 +54,7 @@ from .sse_stream_manager import (
 )
 from .diagnosis_validator import (
     validate_image,
-    should_use_mock,
-    get_mock_service,
+    ensure_ai_service_ready,
     get_cache_manager_safe,
 )
 
@@ -106,6 +105,8 @@ async def diagnose_fusion(
     start_time = time.time()
 
     try:
+        ensure_ai_service_ready()
+
         pil_image = None
         image_bytes = None
 
@@ -121,51 +122,6 @@ async def diagnose_fusion(
                 status_code=400,
                 detail="请至少提供图像或症状描述中的一种输入"
             )
-
-        if should_use_mock():
-            logger.info("使用 Mock 模式进行融合诊断")
-            mock_service = get_mock_service()
-
-            mock_context = {
-                "weather": weather,
-                "growth_stage": growth_stage,
-                "affected_part": affected_part
-            }
-
-            if pil_image and symptoms:
-                mock_result = await mock_service.diagnose_by_image(
-                    image_bytes or b"",
-                    symptoms,
-                    **mock_context
-                )
-            elif pil_image:
-                mock_result = await mock_service.diagnose_by_image(
-                    image_bytes or b"",
-                    "",
-                    **mock_context
-                )
-            else:
-                mock_result = await mock_service.diagnose_by_text(
-                    symptoms,
-                    **mock_context
-                )
-
-            inference_time = time.time() - start_time
-            return {
-                "success": True,
-                "diagnosis": mock_result,
-                "model": "mock_service",
-                "features": {
-                    "mock_mode": True,
-                    "thinking_mode": enable_thinking,
-                    "graph_rag": use_graph_rag
-                },
-                "performance": {
-                    "inference_time_ms": round(inference_time * 1000, 2),
-                    "cache_hit": False
-                },
-                "message": "Mock 模式诊断成功（AI 服务不可用）"
-            }
 
         from app.services.fusion_service import get_fusion_service
 
@@ -362,6 +318,8 @@ async def _generate_diagnosis_stream_from_url(
     ).to_sse()
 
     try:
+        ensure_ai_service_ready()
+
         pil_image = None
         image_bytes = None
 
@@ -471,95 +429,6 @@ async def _generate_diagnosis_stream_from_url(
         if current_time - last_heartbeat > heartbeat_interval:
             yield f"event: heartbeat\ndata: {json.dumps({'timestamp': current_time})}\n\n"
             last_heartbeat = current_time
-
-        if should_use_mock():
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=10,
-                message="使用 Mock 模式进行诊断..."
-            ).to_sse()
-
-            mock_service = get_mock_service()
-            mock_context = {
-                "weather": weather,
-                "growth_stage": growth_stage,
-                "affected_part": affected_part
-            }
-
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=30,
-                message="正在模拟视觉特征提取..."
-            ).to_sse()
-            await asyncio.sleep(0.3)
-
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=50,
-                message="正在模拟知识检索..."
-            ).to_sse()
-            await asyncio.sleep(0.3)
-
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=70,
-                message="正在模拟文本分析..."
-            ).to_sse()
-            await asyncio.sleep(0.3)
-
-            if pil_image and symptoms:
-                mock_result = await mock_service.diagnose_by_image(
-                    image_bytes or b"",
-                    symptoms,
-                    **mock_context
-                )
-            elif pil_image:
-                mock_result = await mock_service.diagnose_by_image(
-                    image_bytes or b"",
-                    "",
-                    **mock_context
-                )
-            else:
-                mock_result = await mock_service.diagnose_by_text(
-                    symptoms,
-                    **mock_context
-                )
-
-            inference_time = time.time() - start_time
-
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=90,
-                message="正在生成诊断结果..."
-            ).to_sse()
-            await asyncio.sleep(0.2)
-
-            yield ProgressEvent(
-                event="complete",
-                stage="complete",
-                progress=100,
-                message="Mock 模式诊断完成",
-                data={
-                    "success": True,
-                    "diagnosis": mock_result,
-                    "model": "mock_service",
-                    "features": {
-                        "mock_mode": True,
-                        "thinking_mode": enable_thinking,
-                        "graph_rag": use_graph_rag
-                    },
-                    "performance": {
-                        "inference_time_ms": round(inference_time * 1000, 2),
-                        "cache_hit": False
-                    }
-                }
-            ).to_sse()
-            return
 
         from app.services.fusion_service import get_fusion_service
 
@@ -868,6 +737,8 @@ async def _generate_diagnosis_stream(
     ).to_sse()
 
     try:
+        ensure_ai_service_ready()
+
         pil_image = None
         image_bytes = None
 
@@ -908,95 +779,6 @@ async def _generate_diagnosis_stream(
                 progress=0,
                 message="请至少提供图像或症状描述中的一种输入",
                 data={"error_type": "validation_error"}
-            ).to_sse()
-            return
-
-        if should_use_mock():
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=10,
-                message="使用 Mock 模式进行诊断..."
-            ).to_sse()
-
-            mock_service = get_mock_service()
-            mock_context = {
-                "weather": weather,
-                "growth_stage": growth_stage,
-                "affected_part": affected_part
-            }
-
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=30,
-                message="正在模拟视觉特征提取..."
-            ).to_sse()
-            await asyncio.sleep(0.3)
-
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=50,
-                message="正在模拟知识检索..."
-            ).to_sse()
-            await asyncio.sleep(0.3)
-
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=70,
-                message="正在模拟文本分析..."
-            ).to_sse()
-            await asyncio.sleep(0.3)
-
-            if pil_image and symptoms:
-                mock_result = await mock_service.diagnose_by_image(
-                    image_bytes or b"",
-                    symptoms,
-                    **mock_context
-                )
-            elif pil_image:
-                mock_result = await mock_service.diagnose_by_image(
-                    image_bytes or b"",
-                    "",
-                    **mock_context
-                )
-            else:
-                mock_result = await mock_service.diagnose_by_text(
-                    symptoms,
-                    **mock_context
-                )
-
-            inference_time = time.time() - start_time
-
-            yield ProgressEvent(
-                event="progress",
-                stage="mock",
-                progress=90,
-                message="正在生成诊断结果..."
-            ).to_sse()
-            await asyncio.sleep(0.2)
-
-            yield ProgressEvent(
-                event="complete",
-                stage="complete",
-                progress=100,
-                message="Mock 模式诊断完成",
-                data={
-                    "success": True,
-                    "diagnosis": mock_result,
-                    "model": "mock_service",
-                    "features": {
-                        "mock_mode": True,
-                        "thinking_mode": enable_thinking,
-                        "graph_rag": use_graph_rag
-                    },
-                    "performance": {
-                        "inference_time_ms": round(inference_time * 1000, 2),
-                        "cache_hit": False
-                    }
-                }
             ).to_sse()
             return
 
@@ -1266,24 +1048,10 @@ async def diagnose_image(
     认证要求: 需要用户登录令牌 (Bearer Token)
     """
     try:
+        ensure_ai_service_ready()
+
         image_bytes = await image.read()
         pil_image = Image.open(io.BytesIO(image_bytes))
-
-        if should_use_mock():
-            logger.info("使用 Mock 模式进行图像诊断")
-            mock_service = get_mock_service()
-            mock_result = await mock_service.diagnose_by_image(image_bytes, "")
-            return {
-                "success": True,
-                "data": {
-                    "detections": mock_result.get("bounding_boxes", []),
-                    "count": len(mock_result.get("bounding_boxes", [])),
-                    "diagnosis": mock_result
-                },
-                "model": "mock_service",
-                "features": {"mock_mode": True},
-                "message": f"Mock 模式检测到 {mock_result.get('disease_name', '未知病害')}"
-            }
 
         from app.services.yolo_service import get_yolo_service
 
@@ -1333,37 +1101,13 @@ async def diagnose_multimodal(
     start_time = time.time()
 
     try:
+        ensure_ai_service_ready()
+
         pil_image = None
         image_bytes = None
         if image:
             image_bytes = await image.read()
             pil_image = Image.open(io.BytesIO(image_bytes))
-
-        if should_use_mock():
-            logger.info("使用 Mock 模式进行多模态诊断")
-            mock_service = get_mock_service()
-
-            if pil_image:
-                mock_result = await mock_service.diagnose_by_image(image_bytes or b"", symptoms)
-            else:
-                mock_result = await mock_service.diagnose_by_text(symptoms)
-
-            inference_time = time.time() - start_time
-            return {
-                "success": True,
-                "data": mock_result,
-                "model": "mock_service",
-                "features": {
-                    "mock_mode": True,
-                    "thinking_mode": thinking_mode,
-                    "graph_rag": use_graph_rag
-                },
-                "performance": {
-                    "inference_time_ms": round(inference_time * 1000, 2),
-                    "cache_hit": False
-                },
-                "message": "Mock 模式诊断成功（AI 服务不可用）"
-            }
 
         from app.services.qwen_service import get_qwen_service
         from app.services.cache_manager import get_cache_manager
@@ -1546,17 +1290,7 @@ async def diagnose_text(
     认证要求: 需要用户登录令牌 (Bearer Token)
     """
     try:
-        if should_use_mock():
-            logger.info("使用 Mock 模式进行文本诊断")
-            mock_service = get_mock_service()
-            mock_result = await mock_service.diagnose_by_text(symptoms)
-            return {
-                "success": True,
-                "data": mock_result,
-                "model": "mock_service",
-                "features": {"mock_mode": True},
-                "message": "Mock 模式文本诊断成功（AI 服务不可用）"
-            }
+        ensure_ai_service_ready()
 
         from app.services.qwen_service import get_qwen_service
 
@@ -1607,19 +1341,8 @@ async def ai_health() -> Dict[str, Any]:
     """
     health_info = {
         "status": "healthy",
-        "mock_mode": should_use_mock(),
         "services": {}
     }
-
-    if should_use_mock():
-        health_info["status"] = "mock"
-        health_info["message"] = "AI 服务不可用，使用 Mock 模式"
-        health_info["services"]["mock"] = {
-            "status": "active",
-            "model": "mock_service",
-            "capabilities": ["text_diagnosis", "image_diagnosis"]
-        }
-        return health_info
 
     try:
         from app.services.yolo_service import get_yolo_service
@@ -1684,7 +1407,6 @@ async def ai_health() -> Dict[str, Any]:
         logger.error(f"AI 健康检查失败：{e}")
         return {
             "status": "unhealthy",
-            "mock_mode": True,
             "error": str(e)
         }
 
@@ -1790,6 +1512,8 @@ async def diagnose_batch(
         raise HTTPException(status_code=400, detail="单次最多支持 10 张图像")
 
     try:
+        ensure_ai_service_ready()
+
         from app.services.qwen_service import get_qwen_service
         from app.services.cache_manager import get_cache_manager
         from app.services.vram_manager import get_vram_manager
@@ -1822,22 +1546,13 @@ async def diagnose_batch(
                         })
                         continue
 
-                if should_use_mock():
-                    mock_service = get_mock_service()
-                    mock_result = await mock_service.diagnose_by_image(image_bytes, symptoms)
-                    result = {
-                        "success": True,
-                        "diagnosis": mock_result,
-                        "model": "mock_service"
-                    }
-                else:
-                    qwen_service = get_qwen_service()
-                    result = qwen_service.diagnose(
-                        image=pil_image,
-                        symptoms=symptoms,
-                        enable_thinking=thinking_mode,
-                        use_graph_rag=use_graph_rag
-                    )
+                qwen_service = get_qwen_service()
+                result = qwen_service.diagnose(
+                    image=pil_image,
+                    symptoms=symptoms,
+                    enable_thinking=thinking_mode,
+                    use_graph_rag=use_graph_rag
+                )
 
                 if cache_manager and result["success"]:
                     cache_manager.set(
