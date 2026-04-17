@@ -132,8 +132,7 @@ const handleLogin = async () => {
         
         ElMessage.success('登录成功')
         
-        // 跳转到首页
-        router.push('/')
+        window.location.href = '/'
       } catch (error: unknown) {
         console.error('登录失败:', error)
         const msg = error instanceof Error ? error.message : '登录失败，请检查用户名和密码'

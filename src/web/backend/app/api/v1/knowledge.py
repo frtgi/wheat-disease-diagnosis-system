@@ -185,10 +185,11 @@ async def search_knowledge(
     )
 
     try:
+        serialized = [DiseaseResponse.model_validate(d).model_dump(mode='json') for d in diseases]
         await cache_service._get_redis().setex(
             cache_key,
             21600,
-            json.dumps([d.__dict__ for d in diseases], ensure_ascii=False, default=str)
+            json.dumps(serialized, ensure_ascii=False, default=str)
         )
     except Exception:
         pass

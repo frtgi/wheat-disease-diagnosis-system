@@ -257,11 +257,14 @@ const handleViewDetail = async (id: string | number) => {
 /**
  * 处理防治方法
  */
-const handlePrevention = (id: string | number) => {
+const handlePrevention = async (id: string | number) => {
   const diseaseId = typeof id === 'string' ? parseInt(id, 10) : id
-  const disease = diseaseList.value.find(d => d.id === diseaseId)
-  if (disease) {
-    ElMessage.info(`${disease.name}的防治方法：${disease.prevention || '暂无'}`)
+  try {
+    const disease = await getDiseaseDetail(diseaseId)
+    currentDisease.value = disease
+    detailDialogVisible.value = true
+  } catch (error: unknown) {
+    ElMessage.error('加载防治方法失败')
   }
 }
 </script>

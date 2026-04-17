@@ -106,7 +106,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ElMessage } from 'element-plus'
 import {
   Loading,
   PictureFilled,
@@ -201,7 +200,6 @@ const handleClick = () => {
  * 处理查看详情
  */
 const handleViewDetail = () => {
-  ElMessage.info(`查看病害详情：${props.diseaseName}`)
   emit('viewDetail', props.id)
 }
 
@@ -209,7 +207,6 @@ const handleViewDetail = () => {
  * 处理防治方法
  */
 const handlePrevention = () => {
-  ElMessage.info(`查看防治方法：${props.diseaseName}`)
   emit('prevention', props.id)
 }
 </script>
