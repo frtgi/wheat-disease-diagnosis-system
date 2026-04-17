@@ -2,24 +2,22 @@
 诊断请求验证器单元测试
 测试覆盖：
 1. 图像验证（大小、格式、Magic Number）
-2. Mock 模式切换逻辑
+2. AI 服务就绪检查
 3. GPU 显存检查
 4. 并发限流功能
 5. 图像预处理
 6. DiagnosisRequestValidator 集成验证
 """
-import os
 import pytest
 import asyncio
 from io import BytesIO
+from unittest.mock import patch, MagicMock
 from PIL import Image
 
 from app.api.v1.diagnosis_validator import (
     validate_image,
     check_image_magic_number,
-    is_mock_enabled,
-    should_use_mock,
-    get_mock_service,
+    ensure_ai_service_ready,
     get_cache_manager_safe,
     check_gpu_memory,
     acquire_rate_limit,
@@ -130,49 +128,33 @@ class TestMagicNumberCheck:
         assert "太小" in error
 
 
-class TestMockMode:
-    """Mock 模式切换测试"""
+class TestEnsureAIServiceReady:
+    """AI 服务就绪检查测试"""
 
-    def test_is_mock_enabled_default(self):
-        """测试默认 Mock 模式状态（未设置环境变量）"""
-        original = os.environ.get("WHEATAGENT_MOCK_AI")
-        if "WHEATAGENT_MOCK_AI" in os.environ:
-            del os.environ["WHEATAGENT_MOCK_AI"]
+    def test_ensure_ai_service_ready_when_loaded(self):
+        """测试 Qwen 服务已加载时不抛异常"""
+        mock_service = MagicMock()
+        mock_service.is_loaded = True
+        with patch('app.services.qwen_service.get_qwen_service', return_value=mock_service):
+            ensure_ai_service_ready()
 
-        result = is_mock_enabled()
+    def test_ensure_ai_service_ready_when_not_loaded(self):
+        """测试 Qwen 服务未加载时抛出 HTTPException(503)"""
+        from fastapi import HTTPException
+        mock_service = MagicMock()
+        mock_service.is_loaded = False
+        with patch('app.services.qwen_service.get_qwen_service', return_value=mock_service):
+            with pytest.raises(HTTPException) as exc_info:
+                ensure_ai_service_ready()
+            assert exc_info.value.status_code == 503
 
-        assert result is False
-
-        if original:
-            os.environ["WHEATAGENT_MOCK_AI"] = original
-
-    def test_is_mock_enabled_true_env(self):
-        """测试通过环境变量启用 Mock 模式"""
-        original = os.environ.get("WHEATAGENT_MOCK_AI")
-        os.environ["WHEATAGENT_MOCK_AI"] = "true"
-
-        result = is_mock_enabled()
-
-        assert result is True
-
-        if original:
-            os.environ["WHEATAGENT_MOCK_AI"] = original
-        else:
-            del os.environ["WHEATAGENT_MOCK_AI"]
-
-    def test_get_mock_service_instance(self):
-        """测试获取 Mock 服务实例"""
-        service = get_mock_service()
-
-        assert service is not None
-        assert hasattr(service, 'diagnose_by_image') or hasattr(service, 'diagnose_by_text')
-
-    async def test_should_use_mock_with_qwen_unavailable(self):
-        """测试 Qwen 服务不可用时使用 Mock 模式"""
-        result = should_use_mock()
-
-        assert isinstance(result, bool)
-        assert result is True or result is False  # 取决于实际环境
+    def test_ensure_ai_service_ready_when_import_fails(self):
+        """测试导入 Qwen 服务失败时抛出 HTTPException(503)"""
+        from fastapi import HTTPException
+        with patch('app.services.qwen_service.get_qwen_service', side_effect=ImportError("模块不存在")):
+            with pytest.raises(HTTPException) as exc_info:
+                ensure_ai_service_ready()
+            assert exc_info.value.status_code == 503
 
 
 class TestGPUMemoryCheck:

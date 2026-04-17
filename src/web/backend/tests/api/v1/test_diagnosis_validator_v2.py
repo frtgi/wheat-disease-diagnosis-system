@@ -5,8 +5,7 @@
 覆盖范围:
 - validate_image() 图像大小和格式验证
 - check_image_magic_number() Magic Number 校验
-- is_mock_enabled() / should_use_mock() Mock 模式检查
-- get_mock_service() Mock 服务获取
+- ensure_ai_service_ready() AI 服务就绪检查
 - check_gpu_memory() GPU 显存检查
 - acquire_rate_limit() / release_rate_limit() 并发限流
 - preprocess_image() 图像预处理
@@ -14,7 +13,6 @@
 """
 
 import asyncio
-import os
 from io import BytesIO
 from unittest.mock import patch, MagicMock, AsyncMock
 
@@ -27,9 +25,7 @@ from app.api.v1.diagnosis_validator import (
     ALLOWED_IMAGE_FORMATS,
     validate_image,
     check_image_magic_number,
-    is_mock_enabled,
-    should_use_mock,
-    get_mock_service,
+    ensure_ai_service_ready,
     get_cache_manager_safe,
     check_gpu_memory,
     acquire_rate_limit,
@@ -201,77 +197,45 @@ class TestCheckImageMagicNumber:
         assert "太小" in error
 
 
-class TestMockModeFunctions:
-    """Mock 模式相关函数测试"""
+class TestEnsureAIServiceReady:
+    """ensure_ai_service_ready() AI 服务就绪检查测试"""
 
-    def test_is_mock_disabled_by_default(self):
+    def test_ensure_ai_service_ready_when_loaded(self):
         """
-        测试默认情况下 Mock 模式禁用
+        测试 Qwen 服务已加载时不抛异常
 
-        验证未设置环境变量时返回 False
+        验证服务正常加载时函数静默通过
         """
-        with patch.dict(os.environ, {}, clear=True):
-            result = is_mock_enabled()
-            assert result is False
+        mock_service = MagicMock()
+        mock_service.is_loaded = True
+        with patch('app.services.qwen_service.get_qwen_service', return_value=mock_service):
+            ensure_ai_service_ready()
 
-    def test_is_mock_enabled_true(self):
+    def test_ensure_ai_service_ready_when_not_loaded(self):
         """
-        测试启用 Mock 模式 (环境变量="true")
+        测试 Qwen 服务未加载时抛出 HTTPException(503)
 
-        验证 WHEATAGENT_MOCK_AI=true 启用 Mock
+        验证服务未加载时返回 503 状态码
         """
-        with patch.dict(os.environ, {"WHEATAGENT_MOCK_AI": "true"}):
-            result = is_mock_enabled()
-            assert result is True
+        from fastapi import HTTPException
+        mock_service = MagicMock()
+        mock_service.is_loaded = False
+        with patch('app.services.qwen_service.get_qwen_service', return_value=mock_service):
+            with pytest.raises(HTTPException) as exc_info:
+                ensure_ai_service_ready()
+            assert exc_info.value.status_code == 503
 
-    def test_is_mock_enabled_with_yes(self):
+    def test_ensure_ai_service_ready_when_import_fails(self):
         """
-        测试使用 "yes" 启用 Mock 模式
+        测试导入 Qwen 服务失败时抛出 HTTPException(503)
 
-        验证多种真值形式都被接受
+        验证导入异常被捕获并转换为 503 错误
         """
-        with patch.dict(os.environ, {"WHEATAGENT_MOCK_AI": "yes"}):
-            result = is_mock_enabled()
-            assert result is True
-
-    def test_is_mock_enabled_with_1(self):
-        """
-        测试使用 "1" 启用 Mock 模式
-
-        验证数字形式的真值也被接受
-        """
-        with patch.dict(os.environ, {"WHEATAGENT_MOCK_AI": "1"}):
-            result = is_mock_enabled()
-            assert result is True
-
-    @patch('app.api.v1.diagnosis_validator.is_mock_enabled')
-    def test_should_use_mock_when_env_enabled(self, mock_is_mock):
-        """
-        测试环境变量启用时应使用 Mock
-
-        验证 should_use_mock 在环境变量启用时返回 True
-        """
-        mock_is_mock.return_value = True
-        result = should_use_mock()
-        assert result is True
-
-    def test_should_use_mock_returns_bool(self):
-        """
-        测试 should_use_mock 返回布尔值
-
-        验证函数返回类型为 bool（无论结果如何）
-        """
-        result = should_use_mock()
-        assert isinstance(result, bool)
-
-    def test_get_mock_service_returns_instance(self):
-        """
-        测试获取 Mock 服务实例
-
-        验证返回可用的 MockDiagnosisService 对象
-        """
-        service = get_mock_service()
-        assert service is not None
+        from fastapi import HTTPException
+        with patch('app.services.qwen_service.get_qwen_service', side_effect=ImportError("模块不存在")):
+            with pytest.raises(HTTPException) as exc_info:
+                ensure_ai_service_ready()
+            assert exc_info.value.status_code == 503
 
 
 class TestGPUMemoryCheck:
