@@ -108,7 +108,7 @@ router.beforeEach((to) => {
   })()
   
   // Cookie 会自动携带，即使 localStorage 无 token，有 userInfo 也视为已登录
-  const isAuthenticated = !!token || hasUserInfo
+  const isAuthenticated = !!token && hasUserInfo
 
   if (requiresAuth && !isAuthenticated) {
     return { name: 'Login' }

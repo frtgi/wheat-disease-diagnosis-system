@@ -63,6 +63,9 @@ setup_logging(
     level=settings.LOG_LEVEL if hasattr(settings, 'LOG_LEVEL') else "INFO",
     json_format=settings.JSON_LOG_FORMAT if hasattr(settings, 'JSON_LOG_FORMAT') else False
 )
+for handler in logging.root.handlers:
+    if hasattr(handler.stream, 'reconfigure'):
+        handler.stream.reconfigure(encoding='utf-8', errors='replace')
 logger = logging.getLogger(__name__)
 
 

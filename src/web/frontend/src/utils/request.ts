@@ -73,7 +73,7 @@ async function refreshAccessToken(): Promise<string | null> {
 function redirectToLogin(): void {
   localStorage.removeItem('token')
   localStorage.removeItem('refresh_token')
-  localStorage.removeItem('user')
+  localStorage.removeItem('userInfo')
   router.push('/login')
 }
 
