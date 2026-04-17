@@ -126,7 +126,10 @@ class OptimizedQueryService:
                 or_(
                     Disease.name.contains(keyword),
                     Disease.symptoms.contains(keyword),
-                    Disease.causes.contains(keyword)
+                    Disease.causes.contains(keyword),
+                    Disease.code.contains(keyword),
+                    Disease.scientific_name.contains(keyword),
+                    Disease.description.contains(keyword)
                 )
             )
         

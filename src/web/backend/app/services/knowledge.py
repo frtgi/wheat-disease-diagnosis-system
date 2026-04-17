@@ -105,6 +105,9 @@ def search_diseases(
         conditions.append(Disease.name.contains(keyword))
         conditions.append(Disease.symptoms.contains(keyword))
         conditions.append(Disease.causes.contains(keyword))
+        conditions.append(Disease.code.contains(keyword))
+        conditions.append(Disease.scientific_name.contains(keyword))
+        conditions.append(Disease.description.contains(keyword))
     
     if category:
         conditions.append(Disease.category == category)
