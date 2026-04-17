@@ -107,13 +107,12 @@ const loadStats = async () => {
 
     // 将热门疾病数据转换为饼图格式
     distributionData.value = topDiseases.map(d => ({
-      name: `病害 #${d.disease_id}`,
+      name: d.disease_name || `病害 #${d.disease_id}`,
       value: totalTopCount > 0 ? parseFloat(((d.count / totalTopCount) * 100).toFixed(1)) : 0
     }))
 
-    // 将热门疾病数据转换为柱状图格式
     statsData.value = topDiseases
-      .map(d => ({ disease_name: `病害 #${d.disease_id}`, count: d.count }))
+      .map(d => ({ disease_name: d.disease_name || `病害 #${d.disease_id}`, count: d.count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
 

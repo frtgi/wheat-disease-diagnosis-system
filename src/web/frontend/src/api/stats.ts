@@ -20,6 +20,7 @@ export interface StatsOverview {
  */
 export interface TopDiseaseItem {
   disease_id: number
+  disease_name: string
   count: number
 }
 

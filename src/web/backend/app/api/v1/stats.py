@@ -82,16 +82,19 @@ def get_diagnosis_stats(db: Session = Depends(get_db), current_user: User = Depe
     # 统计热门疾病（被诊断次数最多的）
     top_diseases = db.query(
         Diagnosis.disease_id,
+        Disease.name.label("disease_name"),
         func.count(Diagnosis.id).label("count")
+    ).outerjoin(
+        Disease, Diagnosis.disease_id == Disease.id
     ).filter(
         Diagnosis.disease_id.isnot(None)
-    ).group_by(Diagnosis.disease_id).order_by(
+    ).group_by(Diagnosis.disease_id, Disease.name).order_by(
         func.count(Diagnosis.id).desc()
     ).limit(10).all()
-    
+
     return {
         "by_status": {status: count for status, count in status_stats},
-        "top_diseases": [{"disease_id": d_id, "count": cnt} for d_id, cnt in top_diseases]
+        "top_diseases": [{"disease_id": d_id, "disease_name": d_name or f"病害#{d_id}", "count": cnt} for d_id, d_name, cnt in top_diseases]
     }
 
 
