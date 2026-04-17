@@ -2,7 +2,7 @@
 请求验证与预处理模块
 提供诊断请求的完整验证流程，包括：
 - 文件验证（大小、格式、Magic Number 检查）
-- Mock 模式切换逻辑
+- AI 服务可用性检查
 - GPU 显存检查
 - 并发限流获取/释放
 - 图像预处理
@@ -98,59 +98,32 @@ def check_image_magic_number(image_bytes: bytes) -> Tuple[bool, Optional[str]]:
         return False, "不支持的图像文件格式或文件已损坏"
 
 
-def is_mock_enabled() -> bool:
+def ensure_ai_service_ready():
     """
-    检查 Mock 模式是否启用（每次调用都重新检查环境变量）
+    检查 AI 诊断服务是否已加载并可用
 
-    Mock 模式用于测试环境或 AI 服务不可用时的降级方案。
-    通过环境变量 WHEATAGENT_MOCK_AI 控制。
+    在诊断请求处理前调用，确保 Qwen 服务已加载。
+    如果服务未加载，抛出 HTTPException(503)。
 
-    返回:
-        bool: Mock 模式是否启用
+    异常:
+        HTTPException: AI 服务未加载时抛出 503
     """
-    mock_env = os.getenv("WHEATAGENT_MOCK_AI", "false").lower()
-    return mock_env in ("true", "1", "yes")
-
-
-def get_mock_service() -> Any:
-    """
-    获取 Mock 诊断服务实例
-
-    延迟导入以避免在非 Mock 模式下的依赖问题。
-
-    返回:
-        MockDiagnosisService: Mock 诊断服务实例
-    """
-    from app.services.mock_service import MockDiagnosisService
-    return MockDiagnosisService()
-
-
-def should_use_mock() -> bool:
-    """
-    判断是否应该使用 Mock 模式
-
-    判断逻辑：
-    1. 如果环境变量启用 Mock → 使用 Mock
-    2. 如果 Qwen 服务未加载 → 使用 Mock（降级）
-    3. 否则使用真实 AI 服务
-
-    返回:
-        bool: 是否使用 Mock 模式
-    """
-    if is_mock_enabled():
-        logger.info("Mock 模式已通过环境变量 WHEATAGENT_MOCK_AI 启用")
-        return True
+    from fastapi import HTTPException
     try:
         from app.services.qwen_service import get_qwen_service
         service = get_qwen_service()
         if not service.is_loaded:
-            logger.warning("Qwen 服务未加载，将使用 Mock 模式")
-            return True
-        logger.debug("Qwen 服务已加载，使用真实 AI 模式")
-        return False
+            raise HTTPException(
+                status_code=503,
+                detail="AI 诊断服务尚未加载，请稍后重试或联系管理员"
+            )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.warning(f"检查 Qwen 服务状态失败: {e}，将使用 Mock 模式")
-        return True
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI 诊断服务不可用: {str(e)}"
+        )
 
 
 def get_cache_manager_safe() -> Optional[Any]:

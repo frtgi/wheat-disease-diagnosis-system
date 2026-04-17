@@ -11,7 +11,7 @@ import io
 
 from app.core.security import get_current_user
 from app.models.user import User
-from app.api.v1.diagnosis_validator import should_use_mock, get_mock_service
+from app.api.v1.diagnosis_validator import ensure_ai_service_ready
 
 logger = logging.getLogger(__name__)
 
@@ -69,27 +69,14 @@ async def generate_report(
                 detail="请至少提供病害图像或症状描述中的一项"
             )
 
-        if should_use_mock():
-            mock_service = get_mock_service()
-            if pil_image:
-                mock_result = await mock_service.diagnose_by_image(
-                    image_bytes or b"", symptoms
-                )
-            else:
-                mock_result = await mock_service.diagnose_by_text(symptoms)
-            diagnosis_result = {
-                "success": True,
-                "diagnosis": mock_result,
-                "model": "mock_service"
-            }
-        else:
-            qwen_service = get_qwen_service()
-            diagnosis_result = qwen_service.diagnose(
-                image=pil_image,
-                symptoms=symptoms,
-                enable_thinking=thinking_mode,
-                use_graph_rag=use_graph_rag
-            )
+        ensure_ai_service_ready()
+        qwen_service = get_qwen_service()
+        diagnosis_result = qwen_service.diagnose(
+            image=pil_image,
+            symptoms=symptoms,
+            enable_thinking=thinking_mode,
+            use_graph_rag=use_graph_rag
+        )
         
         if not diagnosis_result["success"]:
             raise HTTPException(status_code=500, detail=diagnosis_result.get("error", "诊断失败"))

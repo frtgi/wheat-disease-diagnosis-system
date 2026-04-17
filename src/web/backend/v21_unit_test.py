@@ -10,7 +10,6 @@ import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.environ.setdefault("WHEATAGENT_MOCK_AI", "true")
 
 
 def _reset_redis_singleton():

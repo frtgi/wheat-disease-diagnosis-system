@@ -17,9 +17,6 @@ class TestAIHealthCheck:
     @pytest.mark.unit
     def test_health_check_mock_mode(self, mock_env):
         """测试 Mock 模式下的健康检查"""
-        import os
-        os.environ["WHEATAGENT_MOCK_AI"] = "true"
-        
         from tests.mocks.diagnosis_mock import MockDiagnosisService
         service = MockDiagnosisService()
         

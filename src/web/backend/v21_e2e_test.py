@@ -10,7 +10,6 @@ import asyncio
 import io
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.environ.setdefault("WHEATAGENT_MOCK_AI", "true")
 
 BASE_URL = "http://localhost:8000/api/v1"
 RESULTS = []
