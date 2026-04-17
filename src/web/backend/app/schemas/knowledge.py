@@ -3,7 +3,7 @@
 定义疾病知识数据的请求和响应格式
 """
 from datetime import datetime
-from typing import Optional
+from typing import Any, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -40,8 +40,8 @@ class DiseaseResponse(DiseaseBase):
     id: int
     symptoms: Optional[str] = None
     causes: Optional[str] = None
-    treatments: Optional[str] = None
-    prevention: Optional[str] = None
+    treatments: Optional[Any] = None
+    prevention: Optional[Any] = None
     severity: Optional[float] = None
     created_at: datetime
     updated_at: datetime
