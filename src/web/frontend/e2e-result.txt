@@ -1,0 +1,158 @@
+﻿conda : 
+所在位置 行:1 字符: 49
++ ... \frontend ; conda run -n wheatagent-py310 npx playwright test 2>&1 |  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+# >>>>>>>>>>>>>>>>>>>>>> ERROR REPORT <<<<<<<<<<<<<<<<<<<<<<
+
+    Traceback (most recent call last):
+      File "D:\Miniconda3\Lib\site-packages\conda\exception_handler.py", line 2
+9, in __call__
+        return func(*args, **kwargs)
+      File "D:\Miniconda3\Lib\site-packages\conda\cli\main.py", line 61, in mai
+n_subshell
+        exit_code = do_call(args, parser)
+      File "D:\Miniconda3\Lib\site-packages\conda\cli\conda_argparse.py", line 
+205, in do_call
+        result = getattr(module, func_name)(args, parser)
+      File "D:\Miniconda3\Lib\site-packages\conda\cli\main_run.py", line 120, i
+n execute
+        print(response.stdout, file=sys.stdout)
+        ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    UnicodeEncodeError: 'gbk' codec can't encode character '\ufffd' in position
+ 40: illegal multibyte sequence
+
+`$ D:\Miniconda3\Scripts\conda-script.py run -n wheatagent-py310 npx playwright
+ test`
+
+  environment variables:
+     BUNDLED_DEBUGPY_PATH=c:\Users\Administrator\.trae-cn\extensions\ms-
+                          python.debugpy-2025.18.0-win32-x64\bundled\libs\debug
+py
+                 CIO_TEST=<not set>
+                CONDA_EXE=D:\Miniconda3\Scripts\conda.exe
+               CONDA_EXES="D:\Miniconda3\Scripts\conda.exe"
+         CONDA_PYTHON_EXE=D:\Miniconda3\python.exe
+               CONDA_ROOT=D:\Miniconda3
+           CURL_CA_BUNDLE=<not set>
+                 HOMEPATH=\Users\Administrator
+               LD_PRELOAD=<not set>
+                     PATH=C:\Program Files\Java\jdk-25\bin;C:\Users\Administrat
+or\.trae-
+                          cn\tools\maven\latest\bin;C:\Users\Administrator\.tra
+e-
+                          cn\tools\gradle\latest\bin;c:\Users\Administrator\.tr
+ae-cn\tools\trae-
+                          gopls\current;c:\Users\Administrator\.trae-cn\sdks\wo
+rkspaces\894defa7
+                          \versions\node\current;c:\Users\Administrator\.trae-
+                          cn\sdks\versions\node\current;C:\Program
+                          Files\Java\jdk-25\bin;D:\apache-maven-3.9.12\bin;C:\P
+rogram
+                          Files\Common Files\Oracle\Java\javapath;C:\Windows\sy
+stem32;C:\Windows
+                          ;C:\Windows\System32\Wbem;C:\Windows\System32\Windows
+PowerShell\v1.0\;
+                          C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\N
+VIDIA Corporation
+                          \PhysX\Common;D:\nodejs\;D:\Miniconda3;D:\Miniconda3\
+Library\bin;D:\Mi
+                          niconda3\Scripts;D:\neo4j\neo4j-community-5.26.0-wind
+ows\neo4j-
+                          community-5.26.0\bin;D:\Git\cmd;C:\Program Files\MySQ
+L\MySQL Server
+                          8.0\bin;C:\Users\Administrator\.local\bin;C:\Program 
+Files\MySQL\MySQL
+                          Shell 8.0\bin\;C:\Users\Administrator\AppData\Local\M
+icrosoft\WindowsA
+                          pps;C:\Users\Administrator\AppData\Roaming\npm;D:\Min
+iconda3;D:\Minico
+                          nda3\Scripts;D:\Miniconda3\Library\bin;c:\Users\Admin
+istrator\.trae-
+                          cn\extensions\ms-python.debugpy-2025.18.0-win32-
+                          x64\bundled\scripts\noConfigScripts;c:\Users\Administ
+rator\.trae-
+                          cn\extensions\vscjava.vscode-java-
+                          debug-0.58.5-universal\bundled\scripts\noConfigScript
+s
+             PSMODULEPATH=C:\Users\Administrator\Documents\WindowsPowerShell\Mo
+dules;C:\Program
+                          Files\WindowsPowerShell\Modules;C:\Windows\system32\W
+indowsPowerShell\
+                          v1.0\Modules
+            PYTHONSTARTUP=c:\Users\Administrator\AppData\Roaming\Trae
+                          CN\User\workspaceStorage\894defa7165dd238b3a0f59fc041
+cf05\ms-
+                          python.python\pythonrc.py
+        PYTHON_BASIC_REPL=1
+       REQUESTS_CA_BUNDLE=<not set>
+     SAFE_RM_ALLOWED_PATH=d:\Project;d:\Project;c:\Users\Administrator\.trae-cn
+\memory
+      SAFE_RM_DENIED_PATH=d:\Project\.vscode;d:\Project\.vscode;d:\Project\.tra
+e;d:\Project\.tra
+If submitted, this report will be used by core maintainers to improve
+future releases of conda.
+                          e;d:\Project\.git;d:\Project\.git
+            SSL_CERT_FILE=<not set>
+      TRAE_JWT_TOKEN_PATH=C:\Users\Administrator\.trae-cn\trae-jwt-token
+    TRAE_SANDBOX_CLI_PATH=d:\Trae CN\resources\app\modules\sandbox\trae-sandbox
+.exe
+TRAE_SANDBOX_SOURCE_FLAG_PATH=c:\Users\Administrator\AppData\Local\Temp\sandbox
+-source-
+                          flag-f71189ea-7661-4fae-823d-34dc86a315a2
+TRAE_SANDBOX_STORAGE_PATH=C:\Users\Administrator\AppData\Roaming\Trae CN\Modula
+rData\ai-
+                          agent\sandbox
+
+     active environment : None
+       user config file : C:\Users\Administrator\.condarc
+ populated config files : D:\Miniconda3\.condarc
+                          D:\Miniconda3\condarc.d\anaconda-auth.yml
+                          C:\Users\Administrator\.condarc
+          conda version : 25.11.1
+    conda-build version : not installed
+         python version : 3.13.11.final.0
+                 solver : libmamba (default)
+       virtual packages : __archspec=1=skylake
+                          __conda=25.11.1=0
+                          __cuda=13.1=0
+                          __win=10.0.26200=0
+       base environment : D:\Miniconda3  (writable)
+      conda av data dir : D:\Miniconda3\etc\conda
+  conda av metadata url : None
+           channel URLs : https://repo.anaconda.com/pkgs/main/win-64
+                          https://repo.anaconda.com/pkgs/main/noarch
+                          https://repo.anaconda.com/pkgs/r/win-64
+                          https://repo.anaconda.com/pkgs/r/noarch
+                          https://repo.anaconda.com/pkgs/msys2/win-64
+                          https://repo.anaconda.com/pkgs/msys2/noarch
+          package cache : D:\Miniconda3\pkgs
+                          C:\Users\Administrator\.conda\pkgs
+                          C:\Users\Administrator\AppData\Local\conda\conda\pkgs
+       envs directories : D:\Miniconda3\envs
+                          C:\Users\Administrator\.conda\envs
+                          C:\Users\Administrator\AppData\Local\conda\conda\envs
+               platform : win-64
+             user-agent : conda/25.11.1 requests/2.32.5 CPython/3.13.11 Windows
+/11 Windows/10.0.26200 solver/libmamba conda-libmamba-solver/25.11.0 libmambapy
+/2.3.2 aau/0.7.5 c/. s/. e/.
+          administrator : False
+             netrc file : None
+           offline mode : False
+
+
+An unexpected error has occurred. Conda has prepared the above report.
+If you suspect this error is being caused by a malfunctioning plugin,
+consider using the --no-plugins option to turn off plugins.
+
+Example: conda --no-plugins install <package>
+
+Alternatively, you can set the CONDA_NO_PLUGINS environment variable on
+the command line to run the command without plugins enabled.
+
+Example: CONDA_NO_PLUGINS=true conda install <package>
+
+^C
+Would you like conda to send this report to the core maintainers? [y/N]: 
