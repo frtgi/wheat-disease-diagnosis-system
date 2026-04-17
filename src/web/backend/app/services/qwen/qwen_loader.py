@@ -462,6 +462,8 @@ class QwenModelLoader:
                         logger.warning(f"torch.compile 优化失败: {e}")
 
                 self.is_loaded = True
+                self._model_state = ModelState.READY
+                self._last_error = None
 
                 if progress_callback:
                     progress_callback(100, "Qwen3-VL 模型加载完成")
@@ -481,10 +483,14 @@ class QwenModelLoader:
 
             except ImportError as e:
                 logger.warning(f"Qwen3VLForConditionalGeneration 不可用: {e}")
+                self._model_state = ModelState.ERROR
+                self._last_error = str(e)
                 self._load_model_fallback(progress_callback)
                 return False
             except Exception as e:
                 logger.error(f"Qwen3-VL 模型加载失败：{e}")
+                self._model_state = ModelState.ERROR
+                self._last_error = str(e)
                 self._load_model_fallback(progress_callback)
                 return False
 
@@ -523,6 +529,7 @@ class QwenModelLoader:
         logger.warning("请确保 transformers 版本支持 Qwen3VLForConditionalGeneration")
 
         self.is_loaded = False
+        self._model_state = ModelState.ERROR
         self.model = None
         self.tokenizer = None
         self.processor = None
