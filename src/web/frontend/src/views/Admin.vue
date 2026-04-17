@@ -85,7 +85,7 @@
                 </el-descriptions-item>
                 <el-descriptions-item label="热门疾病" :span="2">
                   <span v-for="(item, idx) in (diagnosisStats.top_diseases || []).slice(0, 5)" :key="idx" style="margin-right: 12px">
-                    <el-tag type="warning" size="small">ID:{{ item.disease_id }}</el-tag> {{ item.count }}次
+                    <el-tag type="warning" size="small">{{ item.disease_name || `ID:${item.disease_id}` }}</el-tag> {{ item.count }}次
                   </span>
                 </el-descriptions-item>
               </el-descriptions>
@@ -207,6 +207,17 @@
         </el-card>
       </el-tab-pane>
 
+      <el-tab-pane label="病害分布" name="distribution">
+        <el-card class="section-card">
+          <template #header>
+            <div class="section-header">
+              <span>病害分布统计</span>
+            </div>
+          </template>
+          <div ref="diseaseChartRef" style="height: 400px; width: 100%;"></div>
+        </el-card>
+      </el-tab-pane>
+
       <el-tab-pane label="AI 模型管理" name="models">
         <el-card class="section-card">
           <template #header>
@@ -262,7 +273,8 @@ import {
   clearCache,
   getLogStatistics,
   getRecentLogs,
-  preloadAIModels
+  preloadAIModels,
+  getDiseaseDistribution
 } from '@/api/admin'
 
 /**
@@ -288,6 +300,9 @@ const cacheClearing = ref(false)
 const logLoading = ref(false)
 const logDuration = ref(24)
 const preloading = ref(false)
+
+const diseaseChartRef = ref<HTMLElement | null>(null)
+let diseaseChartInstance: any = null
 
 /**
  * 返回上一页
@@ -438,6 +453,40 @@ const handlePreloadModels = async () => {
   }
 }
 
+/**
+ * 加载病害分布统计并渲染饼图
+ */
+const loadDiseaseDistribution = async () => {
+  try {
+    const data = await getDiseaseDistribution(logDuration.value)
+    if (diseaseChartRef.value && data) {
+      const echarts = (await import('@/utils/echarts')).echarts || (await import('@/utils/echarts')).default
+      if (!diseaseChartInstance) {
+        diseaseChartInstance = echarts.init(diseaseChartRef.value)
+      }
+      const resData = data?.data || data || {}
+      const items = resData.distribution || (Array.isArray(resData) ? resData : [])
+      const chartData = Array.isArray(items) ? items : []
+      diseaseChartInstance.setOption({
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: { orient: 'vertical', left: 'left', top: 'middle' },
+        series: [{
+          name: '病害分布',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          data: chartData.map((item: any) => ({
+            name: item.disease_name || item.name || `病害#${item.disease_id || 0}`,
+            value: item.count || 0
+          })),
+          emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.5)' } }
+        }]
+      })
+    }
+  } catch (e) {
+    console.error('加载病害分布失败:', e)
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     loadOverviewStats(),
@@ -445,7 +494,8 @@ onMounted(async () => {
     loadDiagnosisStats(),
     refreshVramStatus(),
     refreshCacheStats(),
-    refreshLogStats()
+    refreshLogStats(),
+    loadDiseaseDistribution()
   ])
 })
 </script>

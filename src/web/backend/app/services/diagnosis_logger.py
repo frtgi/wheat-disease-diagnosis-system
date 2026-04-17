@@ -230,7 +230,7 @@ class DiagnosisLogger:
             
             return [
                 {
-                    "disease": disease,
+                    "disease_name": disease,
                     "count": count,
                     "percentage": round(count / total * 100, 2) if total > 0 else 0
                 }
