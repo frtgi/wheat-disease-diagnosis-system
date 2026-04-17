@@ -32,7 +32,14 @@ def create_disease(db: Session, disease_data: DiseaseCreate) -> Disease:
             detail="疾病名称已存在"
         )
     
-    disease = Disease(**disease_data.model_dump())
+    data = disease_data.model_dump()
+    # 映射字段名：schema 的 treatments/prevention → 模型的 treatment_methods/prevention_methods
+    if 'treatments' in data:
+        data['treatment_methods'] = data.pop('treatments')
+    if 'prevention' in data:
+        data['prevention_methods'] = data.pop('prevention')
+    
+    disease = Disease(**data)
     
     db.add(disease)
     db.commit()
@@ -131,6 +138,12 @@ def update_disease(db: Session, disease_id: int, update_data: DiseaseUpdate) -> 
         )
     
     update_dict = update_data.model_dump(exclude_unset=True)
+    # 映射字段名：schema 的 treatments/prevention → 模型的 treatment_methods/prevention_methods
+    if 'treatments' in update_dict:
+        update_dict['treatment_methods'] = update_dict.pop('treatments')
+    if 'prevention' in update_dict:
+        update_dict['prevention_methods'] = update_dict.pop('prevention')
+    
     for field, value in update_dict.items():
         setattr(disease, field, value)
     
