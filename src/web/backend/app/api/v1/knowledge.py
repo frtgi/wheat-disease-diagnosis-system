@@ -6,6 +6,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+import logging
 
 from ...core.database import get_db
 from ...core.dependencies import get_pagination_params
@@ -25,6 +26,8 @@ from ...services.knowledge import (
 )
 
 router = APIRouter(prefix="/knowledge")
+
+logger = logging.getLogger(__name__)
 
 KNOWLEDGE_TAG = "病害知识库"
 CATEGORY_TAG = "病害分类"
@@ -233,135 +236,78 @@ def get_categories(db: Session = Depends(get_db)):
 @router.get("/graph", summary="获取知识图谱")
 def get_knowledge_graph(
     disease_id: Optional[int] = Query(None, description="病害ID"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     获取知识图谱数据
     
-    如果指定 disease_id，返回该病害的关联图谱（症状、病因、治疗等节点）；
-    如果未指定，返回所有病害的概览图谱。
-    
-    节点类型：disease, symptom, cause, treatment, prevention
-    关系类型：has_symptom, caused_by, treated_by, prevented_by
+    返回病害-症状-防治措施的关系图谱
     """
-    nodes = []
-    edges = []
-    
-    if disease_id:
-        disease = db.query(Disease).filter(Disease.id == disease_id).first()
-        if not disease:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="疾病不存在"
-            )
-        nodes.append({
-            "id": f"disease_{disease.id}",
-            "label": disease.name,
-            "type": "disease",
-            "properties": {"category": disease.category, "severity": disease.severity}
-        })
-        if disease.symptoms:
-            for idx, symptom in enumerate(disease.symptoms.split("\n") if "\n" in disease.symptoms else [disease.symptoms]):
-                symptom = symptom.strip()
-                if symptom:
-                    nodes.append({
-                        "id": f"symptom_{disease.id}_{idx}",
-                        "label": symptom,
-                        "type": "symptom"
-                    })
-                    edges.append({
-                        "source": f"disease_{disease.id}",
-                        "target": f"symptom_{disease.id}_{idx}",
-                        "relation": "has_symptom"
-                    })
-        if disease.causes:
-            for idx, cause in enumerate(disease.causes.split("\n") if "\n" in disease.causes else [disease.causes]):
-                cause = cause.strip()
-                if cause:
-                    nodes.append({
-                        "id": f"cause_{disease.id}_{idx}",
-                        "label": cause,
-                        "type": "cause"
-                    })
-                    edges.append({
-                        "source": f"disease_{disease.id}",
-                        "target": f"cause_{disease.id}_{idx}",
-                        "relation": "caused_by"
-                    })
-        if disease.treatment_methods:
-            treatments = disease.treatment_methods if isinstance(disease.treatment_methods, list) else [disease.treatment_methods]
-            for idx, treatment in enumerate(treatments):
-                label = treatment if isinstance(treatment, str) else str(treatment)
-                if label:
-                    nodes.append({
-                        "id": f"treatment_{disease.id}_{idx}",
-                        "label": label,
-                        "type": "treatment"
-                    })
-                    edges.append({
-                        "source": f"disease_{disease.id}",
-                        "target": f"treatment_{disease.id}_{idx}",
-                        "relation": "treated_by"
-                    })
-        if disease.prevention_methods:
-            preventions = disease.prevention_methods if isinstance(disease.prevention_methods, list) else [disease.prevention_methods]
-            for idx, prevention in enumerate(preventions):
-                label = prevention if isinstance(prevention, str) else str(prevention)
-                if label:
-                    nodes.append({
-                        "id": f"prevention_{disease.id}_{idx}",
-                        "label": label,
-                        "type": "prevention"
-                    })
-                    edges.append({
-                        "source": f"disease_{disease.id}",
-                        "target": f"prevention_{disease.id}_{idx}",
-                        "relation": "prevented_by"
-                    })
-    else:
-        diseases = db.query(Disease).filter(Disease.is_active == True).all()
+    try:
+        nodes = []
+        relations = []
+        
+        diseases = db.query(Disease).filter(Disease.is_active == True)
+        if disease_id:
+            diseases = diseases.filter(Disease.id == disease_id)
+        diseases = diseases.limit(20).all()
+        
         for disease in diseases:
             nodes.append({
                 "id": f"disease_{disease.id}",
-                "label": disease.name,
+                "name": disease.name,
                 "type": "disease",
-                "properties": {"category": disease.category, "severity": disease.severity}
+                "category": disease.category,
+                "severity": disease.severity
             })
-        kg_edges = db.query(KnowledgeGraph).filter(
-            KnowledgeGraph.relation.isnot(None),
-            KnowledgeGraph.target_entity.isnot(None)
-        ).all()
-        for kg in kg_edges:
-            edges.append({
-                "source": kg.entity,
-                "target": kg.target_entity,
-                "relation": kg.relation
-            })
-    
-    return {"nodes": nodes, "edges": edges}
+            
+            if disease.symptoms:
+                symptom_list = disease.symptoms.split('\n') if '\n' in disease.symptoms else [disease.symptoms]
+                for symptom in symptom_list[:3]:
+                    symptom = symptom.strip()
+                    if symptom:
+                        s_id = f"symptom_{hash(symptom) % 10000}"
+                        if not any(n["id"] == s_id for n in nodes):
+                            nodes.append({"id": s_id, "name": symptom, "type": "symptom"})
+                        relations.append({"from": f"disease_{disease.id}", "to": s_id, "type": "HAS_SYMPTOM"})
+            
+            if disease.treatment_methods:
+                treatments = disease.treatment_methods if isinstance(disease.treatment_methods, list) else [disease.treatment_methods]
+                for treatment in treatments[:3]:
+                    treatment = str(treatment).strip()
+                    if treatment:
+                        t_id = f"treatment_{hash(treatment) % 10000}"
+                        if not any(n["id"] == t_id for n in nodes):
+                            nodes.append({"id": t_id, "name": treatment, "type": "treatment"})
+                        relations.append({"from": f"disease_{disease.id}", "to": t_id, "type": "TREATED_BY"})
+        
+        return {"nodes": nodes, "relations": relations}
+    except Exception as e:
+        logger.error(f"获取知识图谱失败：{e}")
+        return {"nodes": [], "relations": []}
 
 
 @router.get("/stats", summary="获取知识库统计")
-def get_knowledge_stats(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+def get_knowledge_stats(db: Session = Depends(get_db)):
     """
     获取知识库统计信息
-    
-    返回 total 总数和 by_category 按类别统计
     """
-    total = db.query(func.count(Disease.id)).filter(Disease.is_active == True).scalar()
-    category_stats = db.query(
-        Disease.category,
-        func.count(Disease.id)
-    ).filter(Disease.is_active == True).group_by(Disease.category).all()
-    
-    return {
-        "total": total,
-        "by_category": {cat: count for cat, count in category_stats}
-    }
+    try:
+        total = db.query(func.count(Disease.id)).filter(Disease.is_active == True).scalar()
+        
+        by_category = {}
+        category_stats = db.query(
+            Disease.category,
+            func.count(Disease.id)
+        ).filter(Disease.is_active == True).group_by(Disease.category).all()
+        
+        for cat, count in category_stats:
+            by_category[cat or "unknown"] = count
+        
+        return {"total": total, "by_category": by_category}
+    except Exception as e:
+        logger.error(f"获取知识库统计失败：{e}")
+        return {"total": 0, "by_category": {}}
 
 
 @router.get(

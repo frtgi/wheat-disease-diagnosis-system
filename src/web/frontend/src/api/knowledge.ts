@@ -31,7 +31,8 @@ export interface KnowledgeNode {
   id: string
   name: string
   type: string
-  properties: Record<string, any>
+  category?: string
+  severity?: number
 }
 
 /**
@@ -89,29 +90,27 @@ export async function searchDiseaseKnowledge(
   })
 }
 
-// TODO: 后端尚未实现知识图谱和统计端点
-
 /**
  * 获取知识图谱
- * 后端 /knowledge/graph 端点未实现，返回空数据
- * @param _diseaseId 病害 ID（可选，暂未使用）
- * @returns 空的知识图谱数据
+ * @param diseaseId 病害 ID（可选）
+ * @returns 知识图谱数据
  */
-export async function getKnowledgeGraph(_diseaseId?: number): Promise<{
+export async function getKnowledgeGraph(diseaseId?: number): Promise<{
   nodes: KnowledgeNode[]
   relations: KnowledgeRelation[]
 }> {
-  return { nodes: [], relations: [] }
+  return http.get(`${API_BASE}/graph`, {
+    params: diseaseId ? { disease_id: diseaseId } : undefined
+  })
 }
 
 /**
  * 获取病害统计信息
- * 后端 /knowledge/stats 端点未实现，返回空数据
- * @returns 空的统计数据
+ * @returns 统计数据
  */
 export async function getDiseaseStats(): Promise<{
   total: number
   by_category: Record<string, number>
 }> {
-  return { total: 0, by_category: {} }
+  return http.get(`${API_BASE}/stats`)
 }

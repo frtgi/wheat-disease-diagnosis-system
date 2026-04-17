@@ -55,6 +55,47 @@
       </el-col>
     </el-row>
 
+    <!-- 病害详情弹窗 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      :title="currentDisease?.name || '病害详情'"
+      width="700px"
+      destroy-on-close
+    >
+      <el-descriptions :column="2" border v-if="currentDisease">
+        <el-descriptions-item label="病害名称">{{ currentDisease.name }}</el-descriptions-item>
+        <el-descriptions-item label="分类">
+          <el-tag size="small">{{ getCategoryLabel(currentDisease.category) }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="严重程度">
+          <el-tag :type="getSeverityTagType(currentDisease.severity)" size="small">
+            {{ getSeverityLevel(currentDisease.severity) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="编码">{{ currentDisease.code || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="症状描述" :span="2">{{ currentDisease.symptoms || '暂无描述' }}</el-descriptions-item>
+        <el-descriptions-item label="病因" :span="2">{{ currentDisease.causes || '暂无描述' }}</el-descriptions-item>
+        <el-descriptions-item label="预防措施" :span="2">
+          <template v-if="currentDisease.prevention">
+            <div v-if="Array.isArray(currentDisease.prevention)">
+              <p v-for="(item, idx) in currentDisease.prevention" :key="idx">• {{ item }}</p>
+            </div>
+            <span v-else>{{ currentDisease.prevention }}</span>
+          </template>
+          <span v-else>暂无</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="治疗方法" :span="2">
+          <template v-if="currentDisease.treatments">
+            <div v-if="Array.isArray(currentDisease.treatments)">
+              <p v-for="(item, idx) in currentDisease.treatments" :key="idx">• {{ item }}</p>
+            </div>
+            <span v-else>{{ currentDisease.treatments }}</span>
+          </template>
+          <span v-else>暂无</span>
+        </el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
+
     <!-- 空状态 -->
     <el-empty
       v-if="!isLoading && filteredDiseases.length === 0"
@@ -95,6 +136,35 @@ const diseaseList = ref<DiseaseKnowledge[]>([])
 
 // 加载状态
 const isLoading = ref(false)
+
+// 详情弹窗状态
+const detailDialogVisible = ref(false)
+const currentDisease = ref<DiseaseKnowledge | null>(null)
+
+/**
+ * 获取病害分类的中文标签
+ * @param category 分类英文标识
+ * @returns 分类中文名称
+ */
+const getCategoryLabel = (category: string | undefined): string => {
+  const map: Record<string, string> = {
+    fungal: '真菌性病害', bacterial: '细菌性病害', viral: '病毒性病害',
+    pest: '虫害', nutritional: '营养性病害'
+  }
+  return map[category || ''] || category || '未知'
+}
+
+/**
+ * 根据严重程度获取标签类型
+ * @param severity 严重程度值（0-1）
+ * @returns Element Plus 标签类型
+ */
+const getSeverityTagType = (severity: number | undefined): string => {
+  if (!severity) return 'info'
+  if (severity >= 0.7) return 'danger'
+  if (severity >= 0.3) return 'warning'
+  return 'success'
+}
 
 // 类别选项
 const categoryOptions = ref([
@@ -176,7 +246,8 @@ const handleViewDetail = async (id: string | number) => {
   try {
     const diseaseId = typeof id === 'string' ? parseInt(id, 10) : id
     const disease = await getDiseaseDetail(diseaseId)
-    ElMessage.success(`加载病害详情：${disease.name}`)
+    currentDisease.value = disease
+    detailDialogVisible.value = true
   } catch (error: unknown) {
     ElMessage.error('加载详情失败')
   }
