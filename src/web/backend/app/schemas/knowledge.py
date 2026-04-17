@@ -43,6 +43,9 @@ class DiseaseResponse(DiseaseBase):
     treatments: Optional[Any] = None
     prevention: Optional[Any] = None
     severity: Optional[float] = None
+    scientific_name: Optional[str] = None
+    description: Optional[str] = None
+    image_urls: Optional[Any] = None
     created_at: datetime
     updated_at: datetime
     

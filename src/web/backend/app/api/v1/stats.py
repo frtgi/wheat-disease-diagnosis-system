@@ -80,7 +80,7 @@ def get_diagnosis_stats(db: Session = Depends(get_db), current_user: User = Depe
     ).group_by(Diagnosis.status).all()
     
     # 统计热门疾病（被诊断次数最多的）
-    top_diseases = db.query(
+    top_diseases_result = db.query(
         Diagnosis.disease_id,
         Disease.name.label("disease_name"),
         func.count(Diagnosis.id).label("count")
@@ -92,9 +92,21 @@ def get_diagnosis_stats(db: Session = Depends(get_db), current_user: User = Depe
         func.count(Diagnosis.id).desc()
     ).limit(10).all()
 
+    if not top_diseases_result:
+        top_diseases_result = db.query(
+            Diagnosis.disease_name,
+            Diagnosis.disease_name.label("disease_name"),
+            func.count(Diagnosis.id).label("count")
+        ).filter(
+            Diagnosis.disease_name.isnot(None),
+            Diagnosis.disease_name != ""
+        ).group_by(Diagnosis.disease_name).order_by(
+            func.count(Diagnosis.id).desc()
+        ).limit(10).all()
+
     return {
         "by_status": {status: count for status, count in status_stats},
-        "top_diseases": [{"disease_id": d_id, "disease_name": d_name or f"病害#{d_id}", "count": cnt} for d_id, d_name, cnt in top_diseases]
+        "top_diseases": [{"disease_id": d_id, "disease_name": d_name or f"病害#{d_id}", "count": cnt} for d_id, d_name, cnt in top_diseases_result]
     }
 
 

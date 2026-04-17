@@ -46,7 +46,11 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="symptoms" label="症状描述" show-overflow-tooltip />
+        <el-table-column prop="symptoms" label="症状描述" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.description || row.symptoms || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleViewDetail(row)">

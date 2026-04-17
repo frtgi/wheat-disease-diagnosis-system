@@ -17,9 +17,12 @@ export interface DiseaseKnowledge {
   category?: string
   symptoms?: string
   causes?: string
-  treatments?: string
-  prevention?: string
+  treatments?: any
+  prevention?: any
   severity?: number
+  scientific_name?: string
+  description?: string
+  image_urls?: string[]
   created_at: string
   updated_at: string
 }

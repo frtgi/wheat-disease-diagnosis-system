@@ -183,18 +183,44 @@ class XSSProtectedResponse(JSONResponse):
         return sanitized
 
 
+def _sanitize_data(result: Any, fields_to_sanitize: List[str] = None) -> Any:
+    """
+    对响应数据进行 XSS 清理的辅助函数
+
+    参数:
+        result: 需要清理的数据（字典、列表或字符串）
+        fields_to_sanitize: 需要转义的字段列表
+
+    返回:
+        清理后的数据
+    """
+    if isinstance(result, dict):
+        return sanitize_dict(result, fields_to_sanitize)
+    elif isinstance(result, list):
+        return [
+            sanitize_dict(item, fields_to_sanitize) if isinstance(item, dict)
+            else sanitize_input(item) if isinstance(item, str)
+            else item
+            for item in result
+        ]
+    elif isinstance(result, str):
+        return sanitize_input(result)
+
+    return result
+
+
 def sanitize_response(fields_to_sanitize: List[str] = None):
     """
-    响应数据自动转义装饰器
-    
+    响应数据自动转义装饰器，支持同步和异步函数
+
     自动转义响应数据中的指定字段，防止 XSS 攻击
-    
+
     参数:
         fields_to_sanitize: 需要转义的字段列表，如果为 None 则转义所有字符串字段
-        
+
     返回:
         装饰器函数
-        
+
     示例:
         >>> @sanitize_response(fields_to_sanitize=["username", "email"])
         >>> def get_user(user_id: int):
@@ -203,24 +229,20 @@ def sanitize_response(fields_to_sanitize: List[str] = None):
     """
     def decorator(func: Callable):
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        async def async_wrapper(*args, **kwargs):
+            result = await func(*args, **kwargs)
+            return _sanitize_data(result, fields_to_sanitize)
+
+        @functools.wraps(func)
+        def sync_wrapper(*args, **kwargs):
             result = func(*args, **kwargs)
-            
-            if isinstance(result, dict):
-                return sanitize_dict(result, fields_to_sanitize)
-            elif isinstance(result, list):
-                return [
-                    sanitize_dict(item, fields_to_sanitize) if isinstance(item, dict)
-                    else sanitize_input(item) if isinstance(item, str)
-                    else item
-                    for item in result
-                ]
-            elif isinstance(result, str):
-                return sanitize_input(result)
-            
-            return result
-        
-        return wrapper
+            return _sanitize_data(result, fields_to_sanitize)
+
+        import asyncio
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        return sync_wrapper
+
     return decorator
 
 

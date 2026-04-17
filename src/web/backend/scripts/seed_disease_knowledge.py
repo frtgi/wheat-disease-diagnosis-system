@@ -49,6 +49,7 @@ def build_disease_record(info) -> dict:
         "prevention_methods": info.prevention,
         "treatment_methods": info.treatment,
         "severity": severity_float,
+        "image_urls": [f"/images/diseases/{code.lower()}.jpg"],
         "is_active": True,
     }
 

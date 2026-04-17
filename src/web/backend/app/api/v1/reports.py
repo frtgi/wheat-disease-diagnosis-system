@@ -183,6 +183,19 @@ async def generate_report_from_record(
                                 image_data = f.read()
                 except Exception as img_err:
                     logger.warning(f"获取诊断图像失败：{img_err}")
+            elif diagnosis.image_url:
+                try:
+                    import os
+                    image_path = diagnosis.image_url
+                    if diagnosis.image_url.startswith("/uploads/"):
+                        image_path = os.path.join("uploads", diagnosis.image_url.replace("/uploads/", ""))
+                    if diagnosis.image_url.startswith("/api/v1/upload/"):
+                        image_path = diagnosis.image_url.replace("/api/v1/upload/", "uploads/")
+                    if os.path.exists(image_path):
+                        with open(image_path, 'rb') as f:
+                            image_data = f.read()
+                except Exception as img_err:
+                    logger.warning(f"通过 image_url 获取诊断图像失败：{img_err}")
 
             report_generator = get_report_generator()
             report_files = report_generator.generate_report(

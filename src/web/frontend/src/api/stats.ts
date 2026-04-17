@@ -13,6 +13,9 @@ export interface StatsOverview {
   total_users: number
   total_diagnoses: number
   total_diseases: number
+  today_diagnoses: number
+  avg_accuracy: number
+  diagnosis_trend: Array<{ date: string; count: number }>
 }
 
 /**

@@ -44,6 +44,7 @@
         <DiseaseCard
           :id="disease.id"
           :disease-name="disease.name"
+          :image-url="disease.image_urls?.[0] || ''"
           :symptoms-brief="(disease.symptoms || '').substring(0, 50) + '...'"
           :symptoms="(disease.symptoms || '').split('。').slice(0, 3)"
           :category="disease.category"

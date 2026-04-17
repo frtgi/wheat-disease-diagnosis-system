@@ -33,6 +33,7 @@ class DiagnosisResponse(DiagnosisBase):
     diagnosis_result: Optional[str] = None
     confidence: Optional[float] = None
     suggestions: Optional[List[str]] = None
+    description: Optional[str] = None
     status: str
     created_at: datetime
     updated_at: datetime

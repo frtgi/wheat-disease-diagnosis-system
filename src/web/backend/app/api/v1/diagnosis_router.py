@@ -592,11 +592,60 @@ async def _generate_diagnosis_stream_from_url(
         diagnosis_id = None
         if user_id and db:
             try:
+                image_id = None
+                if image_url:
+                    try:
+                        from app.models.image import ImageMetadata
+                        import hashlib
+                        import os
+                        image_path = image_url
+                        if image_url.startswith("/uploads/"):
+                            image_path = os.path.join("uploads", image_url.replace("/uploads/", ""))
+                        if image_url.startswith("/api/v1/upload/"):
+                            image_path = image_url.replace("/api/v1/upload/", "uploads/")
+                        
+                        if os.path.exists(image_path):
+                            with open(image_path, 'rb') as f:
+                                file_data = f.read()
+                                hash_value = hashlib.sha256(file_data).hexdigest()
+                                file_size = len(file_data)
+                            
+                            existing_meta = db.query(ImageMetadata).filter(ImageMetadata.hash_value == hash_value).first()
+                            if existing_meta:
+                                image_id = existing_meta.id
+                            else:
+                                image_meta = ImageMetadata(
+                                    user_id=user_id,
+                                    hash_value=hash_value,
+                                    original_filename=os.path.basename(image_path),
+                                    file_path=os.path.abspath(image_path),
+                                    file_size=file_size,
+                                    mime_type="image/jpeg",
+                                    storage_provider="local"
+                                )
+                                db.add(image_meta)
+                                db.flush()
+                                image_id = image_meta.id
+                    except Exception as e:
+                        logger.warning(f"创建图像元数据失败：{e}")
+
+                disease_id = None
+                if fusion_result.disease_name:
+                    try:
+                        from app.models.disease import Disease
+                        disease_obj = db.query(Disease).filter(Disease.name == fusion_result.disease_name).first()
+                        if disease_obj:
+                            disease_id = disease_obj.id
+                    except Exception:
+                        pass
+
                 diagnosis_record = Diagnosis(
                     user_id=user_id,
+                    image_id=image_id,
                     image_url=image_url or "",
                     symptoms=symptoms or "",
                     disease_name=fusion_result.disease_name,
+                    disease_id=disease_id,
                     confidence=fusion_result.confidence,
                     primary_confidence=fusion_result.confidence,
                     severity=None,
