@@ -21,10 +21,10 @@
             class="category-select"
           >
             <el-option
-              v-for="category in categoryOptions"
-              :key="category"
-              :label="category"
-              :value="category"
+              v-for="cat in categoryOptions"
+              :key="cat.value"
+              :label="cat.label"
+              :value="cat.value"
             />
           </el-select>
         </div>
@@ -97,12 +97,12 @@ const diseaseList = ref<DiseaseKnowledge[]>([])
 const isLoading = ref(false)
 
 // 类别选项
-const categoryOptions = ref<string[]>([
-  '真菌性病害',
-  '细菌性病害',
-  '病毒性病害',
-  '虫害',
-  '营养性病害'
+const categoryOptions = ref([
+  { label: '真菌性病害', value: 'fungal' },
+  { label: '细菌性病害', value: 'bacterial' },
+  { label: '病毒性病害', value: 'viral' },
+  { label: '虫害', value: 'pest' },
+  { label: '营养性病害', value: 'nutritional' }
 ])
 
 // 加载病害知识

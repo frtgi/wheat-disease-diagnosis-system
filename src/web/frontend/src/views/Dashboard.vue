@@ -117,7 +117,7 @@ const loadStats = async () => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
 
-    trendData.value = (diagnosisStatsData as any).trend_data ?? []
+    trendData.value = (overview as any).diagnosis_trend ?? []
 
   } catch (error: unknown) {
     console.error('加载统计数据失败:', error)

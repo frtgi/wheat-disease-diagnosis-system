@@ -96,7 +96,7 @@ class ReportGenerator:
             story.append(Spacer(1, 0.3*inch))
             
             # 基本信息
-            diagnosis = diagnosis_result.get("data", {})
+            diagnosis = diagnosis_result.get("diagnosis", diagnosis_result.get("data", {}))
             story.append(Paragraph("基本信息", heading_style))
             
             basic_info = [
@@ -237,8 +237,8 @@ class ReportGenerator:
             HTML 文件路径
         """
         try:
-            diagnosis = diagnosis_result.get("data", {})
-            
+            diagnosis = diagnosis_result.get("diagnosis", diagnosis_result.get("data", {}))
+
             # 图像 Base64 编码
             image_base64 = None
             if image_data:

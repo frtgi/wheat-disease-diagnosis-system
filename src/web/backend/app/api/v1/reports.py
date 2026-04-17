@@ -81,10 +81,18 @@ async def generate_report(
         if not diagnosis_result["success"]:
             raise HTTPException(status_code=500, detail=diagnosis_result.get("error", "诊断失败"))
         
+        # 适配数据结构，兼容 diagnosis 和 data 两种字段名
+        adapted_result = {
+            "data": diagnosis_result.get("diagnosis", {}),
+            "reasoning_chain": diagnosis_result.get("reasoning_chain"),
+            "confidence_analysis": diagnosis_result.get("confidence_analysis"),
+            "performance": diagnosis_result.get("performance")
+        }
+
         # 生成报告
         report_generator = get_report_generator()
         report_files = report_generator.generate_report(
-            diagnosis_result=diagnosis_result,
+            diagnosis_result=adapted_result,
             image_data=image_bytes,
             format=report_format
         )
