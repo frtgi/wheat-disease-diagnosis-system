@@ -1,6 +1,6 @@
 # 文档编写 - 实现计划
 
-## [/] Task 1: 分析开题报告中的参考文献
+## [x] Task 1: 分析开题报告中的参考文献
 - **Priority**: P0
 - **Depends On**: None
 - **Description**:
@@ -12,7 +12,7 @@
   - `human-judgement` TR-1.1: 提取所有参考文献信息
   - `human-judgement` TR-1.2: 确保参考文献信息完整准确
 
-## [ ] Task 2: 分析本科论文写作方法
+## [x] Task 2: 分析本科论文写作方法
 - **Priority**: P0
 - **Depends On**: None
 - **Description**:
@@ -24,7 +24,7 @@
   - `human-judgement` TR-2.1: 了解绪论部分的结构要求
   - `human-judgement` TR-2.2: 掌握正确的引用格式
 
-## [ ] Task 3: 分析小麦病害诊断系统文档
+## [x] Task 3: 分析小麦病害诊断系统文档
 - **Priority**: P0
 - **Depends On**: None
 - **Description**:
@@ -36,7 +36,7 @@
   - `human-judgement` TR-3.1: 了解文档整体结构
   - `human-judgement` TR-3.2: 确定绪论部分的要求
 
-## [ ] Task 4: 编写绪论部分
+## [x] Task 4: 编写绪论部分
 - **Priority**: P0
 - **Depends On**: Task 1, Task 2, Task 3
 - **Description**:
@@ -49,7 +49,7 @@
   - `human-judgement` TR-4.1: 绪论内容完整
   - `human-judgement` TR-4.2: 逻辑连贯，符合学术规范
 
-## [ ] Task 5: 检查引用格式
+## [x] Task 5: 检查引用格式
 - **Priority**: P1
 - **Depends On**: Task 4
 - **Description**:
@@ -61,7 +61,7 @@
   - `human-judgement` TR-5.1: 引用格式正确
   - `human-judgement` TR-5.2: 符合学术规范
 
-## [ ] Task 6: 检查内容质量
+## [x] Task 6: 检查内容质量
 - **Priority**: P1
 - **Depends On**: Task 4
 - **Description**:
