@@ -177,7 +177,6 @@ async def generate_report_from_record(
                     from app.models.image import ImageMetadata
                     image_meta = db.query(ImageMetadata).filter(ImageMetadata.id == diagnosis.image_id).first()
                     if image_meta and image_meta.file_path:
-                        import os
                         if os.path.exists(image_meta.file_path):
                             with open(image_meta.file_path, 'rb') as f:
                                 image_data = f.read()
@@ -185,7 +184,6 @@ async def generate_report_from_record(
                     logger.warning(f"获取诊断图像失败：{img_err}")
             elif diagnosis.image_url:
                 try:
-                    import os
                     image_path = diagnosis.image_url
                     if diagnosis.image_url.startswith("/uploads/"):
                         image_path = os.path.join("uploads", diagnosis.image_url.replace("/uploads/", ""))

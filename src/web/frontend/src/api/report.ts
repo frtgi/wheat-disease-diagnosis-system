@@ -26,7 +26,7 @@ export async function generateReport(
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 300000
   })
-  return response.data?.data || response.data
+  return response.data || response
 }
 
 /**
@@ -45,7 +45,7 @@ export async function generateReportFromRecord(
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 120000
   })
-  return response.data?.data || response.data
+  return response.data || response
 }
 
 /**
@@ -63,5 +63,5 @@ export function getReportDownloadUrl(filename: string): string {
  */
 export async function getReportList(): Promise<any> {
   const response = await http.get(`${API_BASE}/list`)
-  return response.data?.data || response.data
+  return response.data || response
 }

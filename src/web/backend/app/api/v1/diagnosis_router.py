@@ -597,7 +597,6 @@ async def _generate_diagnosis_stream_from_url(
                     try:
                         from app.models.image import ImageMetadata
                         import hashlib
-                        import os
                         image_path = image_url
                         if image_url.startswith("/uploads/"):
                             image_path = os.path.join("uploads", image_url.replace("/uploads/", ""))
