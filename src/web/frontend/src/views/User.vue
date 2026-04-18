@@ -143,7 +143,8 @@ const loadUserInfo = async () => {
       id: user.id,
       username: user.username,
       email: user.email,
-      avatar: user.avatar_url || ''
+      avatar: user.avatar_url || '',
+      role: user.role || userStore.userInfo.role || ''
     })
   } catch (error: unknown) {
     console.error('加载用户信息失败:', error)

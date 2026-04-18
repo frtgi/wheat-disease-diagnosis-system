@@ -16,7 +16,8 @@ import {
   Document,
   Reading,
   User,
-  Search
+  Search,
+  Setting
 } from '@element-plus/icons-vue'
 
 import App from './App.vue'
@@ -44,7 +45,8 @@ const globallyUsedIcons: Record<string, Component> = {
   Document,
   Reading,
   User,
-  Search
+  Search,
+  Setting
 }
 
 for (const [key, component] of Object.entries(globallyUsedIcons)) {

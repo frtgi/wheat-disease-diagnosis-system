@@ -259,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onActivated, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, DataAnalysis, Reading, Monitor } from '@element-plus/icons-vue'
@@ -497,6 +497,10 @@ watch(activeTab, (newTab) => {
   } else if (newTab === 'logs') {
     refreshLogStats()
   }
+})
+
+onActivated(() => {
+  router.replace({ query: { ...route.query, tab: activeTab.value } })
 })
 
 onMounted(async () => {
