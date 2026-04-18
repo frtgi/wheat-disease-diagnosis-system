@@ -499,8 +499,13 @@ watch(activeTab, (newTab) => {
   }
 })
 
+/**
+ * keep-alive 激活时同步 activeTab 到 URL
+ */
 onActivated(() => {
-  router.replace({ query: { ...route.query, tab: activeTab.value } })
+  if (activeTab.value) {
+    router.replace({ query: { ...route.query, tab: activeTab.value } })
+  }
 })
 
 onMounted(async () => {

@@ -4,6 +4,7 @@
 """
 import logging
 import os
+import html
 from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
@@ -411,11 +412,11 @@ class ReportGenerator:
                     </div>
                     <div class="info-card">
                         <strong>病害名称</strong>
-                        {diagnosis.get('disease_name', '未知')}
+                        {html.escape(str(diagnosis.get('disease_name', '未知')), quote=True)}
                     </div>
                     <div class="info-card">
                         <strong>严重度</strong>
-                        {diagnosis.get('severity', '未知')}
+                        {html.escape(str(diagnosis.get('severity', '未知')), quote=True)}
                     </div>
                 </div>
                 
@@ -423,7 +424,7 @@ class ReportGenerator:
                     <strong>置信度</strong>
                     <div class="confidence-bar">
                         <div class="confidence-fill" style="width: {diagnosis.get('confidence', 0) * 100:.0f}%">
-                            {diagnosis.get('confidence', 0) * 100:.1f}%
+                            {html.escape(str(round(diagnosis.get('confidence', 0) * 100, 1)), quote=True)}%
                         </div>
                     </div>
                 </div>
