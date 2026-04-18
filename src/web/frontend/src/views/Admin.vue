@@ -364,7 +364,7 @@ const refreshVramStatus = async () => {
   vramLoading.value = true
   try {
     const res = await getVramStatus()
-    vramStatus.value = res?.data || {}
+    vramStatus.value = res?.data || res || {}
   } catch (e) {
     ElMessage.error('获取显存状态失败')
   } finally {
@@ -379,7 +379,7 @@ const handleCleanupVram = async () => {
   vramCleaning.value = true
   try {
     const res = await cleanupVram()
-    const freed = res?.data?.freed_mb || 0
+    const freed = res?.data?.freed_mb || res?.freed_mb || 0
     ElMessage.success(`显存清理完成，释放 ${freed}MB`)
     await refreshVramStatus()
   } catch (e) {
@@ -396,7 +396,7 @@ const refreshCacheStats = async () => {
   cacheLoading.value = true
   try {
     const res = await getCacheStats()
-    cacheStats.value = res?.data || {}
+    cacheStats.value = res?.data || res || {}
   } catch (e) {
     ElMessage.error('获取缓存统计失败')
   } finally {
@@ -431,7 +431,7 @@ const refreshLogStats = async () => {
       getRecentLogs({ page_size: 20 })
     ])
     logStatistics.value = statsRes?.data || statsRes || {}
-    recentLogs.value = logsRes?.data?.logs || []
+    recentLogs.value = logsRes?.data?.logs || logsRes?.logs || []
   } catch (e) {
     ElMessage.error('加载日志统计失败')
   } finally {
@@ -465,7 +465,7 @@ const loadDiseaseDistribution = async () => {
       if (!diseaseChartInstance) {
         diseaseChartInstance = echarts.init(diseaseChartRef.value)
       }
-      const resData = data?.data || {}
+      const resData = data?.data || data || {}
       const items = resData.distribution || (Array.isArray(resData) ? resData : [])
       const chartData = Array.isArray(items) ? items : []
       diseaseChartInstance.setOption({

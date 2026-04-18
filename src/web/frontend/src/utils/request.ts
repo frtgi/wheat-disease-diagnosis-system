@@ -6,6 +6,7 @@ import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import router from '@/router'
+import { useUserStore } from '@/stores'
 
 // 创建 axios 实例
 const service: AxiosInstance = axios.create({
@@ -59,6 +60,8 @@ async function refreshAccessToken(): Promise<string | null> {
     
     if (access_token) {
       localStorage.setItem('token', access_token)
+      const userStore = useUserStore()
+      userStore.setToken(access_token)
       if (newRefreshToken) {
         localStorage.setItem('refresh_token', newRefreshToken)
       }
