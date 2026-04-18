@@ -107,8 +107,8 @@ async def generate_report(
         }
         
     except Exception as e:
-        logger.error(f"报告生成失败：{e}")
-        raise HTTPException(status_code=500, detail=f"报告生成失败：{str(e)}")
+        logger.error(f"报告生成失败：{e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="报告生成失败，请稍后重试")
 
 
 @router.post("/generate-from-record/{diagnosis_id}")
@@ -217,8 +217,8 @@ async def generate_report_from_record(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"从记录生成报告失败：{e}")
-        raise HTTPException(status_code=500, detail=f"报告生成失败：{str(e)}")
+        logger.error(f"从记录生成报告失败：{e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="报告生成失败，请稍后重试")
 
 
 @router.get("/download/{filename}")
@@ -255,8 +255,8 @@ async def download_report(filename: str, current_user: User = Depends(get_curren
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"下载报告失败：{e}")
-        raise HTTPException(status_code=500, detail=f"下载失败：{str(e)}")
+        logger.error(f"下载报告失败：{e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="下载失败，请稍后重试")
 
 
 @router.get("/list")
@@ -295,5 +295,5 @@ async def list_reports(current_user: User = Depends(get_current_user)):
         }
         
     except Exception as e:
-        logger.error(f"列出报告失败：{e}")
-        raise HTTPException(status_code=500, detail=f"列出报告失败：{str(e)}")
+        logger.error(f"列出报告失败：{e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="列出报告失败，请稍后重试")

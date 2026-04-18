@@ -441,14 +441,14 @@ class ReportGenerator:
             
             <div class="section">
                 <h2 class="section-title">症状描述</h2>
-                <p>{diagnosis.get('symptoms', '无详细描述')}</p>
+                <p>{html.escape(str(diagnosis.get('symptoms', '无详细描述')), quote=True)}</p>
             </div>
             
             {f'''
             <div class="section">
                 <h2 class="section-title">推理过程</h2>
                 <div class="reasoning">
-                    {diagnosis_result.get('reasoning_chain', '').replace(chr(10), '<br/>• ')}
+                    {html.escape(str(diagnosis_result.get('reasoning_chain', '')), quote=True).replace(chr(10), '<br/>• ')}
                 </div>
             </div>
             ''' if diagnosis_result.get('reasoning_chain') else ''}
@@ -457,10 +457,10 @@ class ReportGenerator:
                 <h2 class="section-title">防治建议</h2>
                 <div class="prevention">
                     <h3>预防措施</h3>
-                    <p>{diagnosis.get('prevention_methods', '请咨询专业农技人员')}</p>
+                    <p>{html.escape(str(diagnosis.get('prevention_methods', '请咨询专业农技人员')), quote=True)}</p>
                     
                     <h3>治疗方法</h3>
-                    <p>{diagnosis.get('treatment_methods', '请咨询专业农技人员')}</p>
+                    <p>{html.escape(str(diagnosis.get('treatment_methods', '请咨询专业农技人员')), quote=True)}</p>
                 </div>
             </div>
             
@@ -472,7 +472,7 @@ class ReportGenerator:
                         <strong>总体置信度</strong>
                         <div class="confidence-bar">
                             <div class="confidence-fill" style="width: {diagnosis_result['confidence_analysis'].get('overall_confidence', 0) * 100:.0f}%">
-                                {diagnosis_result['confidence_analysis'].get('overall_confidence', 0) * 100:.1f}%
+                                {html.escape(str(round(diagnosis_result['confidence_analysis'].get('overall_confidence', 0) * 100, 1)), quote=True)}%
                             </div>
                         </div>
                     </div>
@@ -480,7 +480,7 @@ class ReportGenerator:
                         <strong>视觉置信度</strong>
                         <div class="confidence-bar">
                             <div class="confidence-fill" style="width: {diagnosis_result['confidence_analysis'].get('visual_confidence', 0) * 100:.0f}%">
-                                {diagnosis_result['confidence_analysis'].get('visual_confidence', 0) * 100:.1f}%
+                                {html.escape(str(round(diagnosis_result['confidence_analysis'].get('visual_confidence', 0) * 100, 1)), quote=True)}%
                             </div>
                         </div>
                     </div>
@@ -488,7 +488,7 @@ class ReportGenerator:
                         <strong>文本置信度</strong>
                         <div class="confidence-bar">
                             <div class="confidence-fill" style="width: {diagnosis_result['confidence_analysis'].get('textual_confidence', 0) * 100:.0f}%">
-                                {diagnosis_result['confidence_analysis'].get('textual_confidence', 0) * 100:.1f}%
+                                {html.escape(str(round(diagnosis_result['confidence_analysis'].get('textual_confidence', 0) * 100, 1)), quote=True)}%
                             </div>
                         </div>
                     </div>

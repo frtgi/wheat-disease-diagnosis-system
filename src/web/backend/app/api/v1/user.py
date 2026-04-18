@@ -516,7 +516,10 @@ async def get_current_user_info(
     }
 )
 @sanitize_response(fields_to_sanitize=["username", "email", "phone", "avatar_url"])
-def get_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.id != user_id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="无权查看其他用户信息")
+    
     user = get_user_by_id(db, user_id)
     
     if not user:
@@ -584,8 +587,12 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 def update_user(
     user_id: int,
     user_data: UserUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
+    if current_user.id != user_id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="无权修改其他用户信息")
+    
     user = get_user_by_id(db, user_id)
     
     if not user:

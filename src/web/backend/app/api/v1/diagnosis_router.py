@@ -207,14 +207,11 @@ async def diagnose_fusion(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"融合诊断失败：{e}")
+        logger.error(f"融合诊断失败：{e}", exc_info=True)
         inference_time = time.time() - start_time
         raise HTTPException(
             status_code=500,
-            detail={
-                "error": f"融合诊断失败：{str(e)}",
-                "inference_time_ms": round(inference_time * 1000, 2)
-            }
+            detail="融合诊断失败，请稍后重试"
         )
 
 
@@ -1115,8 +1112,8 @@ async def diagnose_image(
         }
 
     except Exception as e:
-        logger.error(f"图像诊断失败：{e}")
-        raise HTTPException(status_code=500, detail=f"诊断失败：{str(e)}")
+        logger.error(f"图像诊断失败：{e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="诊断失败，请稍后重试")
 
 
 @router.post("/multimodal")
@@ -1280,14 +1277,11 @@ async def diagnose_multimodal(
         return response
 
     except Exception as e:
-        logger.error(f"多模态诊断失败：{e}")
+        logger.error(f"多模态诊断失败：{e}", exc_info=True)
         inference_time = time.time() - start_time
         raise HTTPException(
             status_code=500,
-            detail={
-                "error": f"诊断失败：{str(e)}",
-                "inference_time_ms": round(inference_time * 1000, 2)
-            }
+            detail="诊断失败，请稍后重试"
         )
 
 
@@ -1372,8 +1366,8 @@ async def diagnose_text(
         }
 
     except Exception as e:
-        logger.error(f"文本诊断失败：{e}")
-        raise HTTPException(status_code=500, detail=f"诊断失败：{str(e)}")
+        logger.error(f"文本诊断失败：{e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="诊断失败，请稍后重试")
 
 
 @router.get("/health/ai")
@@ -1480,8 +1474,8 @@ async def get_cache_stats(
         }
 
     except Exception as e:
-        logger.error(f"获取缓存统计失败：{e}")
-        raise HTTPException(status_code=500, detail=f"获取缓存统计失败：{str(e)}")
+        logger.error(f"获取缓存统计失败：{e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="获取缓存统计失败，请稍后重试")
 
 
 @router.post("/cache/clear")
@@ -1527,8 +1521,8 @@ async def clear_cache(
         }
 
     except Exception as e:
-        logger.error(f"清空缓存失败：{e}")
-        raise HTTPException(status_code=500, detail=f"清空缓存失败：{str(e)}")
+        logger.error(f"清空缓存失败：{e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="清空缓存失败，请稍后重试")
 
 
 @router.post("/batch")
@@ -1660,14 +1654,11 @@ async def diagnose_batch(
         }
 
     except Exception as e:
-        logger.error(f"批量诊断失败：{e}")
+        logger.error(f"批量诊断失败：{e}", exc_info=True)
         total_time = time.time() - start_time
         raise HTTPException(
             status_code=500,
-            detail={
-                "error": f"批量诊断失败：{str(e)}",
-                "total_time_ms": round(total_time * 1000, 2)
-            }
+            detail="批量诊断失败，请稍后重试"
         )
 
 
@@ -1757,11 +1748,7 @@ async def preload_ai_models(
 
         raise HTTPException(
             status_code=500,
-            detail={
-                "error": f"预加载异常: {str(e)}",
-                "load_time_ms": round(load_time * 1000, 2),
-                "suggestion": "请检查日志获取详细错误信息"
-            }
+            detail="预加载异常，请稍后重试"
         )
 
 

@@ -96,5 +96,5 @@ async def upload_image(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"文件上传失败: {e}")
-        raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
+        logger.error(f"文件上传失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="文件上传失败，请稍后重试")

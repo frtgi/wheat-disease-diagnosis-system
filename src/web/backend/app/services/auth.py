@@ -4,6 +4,7 @@
 """
 import secrets
 import uuid
+import hashlib
 from datetime import datetime, timedelta
 from typing import Optional, List
 from sqlalchemy.orm import Session
@@ -22,6 +23,19 @@ LOCKOUT_DURATION_MINUTES = 30
 PASSWORD_RESET_EXPIRE_HOURS = 1
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 SESSION_EXPIRE_DAYS = 7
+
+
+def _hash_token(token: str) -> str:
+    """
+    对令牌进行 SHA-256 哈希
+
+    参数:
+        token: 原始令牌字符串
+
+    返回:
+        哈希后的十六进制字符串
+    """
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
@@ -179,13 +193,16 @@ async def invalidate_user_cache(user_id: int) -> bool:
 def create_password_reset_token(db: Session, email: str) -> Optional[str]:
     """
     创建密码重置令牌
-    
+
+    生成随机令牌并在数据库中存储其 SHA-256 哈希值，
+    原始令牌仅通过邮件发送给用户，不持久化存储。
+
     参数:
         db: 数据库会话
         email: 用户邮箱
-    
+
     返回:
-        重置令牌，用户不存在返回 None
+        重置令牌（原始值），用户不存在返回 None
     """
     user = db.query(User).filter(User.email == email).first()
     if not user:
@@ -196,7 +213,7 @@ def create_password_reset_token(db: Session, email: str) -> Optional[str]:
     
     reset_token = PasswordResetToken(
         user_id=user.id,
-        token=token,
+        token=_hash_token(token),
         expires_at=expires_at,
         used=False
     )
@@ -209,17 +226,19 @@ def create_password_reset_token(db: Session, email: str) -> Optional[str]:
 def verify_password_reset_token(db: Session, token: str) -> Optional[User]:
     """
     验证密码重置令牌
-    
+
+    对用户提供的令牌进行 SHA-256 哈希后与数据库中存储的哈希值比较。
+
     参数:
         db: 数据库会话
-        token: 重置令牌
-    
+        token: 重置令牌（原始值）
+
     返回:
         用户对象，验证失败返回 None
     """
     reset_token = db.query(PasswordResetToken).filter(
         and_(
-            PasswordResetToken.token == token,
+            PasswordResetToken.token == _hash_token(token),
             PasswordResetToken.used == False,
             PasswordResetToken.expires_at > datetime.utcnow()
         )
@@ -235,16 +254,18 @@ def verify_password_reset_token(db: Session, token: str) -> Optional[User]:
 def mark_password_reset_token_used(db: Session, token: str) -> bool:
     """
     标记密码重置令牌为已使用
-    
+
+    通过令牌的 SHA-256 哈希值查找并标记为已使用。
+
     参数:
         db: 数据库会话
-        token: 重置令牌
-    
+        token: 重置令牌（原始值）
+
     返回:
         是否成功标记
     """
     reset_token = db.query(PasswordResetToken).filter(
-        PasswordResetToken.token == token
+        PasswordResetToken.token == _hash_token(token)
     ).first()
     
     if not reset_token:

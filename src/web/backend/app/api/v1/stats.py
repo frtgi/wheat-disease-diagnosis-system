@@ -3,6 +3,7 @@
 提供数据统计和仪表盘功能
 包含缓存统计功能
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -14,6 +15,8 @@ from ...core.security import get_current_user, require_admin
 from ...models.diagnosis import Diagnosis
 from ...models.disease import Disease
 from ...models.user import User
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/stats", tags=["统计信息"])
 
@@ -152,9 +155,10 @@ async def get_cache_stats(current_user: User = Depends(get_current_user)) -> Dic
             "data": stats
         }
     except Exception as e:
+        logger.error(f"获取缓存统计失败: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"获取缓存统计失败: {str(e)}"
+            detail="获取缓存统计失败，请稍后重试"
         )
 
 
@@ -177,9 +181,10 @@ async def clear_inference_cache(current_user: User = Depends(require_admin)) -> 
             "deleted_count": deleted_count
         }
     except Exception as e:
+        logger.error(f"清空缓存失败: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"清空缓存失败: {str(e)}"
+            detail="清空缓存失败，请稍后重试"
         )
 
 
@@ -206,9 +211,10 @@ async def get_cache_config(current_user: User = Depends(get_current_user)) -> Di
             }
         }
     except Exception as e:
+        logger.error(f"获取缓存配置失败: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"获取缓存配置失败: {str(e)}"
+            detail="获取缓存配置失败，请稍后重试"
         )
 
 
@@ -244,9 +250,10 @@ async def get_vram_status(current_user: User = Depends(require_admin)) -> Dict[s
             }
         }
     except Exception as e:
+        logger.error(f"获取显存状态失败: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"获取显存状态失败: {str(e)}"
+            detail="获取显存状态失败，请稍后重试"
         )
 
 
@@ -271,7 +278,8 @@ async def cleanup_vram(current_user: User = Depends(require_admin)) -> Dict[str,
             "data": result
         }
     except Exception as e:
+        logger.error(f"显存清理失败: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"显存清理失败: {str(e)}"
+            detail="显存清理失败，请稍后重试"
         )

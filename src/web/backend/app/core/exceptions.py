@@ -24,6 +24,7 @@ from app.core.error_codes import (
     AIErrorCode,
     DatabaseErrorCode
 )
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -495,10 +496,6 @@ def _build_error_response(
             "error": error_detail.to_dict()
         }
     )
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-Request-ID, Accept, Origin"
     return response
 
 
@@ -626,7 +623,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         error_message=str(exc),
         details={
             "exception_type": type(exc).__name__,
-            "traceback": traceback.format_exc()
+            "traceback": traceback.format_exc() if getattr(settings, 'DEBUG', False) else None
         },
         trace_id=trace_id,
         level="critical"
