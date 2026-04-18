@@ -84,7 +84,12 @@ const activeMenu = computed(() => route.path)
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const userInfo = computed(() => userStore.userInfo)
 const isAdmin = computed(() => {
-  return userStore.userInfo?.role === 'admin'
+  try {
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+    return userInfo.role === 'admin'
+  } catch {
+    return false
+  }
 })
 
 // 处理下拉菜单命令
