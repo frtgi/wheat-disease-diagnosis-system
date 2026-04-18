@@ -4,7 +4,7 @@
 """
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from fastapi import HTTPException, status
 
 from ..models.disease import Disease
@@ -98,22 +98,24 @@ def search_diseases(
     """
     query = db.query(Disease)
     
-    # 构建搜索条件
-    conditions = []
+    filters = []
     
     if keyword:
-        conditions.append(Disease.name.contains(keyword))
-        conditions.append(Disease.symptoms.contains(keyword))
-        conditions.append(Disease.causes.contains(keyword))
-        conditions.append(Disease.code.contains(keyword))
-        conditions.append(Disease.scientific_name.contains(keyword))
-        conditions.append(Disease.description.contains(keyword))
+        keyword_conditions = [
+            Disease.name.contains(keyword),
+            Disease.symptoms.contains(keyword),
+            Disease.causes.contains(keyword),
+            Disease.code.contains(keyword),
+            Disease.scientific_name.contains(keyword),
+            Disease.description.contains(keyword),
+        ]
+        filters.append(or_(*keyword_conditions))
     
     if category:
-        conditions.append(Disease.category == category)
+        filters.append(Disease.category == category)
     
-    if conditions:
-        query = query.filter(or_(*conditions))
+    if filters:
+        query = query.filter(and_(*filters))
     
     return query.order_by(Disease.name).offset(skip).limit(limit).all()
 

@@ -3,6 +3,7 @@
 支持 PDF 和 HTML 格式的专业图文诊断报告
 """
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
@@ -133,7 +134,6 @@ class ReportGenerator:
                     story.append(img)
                     story.append(Spacer(1, 0.3*inch))
                 finally:
-                    import os
                     os.unlink(tmp_path)
             
             # 症状描述
