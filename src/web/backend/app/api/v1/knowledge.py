@@ -237,12 +237,21 @@ def get_categories(db: Session = Depends(get_db)):
 @router.get("/graph", summary="获取知识图谱")
 def get_knowledge_graph(
     disease_id: Optional[int] = Query(None, description="病害ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     获取知识图谱数据
     
-    返回病害-症状-防治措施的关系图谱
+    需要用户认证。返回病害-症状-防治措施的关系图谱。
+
+    参数:
+        disease_id: 可选病害ID，用于筛选特定病害
+        db: 数据库会话
+        current_user: 当前认证用户
+
+    返回:
+        包含节点和关系的知识图谱数据
     """
     try:
         nodes = []
@@ -289,9 +298,18 @@ def get_knowledge_graph(
 
 
 @router.get("/stats", summary="获取知识库统计")
-def get_knowledge_stats(db: Session = Depends(get_db)):
+def get_knowledge_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     获取知识库统计信息
+
+    需要用户认证。返回知识库中病害总数和按分类统计信息。
+
+    参数:
+        db: 数据库会话
+        current_user: 当前认证用户
+
+    返回:
+        包含总数和分类统计的字典
     """
     try:
         total = db.query(func.count(Disease.id)).filter(Disease.is_active == True).scalar()

@@ -194,18 +194,24 @@ service.interceptors.response.use(
     
     // 处理不同的 HTTP 状态码
     if (error.response) {
+      const detail = (error.response.data as any)?.detail
+      const errorMessage = detail || null
+
       switch (error.response.status) {
         case 400:
-          ElMessage.error('请求参数错误')
+          ElMessage.error(errorMessage || '请求参数错误')
+          break
+        case 409:
+          ElMessage.error(errorMessage || '资源冲突')
           break
         case 403:
-          ElMessage.error('拒绝访问')
+          ElMessage.error(errorMessage || '拒绝访问')
           break
         case 404:
-          ElMessage.error('请求资源不存在')
+          ElMessage.error(errorMessage || '请求资源不存在')
           break
         case 500:
-          ElMessage.error('服务器内部错误')
+          ElMessage.error(errorMessage || '服务器内部错误')
           break
         case 502:
           ElMessage.error('网关错误')
@@ -217,7 +223,7 @@ service.interceptors.response.use(
           ElMessage.error('网关超时')
           break
         default:
-          ElMessage.error(`请求失败：${error.response.status}`)
+          ElMessage.error(errorMessage || `请求失败：${error.response.status}`)
       }
     } else if (error.request) {
       ElMessage.error('网络错误，请检查网络连接')

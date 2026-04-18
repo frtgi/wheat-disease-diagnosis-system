@@ -116,35 +116,42 @@ SESSION_TAG = "会话管理"
 )
 @limiter.limit("3/minute")
 def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
+    """
+    用户注册处理函数
+
+    创建新的用户账号，执行邮箱和用户名唯一性检查，
+    密码安全哈希处理，用户数据持久化到数据库。
+
+    参数:
+        request: FastAPI 请求对象
+        user_data: 用户注册数据
+        db: 数据库会话
+
+    返回:
+        注册成功响应（含用户信息）
+
+    异常:
+        HTTPException 409: 邮箱或用户名已被注册
+        HTTPException 400: 用户名验证失败或其他请求错误
+        HTTPException 500: 服务器内部错误
+    """
     try:
         logger.info(f"收到注册请求：username={user_data.username}, email={user_data.email}")
         
         is_valid, error_msg = validate_username(user_data.username)
         if not is_valid:
             logger.warning(f"注册失败 - 用户名验证失败：{user_data.username}, 错误：{error_msg}")
-            return {
-                "success": False,
-                "error": error_msg,
-                "error_code": "AUTH_005"
-            }
+            raise HTTPException(status_code=400, detail=error_msg)
         
         existing_email = db.query(User).filter(User.email == user_data.email).first()
         if existing_email:
             logger.warning(f"注册失败 - 邮箱已被注册：{user_data.email}")
-            return {
-                "success": False,
-                "error": "该邮箱已被注册，请使用其他邮箱",
-                "error_code": "AUTH_001"
-            }
+            raise HTTPException(status_code=409, detail="该邮箱已被注册，请使用其他邮箱")
         
         existing_username = db.query(User).filter(User.username == user_data.username).first()
         if existing_username:
             logger.warning(f"注册失败 - 用户名已被使用：{user_data.username}")
-            return {
-                "success": False,
-                "error": "该用户名已被使用，请选择其他用户名",
-                "error_code": "AUTH_002"
-            }
+            raise HTTPException(status_code=409, detail="该用户名已被使用，请选择其他用户名")
         
         user = create_user(
             db=db,
@@ -168,37 +175,20 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
             "message": "注册成功"
         }
         
-    except HTTPException as e:
-        logger.error(f"注册失败 - HTTP异常：{e.detail}")
-        return {
-            "success": False,
-            "error": e.detail,
-            "error_code": "AUTH_003"
-        }
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.error(f"注册失败 - 密码哈希错误：{e}", exc_info=True)
         db.rollback()
-        return {
-            "success": False,
-            "error": "密码处理失败，请稍后重试",
-            "error_code": "SYS_001"
-        }
+        raise HTTPException(status_code=400, detail="密码处理失败，请稍后重试")
     except IntegrityError as e:
         logger.error(f"注册失败 - 数据库完整性错误：{e}", exc_info=True)
         db.rollback()
-        return {
-            "success": False,
-            "error": "用户名或邮箱已被使用",
-            "error_code": "AUTH_001"
-        }
+        raise HTTPException(status_code=409, detail="用户名或邮箱已被使用")
     except Exception as e:
         logger.error(f"注册失败 - 未知错误：{e}", exc_info=True)
         db.rollback()
-        return {
-            "success": False,
-            "error": "注册失败，请稍后重试",
-            "error_code": "SYS_002"
-        }
+        raise HTTPException(status_code=500, detail="注册失败，请稍后重试")
 
 
 @router.post(
@@ -280,11 +270,38 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
 )
 @limiter.limit("5/minute")
 def login(request: Request, response: Response, login_data: UserLogin, db: Session = Depends(get_db)):
+    """
+    用户登录处理函数
+
+    验证用户凭证，检查账户锁定状态，记录登录尝试，
+    生成 JWT 访问令牌和刷新令牌。
+
+    参数:
+        request: FastAPI 请求对象
+        response: FastAPI 响应对象
+        login_data: 用户登录数据（用户名/邮箱 + 密码）
+        db: 数据库会话
+
+    返回:
+        登录成功响应（含令牌和用户信息）或失败响应
+
+    异常:
+        无显式异常抛出，内部捕获所有异常
+    """
     try:
+        if is_account_locked(db, login_data.username):
+            logger.warning(f"登录失败 - 账号已锁定：{login_data.username}")
+            return {
+                "success": False,
+                "error": "账号已被临时锁定，请稍后再试",
+                "error_code": "AUTH_009"
+            }
+
         user = authenticate_user(db, login_data.username, login_data.password)
         
         if not user:
             logger.warning(f"登录失败 - 用户名或密码错误：{login_data.username}")
+            record_login_attempt(db, login_data.username, False, request.client.host if request.client else None)
             return {
                 "success": False,
                 "error": "用户名或密码错误",
@@ -293,6 +310,7 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
         
         if not user.is_active:
             logger.warning(f"登录失败 - 账号已禁用：{login_data.username}")
+            record_login_attempt(db, login_data.username, False, request.client.host if request.client else None)
             return {
                 "success": False,
                 "error": "用户账号已被禁用",
@@ -322,6 +340,7 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
         )
         
         logger.info(f"用户登录成功：username={user.username}, user_id={user.id}")
+        record_login_attempt(db, login_data.username, True, request.client.host if request.client else None)
         
         return {
             "success": True,
@@ -656,10 +675,26 @@ def update_user(
         }
     }
 )
+@limiter.limit("3/minute")
 def request_password_reset(
+    request: Request,
     request_data: PasswordResetRequest,
     db: Session = Depends(get_db)
 ):
+    """
+    请求密码重置处理函数
+
+    验证邮箱是否已注册，生成密码重置令牌。
+    无论邮箱是否存在，都返回相同响应以防止邮箱枚举攻击。
+
+    参数:
+        request: FastAPI 请求对象（限流装饰器需要）
+        request_data: 密码重置请求数据（含邮箱）
+        db: 数据库会话
+
+    返回:
+        统一的密码重置请求响应
+    """
     logger.info(f"收到密码重置请求：email={request_data.email}")
     
     token = create_password_reset_token(db, request_data.email)
