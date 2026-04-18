@@ -1,0 +1,12 @@
+- [x] `redirectToLogin()` 保存当前路由到 redirect query 参数
+- [x] Login.vue 登录成功后优先跳转到 redirect 参数指定的页面
+- [x] Layout.vue 登出操作带 redirect 参数导航到登录页
+- [x] 路由守卫重定向到登录页时携带 redirect 参数
+- [x] Admin.vue `goBack()` 使用 `router.back()` 替代 `router.push('/')`
+- [x] Diagnosis.vue `goBack()` 使用 `router.back()` 替代 `router.push('/')`
+- [x] Layout.vue `<router-view>` 使用 `<keep-alive>` 缓存组件状态
+- [x] 路由守卫已认证用户访问登录页直接重定向到 `/dashboard`
+- [x] 路由守卫非管理员访问管理后台直接重定向到 `/dashboard`
+- [x] 页面刷新后能正确恢复之前的状态（URL + 组件缓存）
+- [x] 导航返回时显示之前访问的页面而非默认首页
+- [x] 所有修改已提交到 Git 仓库
