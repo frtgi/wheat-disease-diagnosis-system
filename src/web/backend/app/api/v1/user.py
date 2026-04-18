@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ...core.database import get_db
 from ...core.config import settings
-from ...core.security import create_access_token, decode_access_token, add_token_to_blacklist
+from ...core.security import create_access_token, decode_access_token, add_token_to_blacklist, get_current_user
 from ...schemas.user import (
     UserCreate, UserResponse, UserLogin, Token, UserUpdate,
     PasswordResetRequest, PasswordReset, TokenRefresh,
