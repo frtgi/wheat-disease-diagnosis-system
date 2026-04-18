@@ -65,7 +65,7 @@
     </el-main>
 
     <el-footer class="layout-footer">
-      <p>© 2024 小麦病害诊断系统。All rights reserved.</p>
+      <p>小麦病害诊断系统</p>
     </el-footer>
   </el-container>
 </template>
