@@ -108,10 +108,13 @@ router.beforeEach((to) => {
   })()
   
   // Cookie 会自动携带，即使 localStorage 无 token，有 userInfo 也视为已登录
-  const isAuthenticated = hasUserInfo
+  const isAuthenticated = !!token && hasUserInfo
+  const hasSession = hasUserInfo
 
-  if (requiresAuth && !isAuthenticated) {
+  if (requiresAuth && !isAuthenticated && !hasSession) {
     return { name: 'Login' }
+  } else if (requiresAuth && !isAuthenticated && hasSession) {
+    // token 过期但有 userInfo，允许访问页面，拦截器会自动刷新 token
   } else if ((to.name === 'Login' || to.name === 'Register') && isAuthenticated) {
     return { path: '/' }
   }
