@@ -379,7 +379,7 @@ class DiagnosisService:
                     vision_features={
                         'detections': detections,
                         'primary_class': disease_name,
-                        'primary_confidence': confidence
+                        'confidence': confidence
                     }
                 )
                 
