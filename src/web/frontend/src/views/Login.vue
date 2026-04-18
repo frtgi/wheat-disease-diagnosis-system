@@ -56,13 +56,14 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { login as apiLogin } from '@/api/user'
 import { useUserStore } from '@/stores'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 // 表单引用
@@ -132,7 +133,8 @@ const handleLogin = async () => {
         
         ElMessage.success('登录成功')
         
-        router.push('/')
+        const redirect = (route.query.redirect as string) || '/'
+        router.push(redirect)
       } catch (error: unknown) {
         console.error('登录失败:', error)
         const msg = error instanceof Error ? error.message : '登录失败，请检查用户名和密码'

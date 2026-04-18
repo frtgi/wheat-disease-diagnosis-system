@@ -61,7 +61,11 @@
     </el-header>
 
     <el-main class="layout-main">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <keep-alive>
+          <component :is="Component" />
+        </keep-alive>
+      </router-view>
     </el-main>
 
     <el-footer class="layout-footer">
@@ -95,8 +99,9 @@ const isAdmin = computed(() => {
 // 处理下拉菜单命令
 const handleCommand = (command: string) => {
   if (command === 'logout') {
+    const currentPath = route.fullPath
     userStore.logout()
-    router.push('/login')
+    router.push({ path: '/login', query: currentPath !== '/login' ? { redirect: currentPath } : {} })
   } else if (command === 'profile') {
     router.push('/user')
   }

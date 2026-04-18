@@ -308,9 +308,10 @@ let diseaseChartInstance: any = null
 
 /**
  * 返回上一页
+ * 使用浏览器历史记录返回
  */
 const goBack = () => {
-  router.push('/')
+  router.back()
 }
 
 /**

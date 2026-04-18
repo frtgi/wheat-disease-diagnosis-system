@@ -112,11 +112,11 @@ router.beforeEach((to) => {
   const hasSession = hasUserInfo
 
   if (requiresAuth && !isAuthenticated && !hasSession) {
-    return { name: 'Login' }
+    return { name: 'Login', query: { redirect: to.fullPath } }
   } else if (requiresAuth && !isAuthenticated && hasSession) {
     // token 过期但有 userInfo，允许访问页面，拦截器会自动刷新 token
   } else if ((to.name === 'Login' || to.name === 'Register') && isAuthenticated) {
-    return { path: '/' }
+    return { path: '/dashboard' }
   }
   
   // 检查管理员权限
@@ -124,10 +124,10 @@ router.beforeEach((to) => {
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
       if (userInfo.role !== 'admin') {
-        return { path: '/' }
+        return { path: '/dashboard' }
       }
     } catch {
-      return { path: '/' }
+      return { path: '/dashboard' }
     }
   }
   

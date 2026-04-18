@@ -145,10 +145,10 @@ let currentDiagnoseParams: { params: DiagnoseParams; imageUrl: string } | null =
 
 /**
  * 返回上一页
- * 导航回首页
+ * 使用浏览器历史记录返回
  */
 const goBack = (): void => {
-  router.push('/')
+  router.back()
 }
 
 /**

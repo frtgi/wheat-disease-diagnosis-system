@@ -77,11 +77,13 @@ async function refreshAccessToken(): Promise<string | null> {
 
 /**
  * 跳转到登录页
+ * 保存当前路由以便登录后恢复
  */
 function redirectToLogin(): void {
   localStorage.removeItem('token')
   localStorage.removeItem('refresh_token')
-  router.push('/login')
+  const currentPath = window.location.pathname + window.location.search
+  router.push({ path: '/login', query: currentPath !== '/login' ? { redirect: currentPath } : {} })
 }
 
 /**
