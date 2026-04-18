@@ -260,7 +260,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, DataAnalysis, Reading, Monitor } from '@element-plus/icons-vue'
 import { echarts } from '@/utils/echarts'
@@ -284,7 +284,8 @@ import {
  */
 
 const router = useRouter()
-const activeTab = ref('overview')
+const route = useRoute()
+const activeTab = ref((route.query.tab as string) || 'overview')
 
 const overviewStats = ref<Record<string, number>>({})
 const userStats = ref<Record<string, any>>({})
@@ -489,6 +490,7 @@ const loadDiseaseDistribution = async () => {
 }
 
 watch(activeTab, (newTab) => {
+  router.replace({ query: { ...route.query, tab: newTab } })
   if (newTab === 'distribution') {
     loadDiseaseDistribution()
   } else if (newTab === 'logs') {

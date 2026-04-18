@@ -9,7 +9,7 @@
           router
           class="header-menu"
         >
-          <el-menu-item index="/">
+          <el-menu-item index="/dashboard">
             <el-icon><home-filled /></el-icon>
             <span>首页</span>
           </el-menu-item>
