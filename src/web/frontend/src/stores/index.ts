@@ -28,7 +28,7 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref(getStoredUserInfo())
 
   // 计算属性：是否已登录
-  const isLoggedIn = computed(() => !!token.value)
+  const isLoggedIn = computed(() => !!token.value || !!userInfo.value.id)
 
   // 方法：设置 token
   // Token 主要通过 httpOnly Cookie 由后端设置，前端无需手动管理

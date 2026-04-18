@@ -1,3 +1,10 @@
+import os
+import sys
+
+if sys.platform == 'win32':
+    os.environ.setdefault('PYTHONUTF8', '1')
+    os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
+
 """
 FastAPI 应用主入口
 创建并配置 FastAPI 应用实例
@@ -34,7 +41,6 @@ from .utils.gpu_monitor import log_gpu_memory, get_device_info, check_gpu_availa
 from .core.logging_config import setup_logging
 
 if sys.platform == 'win32':
-    os.environ.setdefault('PYTHONUTF8', '1')
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     if hasattr(sys.stderr, 'reconfigure'):
