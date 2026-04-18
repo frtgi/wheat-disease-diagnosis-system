@@ -185,7 +185,7 @@ const loadDiseases = async () => {
       0,
       100
     )
-    diseaseList.value = response
+    diseaseList.value = response?.data || response
   } catch (error: unknown) {
     console.error('加载病害知识失败:', error)
     const msg = error instanceof Error ? error.message : '加载失败'
@@ -205,7 +205,7 @@ const searchDiseases = async () => {
   isLoading.value = true
   try {
     const response = await searchDiseaseKnowledge(searchKeyword.value)
-    diseaseList.value = response
+    diseaseList.value = response?.data || response
   } catch (error: unknown) {
     console.error('搜索失败:', error)
     const msg = error instanceof Error ? error.message : '搜索失败'
@@ -247,7 +247,7 @@ const handleViewDetail = async (id: string | number) => {
   try {
     const diseaseId = typeof id === 'string' ? parseInt(id, 10) : id
     const disease = await getDiseaseDetail(diseaseId)
-    currentDisease.value = disease
+    currentDisease.value = disease?.data || disease
     detailDialogVisible.value = true
   } catch (error: unknown) {
     ElMessage.error('加载详情失败')
@@ -261,7 +261,7 @@ const handlePrevention = async (id: string | number) => {
   const diseaseId = typeof id === 'string' ? parseInt(id, 10) : id
   try {
     const disease = await getDiseaseDetail(diseaseId)
-    currentDisease.value = disease
+    currentDisease.value = disease?.data || disease
     detailDialogVisible.value = true
   } catch (error: unknown) {
     ElMessage.error('加载防治方法失败')

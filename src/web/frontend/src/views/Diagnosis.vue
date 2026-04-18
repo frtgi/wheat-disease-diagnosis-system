@@ -634,7 +634,7 @@ const handleDiagnose = async (params: DiagnoseParams): Promise<void> => {
       }) as any
       
       if (uploadResponse && uploadResponse.success) {
-        serverImageUrl = uploadResponse.url
+        serverImageUrl = uploadResponse.url || uploadResponse?.data?.url
       }
     }
     

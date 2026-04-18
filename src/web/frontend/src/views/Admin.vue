@@ -327,7 +327,7 @@ const getVramColor = (ratio: number): string => {
 const loadOverviewStats = async () => {
   try {
     const data = await getOverviewStats()
-    overviewStats.value = data || {}
+    overviewStats.value = data?.data || data || {}
   } catch (e) {
     ElMessage.error('加载概览统计失败')
   }
@@ -339,7 +339,7 @@ const loadOverviewStats = async () => {
 const loadUserStats = async () => {
   try {
     const data = await getUserStats()
-    userStats.value = data || {}
+    userStats.value = data?.data || data || {}
   } catch (e) {
     ElMessage.error('加载用户统计失败')
   }
@@ -351,7 +351,7 @@ const loadUserStats = async () => {
 const loadDiagnosisStats = async () => {
   try {
     const data = await getDiagnosisStats()
-    diagnosisStats.value = data || {}
+    diagnosisStats.value = data?.data || data || {}
   } catch (e) {
     ElMessage.error('加载诊断统计失败')
   }

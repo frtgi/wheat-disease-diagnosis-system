@@ -101,9 +101,10 @@ export async function getDiagnosisRecords(
   const response = await http.get<DiagnosisListResponse>(`${API_BASE}/records`, {
     params: { skip, limit }
   })
+  const data = response?.data || response
   return {
-    records: response.records,
-    total: response.total
+    records: data?.records || [],
+    total: data?.total || 0
   }
 }
 
