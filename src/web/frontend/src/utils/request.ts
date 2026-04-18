@@ -114,7 +114,7 @@ service.interceptors.response.use(
     const res = response.data
     
     // 如果响应包含 code 字段，检查是否成功
-    if (res.code !== undefined && res.code !== 200) {
+    if (typeof res.code === 'number' && res.code !== 200) {
       // 401: 未授权，需要重新登录
       if (res.code === 401) {
         ElMessageBox.confirm('登录状态已过期，请重新登录', '提示', {
