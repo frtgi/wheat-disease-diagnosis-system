@@ -62,7 +62,7 @@
 
     <el-main class="layout-main">
       <router-view v-slot="{ Component }">
-        <keep-alive>
+        <keep-alive :max="10">
           <component :is="Component" />
         </keep-alive>
       </router-view>
