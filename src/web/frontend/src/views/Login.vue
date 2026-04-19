@@ -55,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -135,9 +135,9 @@ const handleLogin = async () => {
         
         const redirect = (route.query.redirect as string) || '/dashboard'
         if (redirect.startsWith('/') && !redirect.startsWith('//')) {
-          router.push(redirect)
+          await router.replace(redirect)
         } else {
-          router.push('/dashboard')
+          await router.replace('/dashboard')
         }
       } catch (error: unknown) {
         console.error('登录失败:', error)

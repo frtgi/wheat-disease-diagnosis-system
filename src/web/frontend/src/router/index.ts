@@ -92,11 +92,6 @@ const router = createRouter({
 
 // 路由导航守卫
 router.beforeEach((to) => {
-  // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - 小麦病害诊断系统` : '小麦病害诊断系统'
-  
-  // 检查是否需要登录
-  const requiresAuth = to.meta.requiresAuth
   const token = localStorage.getItem('token')
   const hasUserInfo = (() => {
     try {
@@ -106,10 +101,12 @@ router.beforeEach((to) => {
       return false
     }
   })()
-  
-  // Cookie 会自动携带，即使 localStorage 无 token，有 userInfo 也视为已登录
   const isAuthenticated = !!token && hasUserInfo
   const hasSession = hasUserInfo
+  
+  document.title = to.meta.title ? `${to.meta.title} - 小麦病害诊断系统` : '小麦病害诊断系统'
+  
+  const requiresAuth = to.meta.requiresAuth
 
   if (requiresAuth && !isAuthenticated && !hasSession) {
     return { name: 'Login', query: { redirect: to.fullPath } }
