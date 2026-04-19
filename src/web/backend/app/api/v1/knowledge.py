@@ -242,8 +242,11 @@ def get_knowledge_graph(
 ):
     """
     获取知识图谱数据
-    
+
     需要用户认证。返回病害-症状-防治措施的关系图谱。
+    数据来源优先级：
+    1. knowledge_graph SQL 三元组表（结构化关系）
+    2. Disease 平表（补充症状、治疗、病因、预防关系）
 
     参数:
         disease_id: 可选病害ID，用于筛选特定病害
@@ -256,45 +259,187 @@ def get_knowledge_graph(
     try:
         nodes = []
         relations = []
-        
+        node_ids = set()
+        rel_keys = set()
+
+        kg_query = db.query(KnowledgeGraph)
+        if disease_id:
+            disease = db.query(Disease).filter(Disease.id == disease_id).first()
+            if disease:
+                kg_query = kg_query.filter(
+                    (KnowledgeGraph.entity == disease.name) |
+                    (KnowledgeGraph.target_entity == disease.name)
+                )
+        kg_triples = kg_query.all()
+
+        for triple in kg_triples:
+            src_id = f"{triple.entity_type}_{triple.entity}"
+            if src_id not in node_ids:
+                node_ids.add(src_id)
+                nodes.append({
+                    "id": src_id,
+                    "name": triple.entity,
+                    "type": triple.entity_type,
+                    "attributes": triple.attributes
+                })
+
+            if triple.target_entity:
+                target_type = _infer_target_type(triple.relation)
+                tgt_id = f"{target_type}_{triple.target_entity}"
+                if tgt_id not in node_ids:
+                    node_ids.add(tgt_id)
+                    nodes.append({
+                        "id": tgt_id,
+                        "name": triple.target_entity,
+                        "type": target_type
+                    })
+                rel_key = f"{src_id}->{triple.relation.upper()}->{tgt_id}"
+                if rel_key not in rel_keys:
+                    rel_keys.add(rel_key)
+                    relations.append({"from": src_id, "to": tgt_id, "type": triple.relation.upper()})
+
         diseases = db.query(Disease).filter(Disease.is_active == True)
         if disease_id:
             diseases = diseases.filter(Disease.id == disease_id)
         diseases = diseases.limit(20).all()
-        
+
         for disease in diseases:
-            nodes.append({
-                "id": f"disease_{disease.id}",
-                "name": disease.name,
-                "type": "disease",
-                "category": disease.category,
-                "severity": disease.severity
-            })
-            
+            d_id = f"disease_{disease.name}"
+            if d_id not in node_ids:
+                node_ids.add(d_id)
+                nodes.append({
+                    "id": d_id,
+                    "name": disease.name,
+                    "type": "disease",
+                    "category": disease.category,
+                    "severity": disease.severity
+                })
+
             if disease.symptoms:
-                symptom_list = disease.symptoms.split('\n') if '\n' in disease.symptoms else [disease.symptoms]
-                for symptom in symptom_list[:3]:
+                symptom_list = _split_text(disease.symptoms)
+                for symptom in symptom_list[:5]:
                     symptom = symptom.strip()
                     if symptom:
-                        s_id = f"symptom_{hash(symptom) % 10000}"
-                        if not any(n["id"] == s_id for n in nodes):
+                        s_id = f"symptom_{symptom}"
+                        if s_id not in node_ids:
+                            node_ids.add(s_id)
                             nodes.append({"id": s_id, "name": symptom, "type": "symptom"})
-                        relations.append({"from": f"disease_{disease.id}", "to": s_id, "type": "HAS_SYMPTOM"})
-            
+                        rel_key = f"{d_id}->HAS_SYMPTOM->{s_id}"
+                        if rel_key not in rel_keys:
+                            rel_keys.add(rel_key)
+                            relations.append({"from": d_id, "to": s_id, "type": "HAS_SYMPTOM"})
+
+            if disease.causes:
+                causes_list = _split_text(disease.causes)
+                for cause in causes_list[:3]:
+                    cause = cause.strip()
+                    if cause:
+                        c_id = f"cause_{cause}"
+                        if c_id not in node_ids:
+                            node_ids.add(c_id)
+                            nodes.append({"id": c_id, "name": cause, "type": "cause"})
+                        rel_key = f"{d_id}->CAUSED_BY->{c_id}"
+                        if rel_key not in rel_keys:
+                            rel_keys.add(rel_key)
+                            relations.append({"from": d_id, "to": c_id, "type": "CAUSED_BY"})
+
             if disease.treatment_methods:
-                treatments = disease.treatment_methods if isinstance(disease.treatment_methods, list) else [disease.treatment_methods]
-                for treatment in treatments[:3]:
+                treatments = _parse_json_list(disease.treatment_methods)
+                for treatment in treatments[:5]:
                     treatment = str(treatment).strip()
                     if treatment:
-                        t_id = f"treatment_{hash(treatment) % 10000}"
-                        if not any(n["id"] == t_id for n in nodes):
+                        t_id = f"treatment_{treatment}"
+                        if t_id not in node_ids:
+                            node_ids.add(t_id)
                             nodes.append({"id": t_id, "name": treatment, "type": "treatment"})
-                        relations.append({"from": f"disease_{disease.id}", "to": t_id, "type": "TREATED_BY"})
-        
+                        rel_key = f"{d_id}->TREATED_BY->{t_id}"
+                        if rel_key not in rel_keys:
+                            rel_keys.add(rel_key)
+                            relations.append({"from": d_id, "to": t_id, "type": "TREATED_BY"})
+
+            if disease.prevention_methods:
+                preventions = _parse_json_list(disease.prevention_methods)
+                for prevention in preventions[:5]:
+                    prevention = str(prevention).strip()
+                    if prevention:
+                        p_id = f"prevention_{prevention}"
+                        if p_id not in node_ids:
+                            node_ids.add(p_id)
+                            nodes.append({"id": p_id, "name": prevention, "type": "prevention"})
+                        rel_key = f"{d_id}->PREVENTED_BY->{p_id}"
+                        if rel_key not in rel_keys:
+                            rel_keys.add(rel_key)
+                            relations.append({"from": d_id, "to": p_id, "type": "PREVENTED_BY"})
+
         return {"nodes": nodes, "relations": relations}
     except Exception as e:
         logger.error(f"获取知识图谱失败：{e}")
         return {"nodes": [], "relations": []}
+
+
+def _infer_target_type(relation: str) -> str:
+    """
+    根据关系类型推断目标实体类型
+
+    Args:
+        relation: 关系类型字符串
+
+    Returns:
+        str: 推断的目标实体类型
+    """
+    mapping = {
+        "causes": "cause",
+        "indicates": "disease",
+        "treats": "disease",
+        "susceptible_to": "disease",
+        "HAS_SYMPTOM": "symptom",
+        "CAUSED_BY": "cause",
+        "TREATED_BY": "treatment",
+        "PREVENTED_BY": "prevention",
+    }
+    return mapping.get(relation, "entity")
+
+
+def _split_text(text: str) -> list:
+    """
+    智能分割文本，支持多种分隔符
+
+    Args:
+        text: 待分割的文本
+
+    Returns:
+        list: 分割后的字符串列表
+    """
+    if not text:
+        return []
+    for sep in ['\n', '；', ';', '、', '。']:
+        if sep in text:
+            return [s.strip() for s in text.split(sep) if s.strip()]
+    return [text.strip()]
+
+
+def _parse_json_list(data) -> list:
+    """
+    解析 JSON 列表字段，兼容列表和字符串格式
+
+    Args:
+        data: 可能是列表、JSON字符串或普通字符串的数据
+
+    Returns:
+        list: 解析后的列表
+    """
+    if isinstance(data, list):
+        return data
+    if isinstance(data, str):
+        import json
+        try:
+            parsed = json.loads(data)
+            if isinstance(parsed, list):
+                return parsed
+        except (json.JSONDecodeError, TypeError):
+            pass
+        return _split_text(data)
+    return [str(data)]
 
 
 @router.get("/stats", summary="获取知识库统计")
