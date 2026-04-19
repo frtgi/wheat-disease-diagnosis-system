@@ -400,14 +400,14 @@ async def _generate_diagnosis_stream_from_url(
             except Exception as e:
                 yield LogEvent(
                     level="error",
-                    message=f"图像读取失败: {str(e)}",
+                    message="图像读取失败，请检查文件格式",
                     stage="init"
                 ).to_sse()
                 yield ProgressEvent(
                     event="error",
                     stage="init",
                     progress=0,
-                    message=f"图像读取失败: {str(e)}",
+                    message="图像读取失败，请检查文件格式",
                     data={"error_type": "image_read_error", "error_code": "DIAG_002"}
                 ).to_sse()
                 return
@@ -694,8 +694,8 @@ async def _generate_diagnosis_stream_from_url(
             event="error",
             stage="error",
             progress=0,
-            message=f"诊断失败: {str(e)}",
-            data={"error_type": "internal_error", "error_detail": str(e)}
+            message="诊断过程中发生错误，请稍后重试",
+            data={"error_type": "internal_error"}
         ).to_sse()
 
 
@@ -811,7 +811,7 @@ async def _generate_diagnosis_stream(
                     event="error",
                     stage="init",
                     progress=0,
-                    message=f"图像读取失败: {str(e)}",
+                    message="图像读取失败，请检查文件格式",
                     data={"error_type": "image_read_error"}
                 ).to_sse()
                 return
@@ -877,7 +877,7 @@ async def _generate_diagnosis_stream(
                     event="progress",
                     stage="visual",
                     progress=30,
-                    message=f"视觉特征提取跳过: {str(e)}"
+                    message="视觉特征提取跳过"
                 ).to_sse()
         else:
             yield ProgressEvent(
@@ -916,7 +916,7 @@ async def _generate_diagnosis_stream(
                     event="progress",
                     stage="knowledge",
                     progress=50,
-                    message=f"知识检索跳过: {str(e)}"
+                    message="知识检索跳过"
                 ).to_sse()
         else:
             yield ProgressEvent(
@@ -956,7 +956,7 @@ async def _generate_diagnosis_stream(
                 event="progress",
                 stage="textual",
                 progress=75,
-                message=f"文本分析跳过: {str(e)}"
+                message="文本分析跳过"
             ).to_sse()
 
         yield ProgressEvent(
@@ -1046,11 +1046,8 @@ async def _generate_diagnosis_stream(
             event="error",
             stage="error",
             progress=0,
-            message=f"诊断失败: {str(e)}",
-            data={
-                "error": str(e),
-                "inference_time_ms": round(inference_time * 1000, 2)
-            }
+            message="诊断过程中发生错误，请稍后重试",
+            data={"error_type": "internal_error"}
         ).to_sse()
 
 
@@ -1095,6 +1092,11 @@ async def diagnose_image(
         ensure_ai_service_ready()
 
         image_bytes = await image.read()
+
+        is_valid, error_msg = validate_image(image_bytes, image.filename or "unknown")
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+
         pil_image = Image.open(io.BytesIO(image_bytes))
 
         from app.services.yolo_service import get_yolo_service

@@ -181,7 +181,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.utcnow() + timedelta(hours=settings.JWT_EXPIRE_HOURS)
     
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     
     return encoded_jwt
@@ -232,18 +232,12 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
     return encoded_jwt
 
 
-def verify_token(token: str) -> Optional[dict]:
+async def verify_token(token: str) -> Optional[dict]:
     """
     验证 Token 并返回 payload
 
     对 JWT 令牌进行解码和验证，检查签名有效性和过期时间。
-    与 decode_access_token 功能类似，但名称更具语义化，
-    被 API 路由模块（如 logs、upload）广泛使用进行令牌校验。
-
-    未来可扩展功能：
-    - 令牌黑名单检查（用户登出后失效）
-    - 令牌类型校验（区分 access / refresh）
-    - 发行者（iss）和受众（aud）验证
+    同时检查 Token 是否已被加入黑名单（用户登出后失效）。
 
     参数:
         token: 待验证的 JWT 令牌字符串
@@ -253,6 +247,16 @@ def verify_token(token: str) -> Optional[dict]:
     """
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+
+        jti = payload.get("jti")
+        if jti:
+            try:
+                if await cache_service.is_token_revoked(token):
+                    logger.debug(f"Token 已被撤销: jti={jti}")
+                    return None
+            except Exception:
+                pass
+
         return payload
     except JWTError as e:
         logger.debug(f"Token 验证失败: {e}")
@@ -296,6 +300,13 @@ async def get_current_user(
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
+
+        if payload.get("type") == "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="无效的认证令牌类型",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
     except JWTError:
         raise credentials_exception
@@ -392,10 +403,10 @@ async def is_token_blacklisted(token: str) -> bool:
         bool: Token 在黑名单中返回 True，否则返回 False
 
     异常:
-        不抛出异常，Redis 连接失败时返回 False（允许请求通过）
+        不抛出异常，Redis 连接失败时返回 True（fail-closed 策略，拒绝请求）
     """
     try:
         return await cache_service.is_token_revoked(token)
     except Exception as e:
-        logger.debug(f"检查 Token 黑名单状态失败: {e}")
-        return False
+        logger.warning(f"检查 Token 黑名单状态失败，采用 fail-closed 策略: {e}")
+        return True
