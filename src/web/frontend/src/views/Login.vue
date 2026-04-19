@@ -133,11 +133,11 @@ const handleLogin = async () => {
         
         ElMessage.success('登录成功')
         
-        const redirect = (route.query.redirect as string) || '/'
+        const redirect = (route.query.redirect as string) || '/dashboard'
         if (redirect.startsWith('/') && !redirect.startsWith('//')) {
           router.push(redirect)
         } else {
-          router.push('/')
+          router.push('/dashboard')
         }
       } catch (error: unknown) {
         console.error('登录失败:', error)
