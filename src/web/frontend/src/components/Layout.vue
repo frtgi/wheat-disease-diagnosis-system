@@ -87,14 +87,8 @@ const userStore = useUserStore()
 const activeMenu = computed(() => route.path)
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const userInfo = computed(() => userStore.userInfo)
-const isAdmin = computed(() => {
-  try {
-    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
-    return userInfo.role === 'admin'
-  } catch {
-    return false
-  }
-})
+/** 使用 store 的 isAdmin 计算属性，避免直接读取 localStorage */
+const isAdmin = computed(() => userStore.isAdmin)
 
 // 处理下拉菜单命令
 const handleCommand = (command: string) => {

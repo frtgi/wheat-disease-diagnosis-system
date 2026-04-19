@@ -259,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onActivated, watch } from 'vue'
+import { ref, onMounted, onActivated, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, DataAnalysis, Reading, Monitor } from '@element-plus/icons-vue'
@@ -518,6 +518,14 @@ onMounted(async () => {
     refreshLogStats(),
     loadDiseaseDistribution()
   ])
+})
+
+/** 组件卸载前销毁 ECharts 实例，防止内存泄漏 */
+onBeforeUnmount(() => {
+  if (diseaseChartInstance) {
+    diseaseChartInstance.dispose()
+    diseaseChartInstance = null
+  }
 })
 </script>
 

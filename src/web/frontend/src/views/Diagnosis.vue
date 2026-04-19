@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onUnmounted } from 'vue'
+import { ref, reactive, onUnmounted, onDeactivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Download, ArrowDown } from '@element-plus/icons-vue'
@@ -655,6 +655,11 @@ onUnmounted(() => {
   if (uploadedImageUrl.value) {
     URL.revokeObjectURL(uploadedImageUrl.value)
   }
+})
+
+/** 组件被 keep-alive 停用时清理 SSE 连接和心跳定时器，防止后台持续占用资源 */
+onDeactivated(() => {
+  closeEventSource()
 })
 </script>
 

@@ -135,8 +135,8 @@ service.interceptors.response.use(
       return Promise.reject(new Error(res.message || 'Error'))
     }
     
-    // 直接返回响应数据
-    return res
+    // 自动解包内层 data 字段，避免组件中反复使用 response?.data || response 防御性写法
+    return res.data !== undefined ? res.data : res
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }

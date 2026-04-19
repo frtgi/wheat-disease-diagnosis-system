@@ -30,6 +30,9 @@ export const useUserStore = defineStore('user', () => {
   // 计算属性：是否已登录
   const isLoggedIn = computed(() => !!token.value || !!userInfo.value.id)
 
+  // 计算属性：是否为管理员
+  const isAdmin = computed(() => userInfo.value.role === 'admin')
+
   // 方法：设置 token
   // Token 主要通过 httpOnly Cookie 由后端设置，前端无需手动管理
   // 此方法保留 localStorage 写入，作为 SSE 等无法自动携带 Cookie 场景的 fallback
@@ -57,6 +60,7 @@ export const useUserStore = defineStore('user', () => {
     token,
     userInfo,
     isLoggedIn,
+    isAdmin,
     setToken,
     setUserInfo,
     logout
