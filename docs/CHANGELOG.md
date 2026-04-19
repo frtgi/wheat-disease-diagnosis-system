@@ -4,6 +4,36 @@
 
 ---
 
+## [V41.0] - 2026-04-20 📝 文档全面对齐更新
+
+### 📝 文档更新
+- **README.md**: 完全重写，移除过时的 Gradio/BERT 引用，更新为 Vue3+FastAPI+Qwen3-VL 技术栈
+- **WEB_ARCHITECTURE.md**: V12.0 → V41.0，新增安全设计（XSS防护/开放重定向/账户锁定/SHA-256令牌哈希）、管理员路由、导航状态持久化、遗留组件说明
+- **API_REFERENCE.md**: V12.0 → V41.0，更新认证要求（知识库/统计端点需认证）、新增知识图谱/统计/显存端点、补充 SHA-256 密码重置令牌说明
+- **DEPLOYMENT.md**: V12.0 → V41.0，版本号对齐
+- **TEST_GUIDE.md**: V12.0 → V41.0，修正 Node.js 版本矛盾（v16→v18+）
+
+### 🔒 安全特性记录（V29-V41 累积）
+- XSS 防护：html.escape 转义 + sanitize_response 装饰器 + CSP 安全头
+- 开放重定向防护：Login.vue redirect 参数验证
+- 密码重置令牌：SHA-256 哈希存储 + 1 小时有效期 + 一次性使用
+- 授权检查：get_user/update_user 本人或管理员模式
+- 知识库/统计端点认证升级：knowledge.graph/stats、stats.overview/diagnoses/cache 需认证
+- 账户锁定：连续 5 次失败锁定 30 分钟
+- Cookie 安全：httpOnly + secure + samesite=lax
+- 错误信息脱敏：非 DEBUG 模式隐藏 traceback
+
+### ✅ 验收测试结果（V40）
+- 后端 API 测试：46/46 PASS (100%)
+- 前端 E2E 测试：14/14 PASS (100%)
+- 总计：60/60 PASS (100%)
+
+### 🐛 Bug 修复（V40）
+- Login.vue 登录导航：`router.push('/')` → `router.replace('/dashboard')`，修复路由守卫竞态
+- router/index.ts：移除重复 `isAuthenticated` 声明，修复 Vite 编译错误
+
+---
+
 ## [V13.0] - 2026-04-16 ✅ 前后端系统验收测试
 
 ### 🧪 验收测试执行

@@ -1,6 +1,6 @@
 # 基于多模态融合的小麦病害诊断系统 — API 参考文档
 
-> **版本**: V12.0 | **日期**: 2026-04-05 | **端点总数**: 48+ | **基线 URL**: `http://localhost:8000/api/v1`
+> **版本**: V41.0 | **日期**: 2026-04-20 | **端点总数**: 55+ | **基线 URL**: `http://localhost:8000/api/v1`
 
 ---
 
@@ -36,8 +36,8 @@
 | GET | /users/sessions | 获取会话列表 | 是 | - |
 | DELETE | /users/sessions/{id} | 终止指定会话 | 是 | - |
 | DELETE | /users/sessions | 终止所有会话 | 是 | - |
-| GET | /users/{user_id} | 获取指定用户信息 | 公开 | - |
-| PUT | /users/{user_id} | 更新用户信息 | 是 | - |
+| GET | /users/{user_id} | 获取指定用户信息 | 本人/管理员 | - |
+| PUT | /users/{user_id} | 更新用户信息 | 本人/管理员 | - |
 | POST | /diagnosis/image | 图像诊断(CRUD) | 是 | - |
 | GET | /diagnosis | 诊断记录列表(分页) | 是 | - |
 | GET | /diagnosis/{id} | 诊断详情 | 是 | - |
@@ -54,18 +54,22 @@
 | POST | /diagnosis/cache/clear | 清空缓存(管理员) | Admin | - |
 | POST | /diagnosis/batch | 批量诊断(最多10张) | 是 | - |
 | POST | /diagnosis/admin/ai/preload | 预加载AI模型(管理员) | Admin | - |
-| POST | /knowledge/ | 创建病害知识 | 是 | - |
+| POST | /knowledge/ | 创建病害知识 | Admin | - |
 | GET | /knowledge/search | 搜索病害知识 | 公开 | - |
 | GET | /knowledge/categories | 获取疾病分类列表 | 公开 | - |
+| GET | /knowledge/graph | 知识图谱数据 | 是 | - |
+| GET | /knowledge/stats | 知识库统计 | 是 | - |
 | GET | /knowledge/{id} | 获取病害详情 | 公开 | - |
-| PUT | /knowledge/{id} | 更新病害知识 | 是 | - |
-| DELETE | /knowledge/{id} | 删除病害知识 | 是 | - |
-| GET | /stats/overview | 获取概览统计 | 公开 | - |
-| GET | /stats/diagnoses | 获取诊断统计 | 公开 | - |
-| GET | /stats/users | 获取用户统计 | 公开 | - |
-| GET | /stats/cache | 获取缓存统计 | 公开 | - |
+| PUT | /knowledge/{id} | 更新病害知识 | Admin | - |
+| DELETE | /knowledge/{id} | 删除病害知识 | Admin | - |
+| GET | /stats/overview | 获取概览统计 | 是 | - |
+| GET | /stats/diagnoses | 获取诊断统计 | 是 | - |
+| GET | /stats/users | 获取用户统计 | Admin | - |
+| GET | /stats/cache | 获取缓存统计 | 是 | - |
 | DELETE | /stats/cache | 清空推理缓存 | Admin | - |
-| GET | /stats/cache/info | 获取缓存配置 | 公开 | - |
+| GET | /stats/cache/info | 获取缓存配置 | 是 | - |
+| GET | /stats/vram | 获取显存状态 | Admin | - |
+| POST | /stats/vram/cleanup | 清理显存 | Admin | - |
 | POST | /reports/generate | 生成PDF/HTML报告 | 否 | - |
 | GET | /reports/download/{filename} | 下载报告文件 | 公开 | - |
 | GET | /reports/list | 报告文件列表 | 公开 | - |
@@ -365,9 +369,11 @@ curl -X DELETE http://localhost:8000/api/v1/users/sessions/1 \
 | refresh_token | 7 天 | 刷新 access_token |
 
 **安全机制**:
-- 密码使用 bcrypt 算法加密存储
+- 密码使用 bcrypt 算法加密存储（72 字节截断保护）
 - Token 黑名单机制防止重复使用
-- 登录失败次数限制防暴力破解
+- 登录失败次数限制防暴力破解（连续 5 次失败锁定 30 分钟）
+- 密码重置令牌使用 SHA-256 哈希存储（数据库仅存哈希值，1 小时有效期，一次性使用）
+- Cookie 安全：httpOnly + secure + samesite=lax
 
 ---
 
@@ -1345,18 +1351,72 @@ curl -X DELETE http://localhost:8000/api/v1/knowledge/1 \
 }
 ```
 
+**权限**: 仅管理员 (Admin) | **源码**: [knowledge.py](../src/web/backend/app/api/v1/knowledge.py)
+
+---
+
+### GET /knowledge/graph — 知识图谱数据
+
+**获取知识图谱的节点和关系数据，用于可视化展示。**
+
+```bash
+curl http://localhost:8000/api/v1/knowledge/graph \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**查询参数**:
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| node_type | string | 否 | - | 节点类型筛选 |
+| limit | integer | 否 | 100 | 返回节点数量 |
+
+**成功响应 (200)**:
+```json
+{
+  "nodes": [
+    {"id": 1, "name": "条锈病", "type": "disease", "properties": {...}}
+  ],
+  "edges": [
+    {"source": 1, "target": 2, "relation": "CAUSED_BY", "properties": {...}}
+  ],
+  "total_nodes": 150,
+  "total_edges": 320
+}
+```
+
 **权限**: 需要认证 | **源码**: [knowledge.py](../src/web/backend/app/api/v1/knowledge.py)
 
 ---
 
-## ⑤ 统计数据
+### GET /knowledge/stats — 知识库统计
+
+**获取知识库的统计数据。**
+
+```bash
+curl http://localhost:8000/api/v1/knowledge/stats \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**成功响应 (200)**:
+```json
+{
+  "total_diseases": 45,
+  "total_categories": 6,
+  "total_symptoms": 120,
+  "total_treatments": 85
+}
+```
+
+**权限**: 需要认证 | **源码**: [knowledge.py](../src/web/backend/app/api/v1/knowledge.py)
 
 提供系统级别的统计数据和仪表盘信息。
 
 ### GET /stats/overview — 获取概览统计
 
 ```bash
-curl http://localhost:8000/api/v1/stats/overview
+curl http://localhost:8000/api/v1/stats/overview \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **成功响应 (200)**:
@@ -1368,14 +1428,15 @@ curl http://localhost:8000/api/v1/stats/overview
 }
 ```
 
-**权限**: 公开 | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
+**权限**: 需要认证 | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
 
 ---
 
 ### GET /stats/diagnoses — 获取诊断统计
 
 ```bash
-curl http://localhost:8000/api/v1/stats/diagnoses
+curl http://localhost:8000/api/v1/stats/diagnoses \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **成功响应 (200)**:
@@ -1394,14 +1455,15 @@ curl http://localhost:8000/api/v1/stats/diagnoses
 }
 ```
 
-**权限**: 公开 | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
+**权限**: 需要认证 | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
 
 ---
 
 ### GET /stats/users — 获取用户统计
 
 ```bash
-curl http://localhost:8000/api/v1/stats/users
+curl http://localhost:8000/api/v1/stats/users \
+  -H "Authorization: Bearer <admin_token>"
 ```
 
 **成功响应 (200)**:
@@ -1418,7 +1480,54 @@ curl http://localhost:8000/api/v1/stats/users
 }
 ```
 
-**权限**: 公开 | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
+**权限**: 仅管理员 (Admin) | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
+
+---
+
+### GET /stats/vram — 获取显存状态
+
+**获取 GPU 显存使用情况。**
+
+```bash
+curl http://localhost:8000/api/v1/stats/vram \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**成功响应 (200)**:
+```json
+{
+  "gpu_available": true,
+  "device_name": "NVIDIA GeForce RTX 4090",
+  "total_memory_mb": 24576,
+  "used_memory_mb": 8192,
+  "free_memory_mb": 16384,
+  "usage_percent": 33.3
+}
+```
+
+**权限**: 仅管理员 (Admin) | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
+
+---
+
+### POST /stats/vram/cleanup — 清理显存
+
+**手动触发 GPU 显存清理。**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/stats/vram/cleanup \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+**成功响应 (200)**:
+```json
+{
+  "success": true,
+  "message": "显存清理完成",
+  "freed_memory_mb": 2048
+}
+```
+
+**权限**: 仅管理员 (Admin) | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
 
 ---
 
@@ -1516,7 +1625,8 @@ curl http://localhost:8000/api/v1/reports/list
 ### GET /stats/cache — 获取缓存统计
 
 ```bash
-curl http://localhost:8000/api/v1/stats/cache
+curl http://localhost:8000/api/v1/stats/cache \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **成功响应 (200)**:
@@ -1535,7 +1645,7 @@ curl http://localhost:8000/api/v1/stats/cache
 }
 ```
 
-**权限**: 公开 | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
+**权限**: 需要认证 | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
 
 ---
 
@@ -1562,7 +1672,8 @@ curl -X DELETE http://localhost:8000/api/v1/stats/cache \
 ### GET /stats/cache/info — 获取缓存配置
 
 ```bash
-curl http://localhost:8000/api/v1/stats/cache/info
+curl http://localhost:8000/api/v1/stats/cache/info \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **成功响应 (200)**:
@@ -1579,7 +1690,7 @@ curl http://localhost:8000/api/v1/stats/cache/info
 }
 ```
 
-**权限**: 公开 | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
+**权限**: 需要认证 | **源码**: [stats.py](../src/web/backend/app/api/v1/stats.py)
 
 ---
 
@@ -2381,7 +2492,7 @@ X-Request-ID: <uuid>
 
 ---
 
-**文档版本**: V12.0
-**最后更新**: 2026-04-05
+**文档版本**: V41.0
+**最后更新**: 2026-04-20
 **维护者**: WheatAgent 团队
 **基于代码实际状态生成** ✅
