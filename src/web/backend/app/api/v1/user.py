@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ...core.database import get_db
 from ...core.config import settings
-from ...core.security import create_access_token, decode_access_token, add_token_to_blacklist, get_current_user
+from ...core.security import create_access_token, decode_access_token, add_token_to_blacklist, is_token_blacklisted, get_current_user
 from ...schemas.user import (
     UserCreate, UserResponse, UserLogin, Token, UserUpdate,
     PasswordResetRequest, PasswordReset, TokenRefresh,
@@ -448,6 +448,13 @@ async def get_current_user_info(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="无效的认证令牌"
+        )
+    
+    if await is_token_blacklisted(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="令牌已失效，请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
     username = payload.get("sub")
@@ -1019,7 +1026,7 @@ async def logout(
         }
     }
 )
-def get_sessions(
+async def get_sessions(
     db: Session = Depends(get_db),
     authorization: Optional[str] = Header(None)
 ):
@@ -1036,6 +1043,13 @@ def get_sessions(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="无效的认证令牌"
+        )
+    
+    if await is_token_blacklisted(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="令牌已失效，请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
     user_id = payload.get("user_id")
@@ -1106,7 +1120,7 @@ def get_sessions(
         }
     }
 )
-def terminate_session(
+async def terminate_session(
     session_id: int,
     db: Session = Depends(get_db),
     authorization: Optional[str] = Header(None)
@@ -1124,6 +1138,13 @@ def terminate_session(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="无效的认证令牌"
+        )
+    
+    if await is_token_blacklisted(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="令牌已失效，请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
     user_id = payload.get("user_id")
