@@ -513,7 +513,13 @@ onActivated(() => {
   }
 })
 
+/** 窗口 resize 时调整 ECharts 图表尺寸 */
+const handleResize = () => {
+  diseaseChartInstance?.resize()
+}
+
 onMounted(async () => {
+  window.addEventListener('resize', handleResize)
   await Promise.all([
     loadOverviewStats(),
     loadUserStats(),
@@ -526,13 +532,6 @@ onMounted(async () => {
     loadDiseaseDistribution()
   }
 })
-
-/** 窗口 resize 时调整 ECharts 图表尺寸 */
-const handleResize = () => {
-  diseaseChartInstance?.resize()
-}
-
-window.addEventListener('resize', handleResize)
 
 /** 组件卸载前销毁 ECharts 实例并移除事件监听，防止内存泄漏 */
 onBeforeUnmount(() => {
