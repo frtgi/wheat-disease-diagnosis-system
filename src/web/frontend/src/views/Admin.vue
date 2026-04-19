@@ -145,8 +145,8 @@
               </template>
               <el-descriptions :column="1" border>
                 <el-descriptions-item label="缓存状态">
-                  <el-tag :type="cacheStats.success ? 'success' : 'info'" size="small">
-                    {{ cacheStats.success ? '正常' : '未启用' }}
+                  <el-tag :type="cacheAvailable ? 'success' : 'info'" size="small">
+                    {{ cacheAvailable ? '正常' : '未启用' }}
                   </el-tag>
                 </el-descriptions-item>
               </el-descriptions>
@@ -171,10 +171,10 @@
             </div>
           </template>
 
-          <el-descriptions :column="3" border class="log-stats-desc" v-if="logStatistics.data">
-            <el-descriptions-item label="总诊断数">{{ logStatistics.data.total_count || 0 }}</el-descriptions-item>
-            <el-descriptions-item label="成功数">{{ logStatistics.data.success_count || 0 }}</el-descriptions-item>
-            <el-descriptions-item label="失败数">{{ logStatistics.data.error_count || 0 }}</el-descriptions-item>
+          <el-descriptions :column="3" border class="log-stats-desc" v-if="logStatistics.total_requests !== undefined">
+            <el-descriptions-item label="总诊断数">{{ logStatistics.total_requests || 0 }}</el-descriptions-item>
+            <el-descriptions-item label="成功数">{{ logStatistics.success_count || 0 }}</el-descriptions-item>
+            <el-descriptions-item label="失败数">{{ logStatistics.error_count || 0 }}</el-descriptions-item>
           </el-descriptions>
 
           <el-table :data="recentLogs" stripe border size="small" class="log-table" v-loading="logLoading">
@@ -259,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onActivated, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onActivated, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, DataAnalysis, Reading, Monitor } from '@element-plus/icons-vue'
@@ -292,6 +292,7 @@ const userStats = ref<Record<string, any>>({})
 const diagnosisStats = ref<Record<string, any>>({})
 const vramStatus = ref<Record<string, any>>({})
 const cacheStats = ref<Record<string, any>>({})
+const cacheAvailable = ref(false)
 const logStatistics = ref<Record<string, any>>({})
 const recentLogs = ref<any[]>([])
 
@@ -329,7 +330,7 @@ const getVramColor = (ratio: number): string => {
 const loadOverviewStats = async () => {
   try {
     const data = await getOverviewStats()
-    overviewStats.value = data?.data || data || {}
+    overviewStats.value = data || {}
   } catch (e) {
     ElMessage.error('加载概览统计失败')
   }
@@ -341,7 +342,7 @@ const loadOverviewStats = async () => {
 const loadUserStats = async () => {
   try {
     const data = await getUserStats()
-    userStats.value = data?.data || data || {}
+    userStats.value = data || {}
   } catch (e) {
     ElMessage.error('加载用户统计失败')
   }
@@ -353,7 +354,7 @@ const loadUserStats = async () => {
 const loadDiagnosisStats = async () => {
   try {
     const data = await getDiagnosisStats()
-    diagnosisStats.value = data?.data || data || {}
+    diagnosisStats.value = data || {}
   } catch (e) {
     ElMessage.error('加载诊断统计失败')
   }
@@ -366,7 +367,7 @@ const refreshVramStatus = async () => {
   vramLoading.value = true
   try {
     const res = await getVramStatus()
-    vramStatus.value = res?.data || res || {}
+    vramStatus.value = res || {}
   } catch (e) {
     ElMessage.error('获取显存状态失败')
   } finally {
@@ -381,7 +382,7 @@ const handleCleanupVram = async () => {
   vramCleaning.value = true
   try {
     const res = await cleanupVram()
-    const freed = res?.data?.freed_mb || res?.freed_mb || 0
+    const freed = res?.freed_mb || 0
     ElMessage.success(`显存清理完成，释放 ${freed}MB`)
     await refreshVramStatus()
   } catch (e) {
@@ -398,7 +399,8 @@ const refreshCacheStats = async () => {
   cacheLoading.value = true
   try {
     const res = await getCacheStats()
-    cacheStats.value = res?.data || res || {}
+    cacheStats.value = res || {}
+    cacheAvailable.value = !!res
   } catch (e) {
     ElMessage.error('获取缓存统计失败')
   } finally {
@@ -432,8 +434,8 @@ const refreshLogStats = async () => {
       getLogStatistics(logDuration.value),
       getRecentLogs({ page_size: 20 })
     ])
-    logStatistics.value = statsRes?.data || statsRes || {}
-    recentLogs.value = logsRes?.data?.logs || logsRes?.logs || []
+    logStatistics.value = statsRes || {}
+    recentLogs.value = logsRes?.logs || []
   } catch (e) {
     ElMessage.error('加载日志统计失败')
   } finally {
@@ -461,13 +463,14 @@ const handlePreloadModels = async () => {
  */
 const loadDiseaseDistribution = async () => {
   try {
+    await nextTick()
     if (!diseaseChartRef.value) return
     const data = await getDiseaseDistribution(logDuration.value)
     if (diseaseChartRef.value && data) {
       if (!diseaseChartInstance) {
         diseaseChartInstance = echarts.init(diseaseChartRef.value)
       }
-      const resData = data?.data || data || {}
+      const resData = data || {}
       const items = resData.distribution || (Array.isArray(resData) ? resData : [])
       const chartData = Array.isArray(items) ? items : []
       diseaseChartInstance.setOption({
@@ -490,9 +493,11 @@ const loadDiseaseDistribution = async () => {
   }
 }
 
-watch(activeTab, (newTab) => {
+watch(activeTab, async (newTab) => {
   router.replace({ query: { ...route.query, tab: newTab } })
   if (newTab === 'distribution') {
+    await nextTick()
+    diseaseChartInstance?.resize()
     loadDiseaseDistribution()
   } else if (newTab === 'logs') {
     refreshLogStats()
@@ -515,13 +520,23 @@ onMounted(async () => {
     loadDiagnosisStats(),
     refreshVramStatus(),
     refreshCacheStats(),
-    refreshLogStats(),
-    loadDiseaseDistribution()
+    refreshLogStats()
   ])
+  if (activeTab.value === 'distribution') {
+    loadDiseaseDistribution()
+  }
 })
 
-/** 组件卸载前销毁 ECharts 实例，防止内存泄漏 */
+/** 窗口 resize 时调整 ECharts 图表尺寸 */
+const handleResize = () => {
+  diseaseChartInstance?.resize()
+}
+
+window.addEventListener('resize', handleResize)
+
+/** 组件卸载前销毁 ECharts 实例并移除事件监听，防止内存泄漏 */
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
   if (diseaseChartInstance) {
     diseaseChartInstance.dispose()
     diseaseChartInstance = null
