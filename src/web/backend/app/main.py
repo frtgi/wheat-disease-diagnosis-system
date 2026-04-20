@@ -425,6 +425,20 @@ def create_application() -> FastAPI:
         print(f"   API 文档: http://localhost:8000/docs")
         print(f"   健康检查: http://localhost:8000/api/v1/health")
         print("=" * 71)
+
+        asyncio.create_task(_system_metrics_collector_loop())
+
+    async def _system_metrics_collector_loop():
+        """后台定时采集系统指标"""
+        await asyncio.sleep(10)
+        while True:
+            try:
+                from app.monitoring.metrics_collector import get_metrics_collector
+                collector = get_metrics_collector()
+                collector.collect_system_metrics()
+            except Exception:
+                pass
+            await asyncio.sleep(10)
     
     @app.get("/", tags=["根路径"])
     async def root():
