@@ -155,11 +155,16 @@ class DiagnosisLogger:
             
             if not filtered_logs:
                 return {
+                    "duration_hours": duration_hours,
                     "total_requests": 0,
+                    "success_count": 0,
+                    "error_count": 0,
                     "success_rate": 0,
+                    "cache_hit_rate": 0,
                     "top_diseases": [],
                     "avg_confidence": 0,
-                    "avg_processing_time": 0
+                    "avg_processing_time_ms": 0,
+                    "error_types": []
                 }
             
             # 计算统计
