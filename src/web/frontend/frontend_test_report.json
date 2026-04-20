@@ -1,0 +1,71 @@
+{
+  "report_time": "2026-04-21T07:15:56.013963",
+  "total": 9,
+  "passed": 9,
+  "failed": 0,
+  "results": [
+    {
+      "test_name": "登录功能",
+      "passed": true,
+      "description": "登录成功，跳转到: http://localhost:5173/dashboard",
+      "screenshot": "D:\\Project\\WheatAgent\\src\\web\\frontend\\test_screenshots\\02_after_login.png",
+      "timestamp": "2026-04-21T07:15:34.719682"
+    },
+    {
+      "test_name": "首页渲染",
+      "passed": true,
+      "description": "欢迎卡片显示正常; 统计卡片数量: 4; 导航栏显示正常; Logo文本: 小麦病害诊断系统",
+      "screenshot": "D:\\Project\\WheatAgent\\src\\web\\frontend\\test_screenshots\\03_dashboard.png",
+      "timestamp": "2026-04-21T07:15:37.502698"
+    },
+    {
+      "test_name": "导航栏显示",
+      "passed": true,
+      "description": "导航栏显示正常",
+      "screenshot": "D:\\Project\\WheatAgent\\src\\web\\frontend\\test_screenshots\\03_dashboard.png",
+      "timestamp": "2026-04-21T07:15:37.502698"
+    },
+    {
+      "test_name": "诊断记录页面",
+      "passed": true,
+      "description": "表格组件已渲染; 记录数量: 6",
+      "screenshot": "D:\\Project\\WheatAgent\\src\\web\\frontend\\test_screenshots\\04_records.png",
+      "timestamp": "2026-04-21T07:15:40.578898"
+    },
+    {
+      "test_name": "管理后台-概览",
+      "passed": true,
+      "description": "统计项数量: 27; 检测到数值数据: 1个",
+      "screenshot": "D:\\Project\\WheatAgent\\src\\web\\frontend\\test_screenshots\\05_admin_overview.png",
+      "timestamp": "2026-04-21T07:15:43.397140"
+    },
+    {
+      "test_name": "管理后台-日志统计",
+      "passed": true,
+      "description": "日志数据组件已渲染; 检测到关键词: 日志, 操作",
+      "screenshot": "D:\\Project\\WheatAgent\\src\\web\\frontend\\test_screenshots\\06_admin_logs.png",
+      "timestamp": "2026-04-21T07:15:46.225469"
+    },
+    {
+      "test_name": "管理后台-病害分布",
+      "passed": true,
+      "description": "图表组件数量: 1; 检测到关键词: 分布, 病害",
+      "screenshot": "D:\\Project\\WheatAgent\\src\\web\\frontend\\test_screenshots\\07_admin_distribution.png",
+      "timestamp": "2026-04-21T07:15:50.038925"
+    },
+    {
+      "test_name": "管理后台-系统监控",
+      "passed": true,
+      "description": "监控组件数量: 5; 检测到关键词: CPU, 内存, GPU, 监控, 使用率, 系统",
+      "screenshot": "D:\\Project\\WheatAgent\\src\\web\\frontend\\test_screenshots\\08_admin_monitor.png",
+      "timestamp": "2026-04-21T07:15:52.846064"
+    },
+    {
+      "test_name": "知识库页面",
+      "passed": true,
+      "description": "知识库组件数量: 158; 检测到关键词: 知识, 病害, 防治",
+      "screenshot": "D:\\Project\\WheatAgent\\src\\web\\frontend\\test_screenshots\\09_knowledge.png",
+      "timestamp": "2026-04-21T07:15:55.934156"
+    }
+  ]
+}
