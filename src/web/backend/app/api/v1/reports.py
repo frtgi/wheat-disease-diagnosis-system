@@ -184,13 +184,13 @@ async def generate_report_from_record(
                     logger.warning(f"获取诊断图像失败：{img_err}")
             elif diagnosis.image_url:
                 try:
-                    image_path = diagnosis.image_url
-                    if diagnosis.image_url.startswith("/uploads/"):
-                        image_path = os.path.join("uploads", diagnosis.image_url.replace("/uploads/", ""))
-                    if diagnosis.image_url.startswith("/api/v1/upload/"):
-                        image_path = diagnosis.image_url.replace("/api/v1/upload/", "uploads/")
-                    if os.path.exists(image_path):
-                        with open(image_path, 'rb') as f:
+                    from pathlib import Path as FilePath
+                    uploads_dir = FilePath(__file__).parent.parent.parent / "uploads"
+                    allowed_dir = os.path.abspath(str(uploads_dir))
+                    clean_image_url = diagnosis.image_url.replace("/uploads/", "").replace("/api/v1/upload/", "")
+                    image_path_abs = os.path.abspath(os.path.join(allowed_dir, clean_image_url))
+                    if (image_path_abs.startswith(allowed_dir + os.sep) or image_path_abs == allowed_dir) and os.path.exists(image_path_abs):
+                        with open(image_path_abs, 'rb') as f:
                             image_data = f.read()
                 except Exception as img_err:
                     logger.warning(f"通过 image_url 获取诊断图像失败：{img_err}")
