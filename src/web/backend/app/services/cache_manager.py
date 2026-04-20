@@ -290,7 +290,7 @@ class SemanticCache:
         embedding = np.zeros(1000)  # 简化词袋
         
         for i, word in enumerate(words[:100]):  # 限制词汇量
-            idx = hash(word) % 1000
+            idx = int(hashlib.sha256(word.encode('utf-8')).hexdigest()[:8], 16) % 1000
             embedding[idx] += 1
         
         # 归一化
