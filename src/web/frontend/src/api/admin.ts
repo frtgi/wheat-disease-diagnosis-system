@@ -4,7 +4,7 @@
  */
 import { http } from '@/utils/request'
 
-export { getOverviewStats, getUserStats, getDiagnosisStats } from './stats'
+export { getStatsOverview as getOverviewStats, getUserStats, getDiagnosisStats } from './stats'
 
 const STATS_BASE = '/stats'
 const LOGS_BASE = '/logs'
