@@ -656,6 +656,28 @@ async def _generate_diagnosis_stream_from_url(
                 diagnosis_id = diagnosis_record.id
                 logger.info(f"诊断记录已保存: id={diagnosis_id}, disease={fusion_result.disease_name}")
                 try:
+                    from app.services.diagnosis_logger import log_diagnosis
+                    log_diagnosis(
+                        request_id=f"diag_{diagnosis_id}",
+                        image_hash=None,
+                        symptoms=symptoms or "",
+                        disease_detected=fusion_result.disease_name or "未知",
+                        confidence=float(fusion_result.confidence) if fusion_result.confidence else 0.0,
+                        processing_time_ms=round(inference_time * 1000, 2),
+                        success=True,
+                        cache_hit=False,
+                        features={"thinking_mode": enable_thinking, "graph_rag": use_graph_rag}
+                    )
+                except Exception as log_err:
+                    logger.warning(f"记录诊断日志失败：{log_err}")
+
+                try:
+                    from app.api.v1.metrics import record_inference
+                    record_inference(latency_ms=round(inference_time * 1000, 2), success=True)
+                except Exception as metrics_err:
+                    logger.warning(f"记录推理指标失败：{metrics_err}")
+
+                try:
                     confidence_record = DiagnosisConfidence(
                         diagnosis_id=diagnosis_id,
                         disease_name=fusion_result.disease_name,
@@ -690,6 +712,27 @@ async def _generate_diagnosis_stream_from_url(
         raise
     except Exception as e:
         logger.error(f"SSE 流式诊断失败: {e}", exc_info=True)
+        try:
+            from app.services.diagnosis_logger import log_diagnosis
+            log_diagnosis(
+                request_id="error",
+                image_hash=None,
+                symptoms="",
+                disease_detected="",
+                confidence=0.0,
+                processing_time_ms=0.0,
+                success=False,
+                error=str(e)[:500]
+            )
+        except Exception:
+            pass
+
+        try:
+            from app.api.v1.metrics import record_inference
+            record_inference(latency_ms=0.0, success=False)
+        except Exception:
+            pass
+
         yield ProgressEvent(
             event="error",
             stage="error",
