@@ -12,26 +12,15 @@
 # Error details
 
 ```
-Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:8000
-Call log:
-  - → GET http://127.0.0.1:8000/stats/overview
-    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.7727.15 Safari/537.36
-    - accept: */*
-    - accept-encoding: gzip,deflate,br
-    - Cookie:
+Error: expect(received).toContain(expected) // indexOf
 
+Expected value: 404
+Received array: [401, 403, 422]
 ```
 
 # Test source
 
 ```ts
-  357 |     })
-  358 |   })
-  359 | 
-  360 |   /* ==================== 7. 用户中心测试 ==================== */
-  361 |   test.describe('7. 用户中心测试', () => {
-  362 | 
-  363 |     /**
   364 |      * 测试用户信息显示
   365 |      */
   366 |     test('7.1 用户信息显示', async ({ page }) => {
@@ -125,15 +114,15 @@ Call log:
   454 |       ]
   455 | 
   456 |       for (const endpoint of endpoints) {
-> 457 |         const response = await apiContext.get(endpoint, {
-      |                                           ^ Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:8000
+  457 |         const response = await apiContext.get(endpoint, {
   458 |           headers: {
   459 |             'Cookie': '',
   460 |           },
   461 |           failOnStatusCode: false,
   462 |         })
   463 |         const status = response.status()
-  464 |         expect([401, 403, 422]).toContain(status)
+> 464 |         expect([401, 403, 422]).toContain(status)
+      |                                 ^ Error: expect(received).toContain(expected) // indexOf
   465 |       }
   466 |     })
   467 |   })

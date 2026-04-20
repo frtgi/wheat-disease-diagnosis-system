@@ -12,46 +12,10 @@
 # Error details
 
 ```
-Test timeout of 60000ms exceeded.
-```
+Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/login
+Call log:
+  - navigating to "http://localhost:5173/login", waiting until "load"
 
-```
-Error: page.waitForURL: Test timeout of 60000ms exceeded.
-=========================== logs ===========================
-waiting for navigation to "**/dashboard**" until "load"
-============================================================
-```
-
-# Page snapshot
-
-```yaml
-- generic [ref=e4]:
-  - heading "用户登录" [level=2] [ref=e6]
-  - generic [ref=e8]:
-    - generic [ref=e9]:
-      - generic [ref=e10]: "* 用户名"
-      - textbox "* 用户名" [ref=e14]:
-        - /placeholder: 请输入用户名
-        - text: v21test_admin
-    - generic [ref=e15]:
-      - generic [ref=e16]: "* 密码"
-      - generic [ref=e19]:
-        - textbox "* 密码" [ref=e20]:
-          - /placeholder: 请输入密码
-          - text: Test1234!
-        - img [ref=e23] [cursor=pointer]
-    - generic [ref=e28] [cursor=pointer]:
-      - generic [ref=e29]:
-        - checkbox "记住我"
-      - generic [ref=e31]: 记住我
-    - button "登录" [ref=e34] [cursor=pointer]:
-      - generic [ref=e35]: 登录
-    - generic [ref=e36]:
-      - link "忘记密码？" [ref=e37] [cursor=pointer]:
-        - /url: /forgot-password
-      - text: "|"
-      - link "还没有账号？立即注册" [ref=e38] [cursor=pointer]:
-        - /url: /register
 ```
 
 # Test source
@@ -78,7 +42,8 @@ waiting for navigation to "**/dashboard**" until "load"
   19  |  * @param page Playwright Page 实例
   20  |  */
   21  | async function loginAsAdmin(page: Page): Promise<void> {
-  22  |   await page.goto('/login')
+> 22  |   await page.goto('/login')
+      |              ^ Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/login
   23  |   await page.waitForLoadState('domcontentloaded')
   24  |   await page.waitForTimeout(1000)
   25  | 
@@ -108,8 +73,7 @@ waiting for navigation to "**/dashboard**" until "load"
   49  |     await p.clear()
   50  |     await p.fill(ADMIN_USER.password)
   51  |     await b.click()
-> 52  |     await page.waitForURL('**/dashboard**', { timeout: 30000 })
-      |                ^ Error: page.waitForURL: Test timeout of 60000ms exceeded.
+  52  |     await page.waitForURL('**/dashboard**', { timeout: 30000 })
   53  |   }
   54  |   await page.waitForTimeout(1000)
   55  | }
@@ -180,34 +144,4 @@ waiting for navigation to "**/dashboard**" until "load"
   120 |       await page.locator('input[placeholder*="用户名"]').first().fill('wrong_user')
   121 |       await page.locator('input[type="password"]').first().fill('wrong_pass')
   122 |       await page.locator('button:has-text("登录")').first().click()
-  123 |       await page.waitForTimeout(3000)
-  124 |       const stillOnLogin = page.url().includes('/login')
-  125 |       const hasError = await page.locator('.el-message--error, .el-form-item__error, [class*="error"]').count() > 0
-  126 |       expect(stillOnLogin || hasError).toBeTruthy()
-  127 |       await takeScreenshot(page, '01-login-failed')
-  128 |     })
-  129 |   })
-  130 | 
-  131 |   /* ==================== 2. 仪表盘页面测试 ==================== */
-  132 |   test.describe('2. 仪表盘页面测试', () => {
-  133 | 
-  134 |     /**
-  135 |      * 测试仪表盘统计卡片显示
-  136 |      */
-  137 |     test('2.1 仪表盘统计卡片显示', async ({ page }) => {
-  138 |       await loginAsAdmin(page)
-  139 |       await page.goto('/dashboard')
-  140 |       await page.waitForLoadState('domcontentloaded')
-  141 |       await page.waitForTimeout(3000)
-  142 | 
-  143 |       const statCards = page.locator('.stat-card')
-  144 |       await expect(statCards.first()).toBeVisible({ timeout: 15000 })
-  145 | 
-  146 |       const cardCount = await statCards.count()
-  147 |       expect(cardCount).toBeGreaterThanOrEqual(4)
-  148 | 
-  149 |       await expect(page.locator('text=今日诊断次数')).toBeVisible()
-  150 |       await expect(page.locator('text=总诊断次数')).toBeVisible()
-  151 |       await expect(page.locator('text=平均准确率')).toBeVisible()
-  152 |       await expect(page.locator('text=活跃用户数')).toBeVisible()
 ```

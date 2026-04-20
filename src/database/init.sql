@@ -209,27 +209,6 @@ CREATE TABLE `user_sessions` (
   INDEX `ix_user_sessions_user_active` (`user_id`, `is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户会话表';
 
--- === audit_logs ===
-CREATE TABLE `audit_logs` (
-  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '日志 ID',
-  `user_id` INT COMMENT '操作用户 ID（系统操作为 NULL）',
-  `action` ENUM('login', 'logout', 'register', 'password_change', 'password_reset', 'role_update', 'data_create', 'data_update', 'data_delete', 'admin_action', 'diagnosis_request', 'token_refresh') NOT NULL COMMENT '操作类型',
-  `resource_type` VARCHAR(50) COMMENT '资源类型（如 user/diagnosis/disease）',
-  `resource_id` INT COMMENT '资源 ID',
-  `ip_address` VARCHAR(45) COMMENT '操作 IP 地址',
-  `user_agent` TEXT COMMENT '客户端 User-Agent',
-  `details` JSON COMMENT '操作详情（JSON 格式）',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
-  INDEX `idx_user_id` (`user_id`),
-  INDEX `idx_action` (`action`),
-  INDEX `idx_resource_type` (`resource_type`),
-  INDEX `idx_created_at` (`created_at`),
-  INDEX `idx_audit_user_action_created` (`user_id`, `action`, `created_at`),
-  INDEX `idx_audit_resource` (`resource_type`, `resource_id`),
-  INDEX `idx_audit_action_created` (`action`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作审计日志表';
-
 -- ====================================================
 -- 5. 插入测试数据
 -- ====================================================
