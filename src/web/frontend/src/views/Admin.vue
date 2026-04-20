@@ -132,6 +132,33 @@
             <el-card class="section-card">
               <template #header>
                 <div class="section-header">
+                  <span>系统资源监控</span>
+                  <el-tag size="small" :type="monitorTimer ? 'success' : 'info'">
+                    {{ monitorTimer ? '实时监控中' : '未启动' }}
+                  </el-tag>
+                </div>
+              </template>
+              <el-descriptions :column="2" border v-if="systemMetrics.cpu_percent !== undefined">
+                <el-descriptions-item label="CPU 使用率">
+                  <el-progress :percentage="Math.round(systemMetrics.cpu_percent || 0)" :stroke-width="14" />
+                </el-descriptions-item>
+                <el-descriptions-item label="内存使用率">
+                  <el-progress :percentage="Math.round(systemMetrics.memory_percent || 0)" :stroke-width="14" color="#e6a23c" />
+                </el-descriptions-item>
+                <el-descriptions-item label="内存使用">{{ systemMetrics.memory_used_mb || 0 }} / {{ systemMetrics.memory_total_mb || 0 }} MB</el-descriptions-item>
+                <el-descriptions-item label="磁盘使用率">
+                  <el-progress :percentage="Math.round(systemMetrics.disk_percent || 0)" :stroke-width="14" color="#909399" />
+                </el-descriptions-item>
+              </el-descriptions>
+              <el-empty v-else description="暂无系统监控数据" :image-size="60" />
+            </el-card>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16" style="margin-top: 16px">
+          <el-col :span="12">
+            <el-card class="section-card">
+              <template #header>
+                <div class="section-header">
                   <span>缓存管理</span>
                   <div class="section-actions">
                     <el-button size="small" @click="refreshCacheStats" :loading="cacheLoading">刷新</el-button>
@@ -277,6 +304,7 @@ import {
   preloadAIModels,
   getDiseaseDistribution
 } from '@/api/admin'
+import { http } from '@/utils/request'
 
 /**
  * 管理员后台页面
@@ -295,6 +323,7 @@ const cacheStats = ref<Record<string, any>>({})
 const cacheAvailable = ref(false)
 const logStatistics = ref<Record<string, any>>({})
 const recentLogs = ref<any[]>([])
+const systemMetrics = ref<Record<string, any>>({})
 
 const vramLoading = ref(false)
 const vramCleaning = ref(false)
@@ -303,6 +332,7 @@ const cacheClearing = ref(false)
 const logLoading = ref(false)
 const logDuration = ref(24)
 const preloading = ref(false)
+let monitorTimer: ReturnType<typeof setInterval> | null = null
 
 const diseaseChartRef = ref<HTMLElement | null>(null)
 let diseaseChartInstance: any = null
@@ -409,6 +439,49 @@ const refreshCacheStats = async () => {
 }
 
 /**
+ * 刷新系统资源监控数据
+ */
+const refreshSystemMetrics = async () => {
+  try {
+    const res = await http.get('/monitoring/metrics', { params: { metric_type: 'system' } })
+    const data = res?.data || res || {}
+    const sysMetrics = data.system_metrics || {}
+    systemMetrics.value = {
+      cpu_percent: sysMetrics.cpu_percent ?? 0,
+      memory_percent: sysMetrics.memory_percent ?? 0,
+      memory_used_mb: Math.round((sysMetrics.memory_used_mb || 0)),
+      memory_total_mb: Math.round((sysMetrics.memory_total_mb || 0)),
+      disk_percent: sysMetrics.disk_percent ?? 0
+    }
+  } catch (e) {
+    // 静默失败，不影响用户体验
+  }
+}
+
+/**
+ * 启动监控定时轮询
+ */
+const startMonitorPolling = () => {
+  if (monitorTimer) return
+  refreshSystemMetrics()
+  refreshVramStatus()
+  monitorTimer = setInterval(() => {
+    refreshSystemMetrics()
+    refreshVramStatus()
+  }, 5000)
+}
+
+/**
+ * 停止监控定时轮询
+ */
+const stopMonitorPolling = () => {
+  if (monitorTimer) {
+    clearInterval(monitorTimer)
+    monitorTimer = null
+  }
+}
+
+/**
  * 清空缓存
  */
 const handleClearCache = async () => {
@@ -501,6 +574,10 @@ watch(activeTab, async (newTab) => {
     loadDiseaseDistribution()
   } else if (newTab === 'logs') {
     refreshLogStats()
+  } else if (newTab === 'monitor') {
+    startMonitorPolling()
+  } else {
+    stopMonitorPolling()
   }
 })
 
@@ -530,12 +607,15 @@ onMounted(async () => {
   ])
   if (activeTab.value === 'distribution') {
     loadDiseaseDistribution()
+  } else if (activeTab.value === 'monitor') {
+    startMonitorPolling()
   }
 })
 
 /** 组件卸载前销毁 ECharts 实例并移除事件监听，防止内存泄漏 */
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
+  stopMonitorPolling()
   if (diseaseChartInstance) {
     diseaseChartInstance.dispose()
     diseaseChartInstance = null
