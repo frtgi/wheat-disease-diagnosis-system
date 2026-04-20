@@ -161,7 +161,7 @@ def check_gpu_memory(required_memory_mb: float = 1024.0) -> Tuple[bool, Optional
         if not torch.cuda.is_available():
             return False, "GPU 不可用"
 
-        total_memory = torch.cuda.get_device_properties(0).total_mem / (1024 * 1024)
+        total_memory = torch.cuda.get_device_properties(0).total_memory / (1024 * 1024)
         free_memory = torch.cuda.mem_get_info(0)[0] / (1024 * 1024)
 
         if free_memory < required_memory_mb:

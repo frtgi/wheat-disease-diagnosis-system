@@ -85,7 +85,7 @@ class VRAMManager:
             import torch
             used = torch.cuda.memory_allocated() / (1024 * 1024)
             reserved = torch.cuda.memory_reserved() / (1024 * 1024)
-            total = torch.cuda.get_device_properties(0).total_mem / (1024 * 1024)
+            total = torch.cuda.get_device_properties(0).total_memory / (1024 * 1024)
             free = total - reserved
 
             return {
