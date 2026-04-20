@@ -274,25 +274,29 @@ async def get_success_rate_trend(
             db = SyncSessionLocal()
             try:
                 cutoff = datetime.utcnow() - timedelta(hours=duration_hours)
-                hourly = (
-                    db.query(
-                        func.date_format(Diagnosis.created_at, '%Y-%m-%d %H:00').label('hour'),
-                        func.count(Diagnosis.id).label('total'),
-                        func.sum(func.if_(Diagnosis.status == 'completed', 1, 0)).label('success')
-                    )
+                records = (
+                    db.query(Diagnosis.created_at, Diagnosis.status)
                     .filter(Diagnosis.created_at >= cutoff, Diagnosis.deleted_at.is_(None))
-                    .group_by('hour')
-                    .order_by('hour')
                     .all()
                 )
+
+                hourly_buckets = {}
+                for record in records:
+                    hour_key = record.created_at.strftime('%Y-%m-%d %H:00') if record.created_at else "unknown"
+                    if hour_key not in hourly_buckets:
+                        hourly_buckets[hour_key] = {"total": 0, "success": 0}
+                    hourly_buckets[hour_key]["total"] += 1
+                    if record.status == "completed":
+                        hourly_buckets[hour_key]["success"] += 1
+
                 trend = [
                     {
-                        "hour": str(h.hour),
-                        "total_requests": h.total,
-                        "success_count": int(h.success or 0),
-                        "success_rate": round(int(h.success or 0) / h.total * 100, 2) if h.total > 0 else 0
+                        "hour": hour_key,
+                        "total_requests": bucket["total"],
+                        "success_count": bucket["success"],
+                        "success_rate": round(bucket["success"] / bucket["total"] * 100, 2) if bucket["total"] > 0 else 0
                     }
-                    for h in hourly
+                    for hour_key, bucket in sorted(hourly_buckets.items())
                 ]
             finally:
                 db.close()
