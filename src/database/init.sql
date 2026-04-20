@@ -56,24 +56,42 @@ CREATE TABLE `diseases` (
 -- ====================================================
 -- 3. 创建诊断记录表
 -- ====================================================
-DROP TABLE IF EXISTS `diagnosis_records`;
+DROP TABLE IF EXISTS `diagnoses`;
 
-CREATE TABLE `diagnosis_records` (
-  `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '诊断记录 ID',
+CREATE TABLE `diagnoses` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '诊断记录 ID',
   `user_id` INT NOT NULL COMMENT '用户 ID',
-  `image_url` VARCHAR(255) NOT NULL COMMENT '图像 URL',
-  `disease_name` VARCHAR(100) NOT NULL COMMENT '病害名称',
-  `confidence` DECIMAL(5,4) NOT NULL COMMENT '置信度',
+  `disease_id` INT COMMENT '疾病 ID',
+  `disease_name` VARCHAR(100) NOT NULL DEFAULT '未知' COMMENT '病害名称（主诊断）',
+  `confidence` DECIMAL(5,4) DEFAULT 0.0000 COMMENT '主置信度 (0-1)',
+  `image_url` VARCHAR(255) COMMENT '诊断图像 URL',
+  `image_id` INT COMMENT '关联图像元数据 ID',
+  `symptoms` TEXT NOT NULL COMMENT '症状描述',
   `severity` VARCHAR(20) COMMENT '严重程度',
   `description` TEXT COMMENT '诊断描述',
-  `recommendations` JSON COMMENT '防治建议',
+  `recommendations` JSON COMMENT '防治建议 (JSON 格式)',
   `growth_stage` VARCHAR(50) COMMENT '生长阶段',
-  `weather_data` JSON COMMENT '天气数据',
-  `location` VARCHAR(100) COMMENT '位置',
+  `weather_data` JSON COMMENT '天气数据 (JSON 格式)',
+  `location` VARCHAR(100) COMMENT '地理位置',
+  `status` VARCHAR(20) DEFAULT 'completed' COMMENT '状态：pending/completed',
+  `deleted_at` TIMESTAMP NULL COMMENT '软删除时间',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`disease_id`) REFERENCES `diseases`(`id`),
+  FOREIGN KEY (`image_id`) REFERENCES `image_metadata`(`id`) ON DELETE SET NULL,
   INDEX `idx_user_id` (`user_id`),
-  INDEX `idx_created_at` (`created_at`)
+  INDEX `idx_disease_id` (`disease_id`),
+  INDEX `idx_image_id` (`image_id`),
+  INDEX `idx_disease_name` (`disease_name`),
+  INDEX `idx_status` (`status`),
+  INDEX `idx_deleted_at` (`deleted_at`),
+  INDEX `idx_created_at` (`created_at`),
+  INDEX `idx_user_created` (`user_id`, `created_at`),
+  INDEX `idx_status_created` (`status`, `created_at`),
+  INDEX `idx_user_status` (`user_id`, `status`),
+  INDEX `idx_user_status_created` (`user_id`, `status`, `created_at`),
+  INDEX `idx_location` (`location`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='诊断记录表';
 
 -- ====================================================
@@ -93,6 +111,124 @@ CREATE TABLE `knowledge_graph` (
   INDEX `idx_entity_type` (`entity_type`),
   INDEX `idx_relation` (`relation`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识图谱表';
+
+-- === image_metadata ===
+CREATE TABLE `image_metadata` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '图像 ID',
+  `user_id` INT COMMENT '上传用户 ID',
+  `hash_value` VARCHAR(64) UNIQUE NOT NULL COMMENT '图像 SHA256 哈希值（用于去重）',
+  `original_filename` VARCHAR(255) NOT NULL COMMENT '原始文件名',
+  `file_path` VARCHAR(500) NOT NULL COMMENT '存储路径',
+  `file_size` INT NOT NULL COMMENT '文件大小（字节）',
+  `mime_type` VARCHAR(50) COMMENT 'MIME 类型（如 image/jpeg）',
+  `width` INT COMMENT '图像宽度（像素）',
+  `height` INT COMMENT '图像高度（像素）',
+  `storage_provider` ENUM('local', 'minio') DEFAULT 'local' COMMENT '存储提供者：local(本地)/minio(对象存储)',
+  `is_processed` BOOLEAN DEFAULT FALSE COMMENT '是否已处理（用于诊断标记）',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_hash_value` (`hash_value`),
+  INDEX `idx_created_at` (`created_at`),
+  INDEX `idx_image_user_created` (`user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='图像元数据表';
+
+-- === diagnosis_confidences ===
+CREATE TABLE `diagnosis_confidences` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '置信度记录 ID',
+  `diagnosis_id` INT NOT NULL COMMENT '关联诊断记录 ID',
+  `disease_name` VARCHAR(100) NOT NULL COMMENT '病害名称',
+  `confidence` DECIMAL(5,4) NOT NULL COMMENT '置信度 (0-1)',
+  `disease_class` INT COMMENT '病害类别 ID (YOLO类别索引)',
+  `rank` INT NOT NULL DEFAULT 0 COMMENT '排序序号 (0=最高置信度)',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  FOREIGN KEY (`diagnosis_id`) REFERENCES `diagnoses`(`id`) ON DELETE CASCADE,
+  INDEX `idx_diagnosis_id` (`diagnosis_id`),
+  INDEX `idx_disease_name` (`disease_name`),
+  INDEX `idx_diagconf_diagnosis_confidence` (`diagnosis_id`, `confidence` DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='诊断置信度候选表';
+
+-- === password_reset_tokens ===
+CREATE TABLE `password_reset_tokens` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '令牌 ID',
+  `user_id` INT NOT NULL COMMENT '关联用户 ID',
+  `token` VARCHAR(255) UNIQUE NOT NULL COMMENT '重置令牌',
+  `expires_at` TIMESTAMP NOT NULL COMMENT '过期时间',
+  `used` BOOLEAN DEFAULT FALSE COMMENT '是否已使用',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_token` (`token`),
+  INDEX `ix_password_reset_tokens_user_expires` (`user_id`, `expires_at`),
+  INDEX `ix_pwdreset_user_token_unique` (`user_id`, `token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='密码重置令牌表';
+
+-- === refresh_tokens ===
+CREATE TABLE `refresh_tokens` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '令牌 ID',
+  `user_id` INT NOT NULL COMMENT '关联用户 ID',
+  `token` VARCHAR(128) UNIQUE NOT NULL COMMENT '刷新令牌（SHA256 哈希存储）',
+  `expires_at` TIMESTAMP NOT NULL COMMENT '过期时间',
+  `revoked` BOOLEAN DEFAULT FALSE COMMENT '是否已撤销',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_token` (`token`),
+  INDEX `ix_refresh_tokens_user_expires` (`user_id`, `expires_at`),
+  INDEX `ix_reftoken_user_token_unique` (`user_id`, `token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='刷新令牌表';
+
+-- === login_attempts ===
+CREATE TABLE `login_attempts` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '记录 ID',
+  `username` VARCHAR(50) NOT NULL COMMENT '尝试登录的用户名',
+  `ip_address` VARCHAR(45) NOT NULL COMMENT '登录 IP 地址',
+  `success` BOOLEAN DEFAULT FALSE COMMENT '是否登录成功',
+  `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '尝试时间',
+  INDEX `idx_username` (`username`),
+  INDEX `idx_ip_address` (`ip_address`),
+  INDEX `idx_timestamp` (`timestamp`),
+  INDEX `ix_login_attempts_ip_timestamp` (`ip_address`, `timestamp`),
+  INDEX `ix_login_attempts_username_timestamp` (`username`, `timestamp`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='登录尝试记录表';
+
+-- === user_sessions ===
+CREATE TABLE `user_sessions` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '会话 ID',
+  `user_id` INT NOT NULL COMMENT '关联用户 ID',
+  `session_token` VARCHAR(255) UNIQUE NOT NULL COMMENT '会话令牌',
+  `device_info` TEXT COMMENT '设备信息（User-Agent 等）',
+  `ip_address` VARCHAR(45) COMMENT '登录 IP 地址',
+  `expires_at` TIMESTAMP NOT NULL COMMENT '会话过期时间',
+  `is_active` BOOLEAN DEFAULT TRUE COMMENT '会话是否活跃',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_session_token` (`session_token`),
+  INDEX `ix_user_sessions_user_expires` (`user_id`, `expires_at`),
+  INDEX `ix_user_sessions_user_active` (`user_id`, `is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户会话表';
+
+-- === audit_logs ===
+CREATE TABLE `audit_logs` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '日志 ID',
+  `user_id` INT COMMENT '操作用户 ID（系统操作为 NULL）',
+  `action` ENUM('login', 'logout', 'register', 'password_change', 'password_reset', 'role_update', 'data_create', 'data_update', 'data_delete', 'admin_action', 'diagnosis_request', 'token_refresh') NOT NULL COMMENT '操作类型',
+  `resource_type` VARCHAR(50) COMMENT '资源类型（如 user/diagnosis/disease）',
+  `resource_id` INT COMMENT '资源 ID',
+  `ip_address` VARCHAR(45) COMMENT '操作 IP 地址',
+  `user_agent` TEXT COMMENT '客户端 User-Agent',
+  `details` JSON COMMENT '操作详情（JSON 格式）',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_action` (`action`),
+  INDEX `idx_resource_type` (`resource_type`),
+  INDEX `idx_created_at` (`created_at`),
+  INDEX `idx_audit_user_action_created` (`user_id`, `action`, `created_at`),
+  INDEX `idx_audit_resource` (`resource_type`, `resource_id`),
+  INDEX `idx_audit_action_created` (`action`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作审计日志表';
 
 -- ====================================================
 -- 5. 插入测试数据
@@ -167,7 +303,7 @@ SELECT
     dr.confidence,
     dr.severity,
     dr.created_at
-FROM diagnosis_records dr
+FROM diagnoses dr
 JOIN users u ON dr.user_id = u.id;
 
 -- 6.2 病害统计视图
@@ -178,7 +314,7 @@ SELECT
     disease_name,
     COUNT(*) as total_count,
     AVG(confidence) as avg_confidence
-FROM diagnosis_records
+FROM diagnoses
 GROUP BY disease_name;
 
 -- ====================================================

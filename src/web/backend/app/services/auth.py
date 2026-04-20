@@ -292,7 +292,7 @@ def create_refresh_token(db: Session, user_id: int) -> str:
     
     refresh_token = RefreshToken(
         user_id=user_id,
-        token=token,
+        token=_hash_token(token),
         expires_at=expires_at,
         revoked=False
     )
@@ -313,13 +313,23 @@ def verify_refresh_token(db: Session, token: str) -> Optional[User]:
     返回:
         用户对象，验证失败返回 None
     """
+    token_hash = _hash_token(token)
     refresh_token = db.query(RefreshToken).filter(
         and_(
-            RefreshToken.token == token,
+            RefreshToken.token == token_hash,
             RefreshToken.revoked == False,
             RefreshToken.expires_at > datetime.utcnow()
         )
     ).first()
+    
+    if not refresh_token:
+        refresh_token = db.query(RefreshToken).filter(
+            and_(
+                RefreshToken.token == token,
+                RefreshToken.revoked == False,
+                RefreshToken.expires_at > datetime.utcnow()
+            )
+        ).first()
     
     if not refresh_token:
         return None
@@ -339,9 +349,15 @@ def revoke_refresh_token(db: Session, token: str) -> bool:
     返回:
         是否成功撤销
     """
+    token_hash = _hash_token(token)
     refresh_token = db.query(RefreshToken).filter(
-        RefreshToken.token == token
+        RefreshToken.token == token_hash
     ).first()
+    
+    if not refresh_token:
+        refresh_token = db.query(RefreshToken).filter(
+            RefreshToken.token == token
+        ).first()
     
     if not refresh_token:
         return False

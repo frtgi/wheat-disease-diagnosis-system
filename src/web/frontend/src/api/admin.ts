@@ -4,32 +4,10 @@
  */
 import { http } from '@/utils/request'
 
+export { getOverviewStats, getUserStats, getDiagnosisStats } from './stats'
+
 const STATS_BASE = '/stats'
 const LOGS_BASE = '/logs'
-
-/**
- * 获取系统概览统计
- * @returns 概览统计数据
- */
-export async function getOverviewStats() {
-  return http.get(`${STATS_BASE}/overview`)
-}
-
-/**
- * 获取诊断统计
- * @returns 诊断统计数据
- */
-export async function getDiagnosisStats() {
-  return http.get(`${STATS_BASE}/diagnoses`)
-}
-
-/**
- * 获取用户统计（需管理员权限）
- * @returns 用户统计数据
- */
-export async function getUserStats() {
-  return http.get(`${STATS_BASE}/users`)
-}
 
 /**
  * 获取缓存统计

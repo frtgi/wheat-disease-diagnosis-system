@@ -19,12 +19,6 @@
  */
 export { default as ErrorBoundary } from './common/ErrorBoundary.vue'
 
-/**
- * ErrorBoundaryEnhanced - 增强版错误边界组件别名
- * 与 ErrorBoundary 相同，保留兼容性导出
- */
-export { default as ErrorBoundaryEnhanced } from './common/ErrorBoundary.vue'
-
 // ==================== 诊断模块组件 ====================
 
 /**
