@@ -11,6 +11,7 @@
 import hashlib
 import time
 import logging
+import threading
 from typing import Any, Dict, List, Optional, Tuple
 from collections import OrderedDict
 from pathlib import Path
@@ -151,12 +152,12 @@ class ImageHasher:
 
 
 class LRUCache:
-    """LRU 缓存实现"""
-    
-    def __init__(self, capacity: int = 1000, default_ttl: Optional[float] = 3600):
+    """LRU 缓存实现（线程安全，支持 TTL）"""
+
+    def __init__(self, capacity: int = 1000, default_ttl: Optional[float] = None):
         """
         初始化 LRU 缓存
-        
+
         Args:
             capacity: 最大容量
             default_ttl: 默认 TTL（秒），None 表示永不过期
@@ -164,103 +165,173 @@ class LRUCache:
         self.capacity = capacity
         self.default_ttl = default_ttl
         self._cache: OrderedDict[str, CacheEntry] = OrderedDict()
+        self._lock = threading.RLock()
         self._hits = 0
         self._misses = 0
         self._evictions = 0
-    
+
     def get(self, key: str) -> Optional[Any]:
         """获取缓存值"""
-        if key not in self._cache:
-            self._misses += 1
-            return None
-        
-        entry = self._cache[key]
-        
-        # 检查是否过期
-        if entry.is_expired():
-            self.delete(key)
-            self._misses += 1
-            return None
-        
-        # 更新访问统计
-        self._hits += 1
-        entry.touch()
-        
-        # 移动到末尾（最近使用）
-        self._cache.move_to_end(key)
-        
-        return entry.value
-    
-    def set(self, key: str, value: Any, ttl: Optional[float] = None, 
+        with self._lock:
+            if key not in self._cache:
+                self._misses += 1
+                return None
+
+            entry = self._cache[key]
+
+            if entry.is_expired():
+                self.delete(key)
+                self._misses += 1
+                return None
+
+            self._hits += 1
+            entry.touch()
+            self._cache.move_to_end(key)
+
+            return entry.value
+
+    def set(self, key: str, value: Any, ttl: Optional[float] = None,
             metadata: Optional[Dict[str, Any]] = None) -> None:
         """设置缓存值"""
-        # 如果已存在，先删除
-        if key in self._cache:
-            del self._cache[key]
-        
-        # 如果超出容量，删除最旧的
-        while len(self._cache) >= self.capacity:
-            self._evict_oldest()
-        
-        # 创建新条目
-        entry = CacheEntry(
-            key=key,
-            value=value,
-            ttl=ttl if ttl is not None else self.default_ttl,
-            metadata=metadata or {}
-        )
-        
-        self._cache[key] = entry
-    
+        with self._lock:
+            if key in self._cache:
+                del self._cache[key]
+
+            while len(self._cache) >= self.capacity:
+                self._evict_oldest()
+
+            entry = CacheEntry(
+                key=key,
+                value=value,
+                ttl=ttl if ttl is not None else self.default_ttl,
+                metadata=metadata or {}
+            )
+
+            self._cache[key] = entry
+
+    def put(self, key: str, value: Any, ttl: Optional[float] = None,
+            metadata: Optional[Dict[str, Any]] = None) -> Optional[str]:
+        """
+        添加缓存项（兼容接口）
+
+        Args:
+            key: 缓存键
+            value: 缓存值
+            ttl: 过期时间（秒）
+            metadata: 元数据
+
+        Returns:
+            如果缓存已满，返回被移除的最久未使用的键；否则返回 None
+        """
+        with self._lock:
+            evicted_key = None
+            if key in self._cache:
+                del self._cache[key]
+            else:
+                if len(self._cache) >= self.capacity:
+                    evicted_key = self._evict_oldest()
+
+            entry = CacheEntry(
+                key=key,
+                value=value,
+                ttl=ttl if ttl is not None else self.default_ttl,
+                metadata=metadata or {}
+            )
+            self._cache[key] = entry
+            return evicted_key
+
     def delete(self, key: str) -> bool:
         """删除缓存值"""
-        if key in self._cache:
-            del self._cache[key]
-            return True
-        return False
-    
-    def _evict_oldest(self) -> None:
-        """淘汰最旧的条目"""
+        with self._lock:
+            if key in self._cache:
+                del self._cache[key]
+                return True
+            return False
+
+    def remove(self, key: str) -> Optional[Any]:
+        """
+        移除缓存项并返回值（兼容接口）
+
+        Args:
+            key: 缓存键
+
+        Returns:
+            被移除的缓存值，不存在则返回 None
+        """
+        with self._lock:
+            if key in self._cache:
+                entry = self._cache.pop(key)
+                return entry.value
+            return None
+
+    def _evict_oldest(self) -> Optional[str]:
+        """淘汰最旧的条目，返回被淘汰的键"""
         if self._cache:
-            oldest_key = next(iter(self._cache))
-            del self._cache[oldest_key]
+            oldest_key, _ = self._cache.popitem(last=False)
             self._evictions += 1
-    
+            return oldest_key
+        return None
+
     def clear(self) -> None:
         """清空缓存"""
-        self._cache.clear()
-    
+        with self._lock:
+            self._cache.clear()
+
     def cleanup_expired(self) -> int:
         """清理所有过期条目"""
-        expired_keys = [
-            key for key, entry in self._cache.items() 
-            if entry.is_expired()
-        ]
-        
-        for key in expired_keys:
-            del self._cache[key]
-            self._evictions += 1
-        
-        return len(expired_keys)
-    
+        with self._lock:
+            expired_keys = [
+                key for key, entry in self._cache.items()
+                if entry.is_expired()
+            ]
+
+            for key in expired_keys:
+                del self._cache[key]
+                self._evictions += 1
+
+            return len(expired_keys)
+
     def size(self) -> int:
         """获取缓存大小"""
-        return len(self._cache)
-    
+        with self._lock:
+            return len(self._cache)
+
+    def get_size(self) -> int:
+        """获取当前缓存大小（兼容接口）"""
+        return self.size()
+
+    def get_lru_key(self) -> Optional[str]:
+        """
+        获取最久未使用的键（兼容接口）
+
+        Returns:
+            最久未使用的键，缓存为空则返回 None
+        """
+        with self._lock:
+            if not self._cache:
+                return None
+            return next(iter(self._cache.keys()))
+
+    def get_keys(self) -> list:
+        """获取所有键（按访问时间排序，最近访问的在最后）"""
+        with self._lock:
+            return list(self._cache.keys())
+
     def stats(self) -> Dict[str, Any]:
         """获取缓存统计信息"""
-        total_requests = self._hits + self._misses
-        hit_rate = (self._hits / total_requests * 100) if total_requests > 0 else 0.0
-        
-        return {
-            "capacity": self.capacity,
-            "size": self.size(),
-            "hits": self._hits,
-            "misses": self._misses,
-            "evictions": self._evictions,
-            "hit_rate": round(hit_rate, 2),
-            "utilization": round(self.size() / self.capacity * 100, 2)
-        }
+        with self._lock:
+            total_requests = self._hits + self._misses
+            hit_rate = (self._hits / total_requests * 100) if total_requests > 0 else 0.0
+
+            return {
+                "capacity": self.capacity,
+                "size": self.size(),
+                "hits": self._hits,
+                "misses": self._misses,
+                "evictions": self._evictions,
+                "hit_rate": round(hit_rate, 2),
+                "utilization": round(self.size() / self.capacity * 100, 2)
+            }
 
 
 class SemanticCache:

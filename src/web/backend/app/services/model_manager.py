@@ -8,16 +8,15 @@ import logging
 import time
 import threading
 import gc
-from collections import OrderedDict
-from typing import Dict, Any, Optional, Callable, TypeVar, Generic
+from typing import Dict, Any, Optional, Callable
 from pathlib import Path
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from app.services.cache_manager import LRUCache
 
-T = TypeVar('T')
+logger = logging.getLogger(__name__)
 
 
 class ModelStatus(Enum):
@@ -59,105 +58,6 @@ class MemoryInfo:
     gpu_available_mb: float = 0.0
     gpu_used_percent: float = 0.0
 
-
-class LRUCache(Generic[T]):
-    """
-    LRU (Least Recently Used) 缓存实现
-    
-    使用 OrderedDict 实现 O(1) 时间复杂度的访问和更新
-    线程安全，支持并发访问
-    """
-    
-    def __init__(self, max_size: int = 10):
-        """
-        初始化 LRU 缓存
-        
-        Args:
-            max_size: 最大缓存大小
-        """
-        self._cache: OrderedDict[str, T] = OrderedDict()
-        self._max_size = max_size
-        self._lock = threading.RLock()
-    
-    def get(self, key: str) -> Optional[T]:
-        """
-        获取缓存项（访问时移动到末尾）
-        
-        Args:
-            key: 缓存键
-        
-        Returns:
-            缓存项，不存在则返回 None
-        """
-        with self._lock:
-            if key not in self._cache:
-                return None
-            self._cache.move_to_end(key)
-            return self._cache[key]
-    
-    def put(self, key: str, value: T) -> Optional[str]:
-        """
-        添加缓存项
-        
-        Args:
-            key: 缓存键
-            value: 缓存值
-        
-        Returns:
-            如果缓存已满，返回被移除的最久未使用的键；否则返回 None
-        """
-        with self._lock:
-            evicted_key = None
-            if key in self._cache:
-                self._cache.move_to_end(key)
-                self._cache[key] = value
-            else:
-                if len(self._cache) >= self._max_size:
-                    evicted_key, _ = self._cache.popitem(last=False)
-                self._cache[key] = value
-            return evicted_key
-    
-    def remove(self, key: str) -> Optional[T]:
-        """
-        移除缓存项
-        
-        Args:
-            key: 缓存键
-        
-        Returns:
-            被移除的缓存项，不存在则返回 None
-        """
-        with self._lock:
-            if key in self._cache:
-                return self._cache.pop(key)
-            return None
-    
-    def clear(self):
-        """清空缓存"""
-        with self._lock:
-            self._cache.clear()
-    
-    def get_lru_key(self) -> Optional[str]:
-        """
-        获取最久未使用的键
-        
-        Returns:
-            最久未使用的键，缓存为空则返回 None
-        """
-        with self._lock:
-            if not self._cache:
-                return None
-            return next(iter(self._cache.keys()))
-    
-    def get_size(self) -> int:
-        """获取当前缓存大小"""
-        with self._lock:
-            return len(self._cache)
-    
-    def get_keys(self) -> list:
-        """获取所有键（按访问时间排序，最近访问的在最后）"""
-        with self._lock:
-            return list(self._cache.keys())
 
 
 class ModelManager:
@@ -214,7 +114,7 @@ class ModelManager:
             preload_models: 预加载模型列表（模型名称）
         """
         self._models: Dict[str, ModelInfo] = {}
-        self._lru_cache = LRUCache[str](max_size=max_models)
+        self._lru_cache = LRUCache(capacity=max_models, default_ttl=None)
         self._lock = threading.RLock()
         self._max_models = max_models
         self._memory_threshold_percent = memory_threshold_percent
