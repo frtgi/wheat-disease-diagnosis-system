@@ -16,11 +16,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 logger = logging.getLogger(__name__)
 
 
-class MetricsCollector:
+class RequestMetricsCollector:
     """
-    性能指标收集器
+    请求性能指标收集器
     
-    收集和存储应用性能指标
+    收集和存储应用请求性能指标
     """
     
     _instance = None
@@ -145,7 +145,7 @@ class MetricsCollector:
         self._start_time = datetime.now(timezone.utc)
 
 
-metrics_collector = MetricsCollector()
+metrics_collector = RequestMetricsCollector()
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):

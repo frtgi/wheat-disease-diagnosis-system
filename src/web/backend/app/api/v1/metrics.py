@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/metrics", tags=["性能监控"])
 
 
-class MetricsCollector:
-    """性能指标收集器"""
+class InferenceMetricsCollector:
+    """推理性能指标收集器"""
     
     def __init__(self, window_size: int = 1000):
         """
@@ -184,7 +184,7 @@ class MetricsCollector:
 
 
 # 全局指标收集器实例
-metrics_collector = MetricsCollector()
+metrics_collector = InferenceMetricsCollector()
 
 
 @router.get("/")
