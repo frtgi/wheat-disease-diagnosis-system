@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 """
 WheatAgent 前端功能测试脚本
-使用 Playwright 对登录页面、知识图谱页面、Admin页面、会话管理进行自动化测试
+使用 Playwright 对登录页面、知识图谱页面、Admin页面、会话管理、诊断记录进行自动化测试
 """
 import os
 import time
@@ -14,8 +15,8 @@ os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 FRONTEND_URL = "http://localhost:5173"
 BACKEND_URL = "http://localhost:8000"
 
-ADMIN_USERNAME = "v21test_admin"
-ADMIN_PASSWORD = "Test1234!"
+TEST_USERNAME = "test_session_user"
+TEST_PASSWORD = "Test1234!"
 
 test_results = []
 
@@ -59,7 +60,7 @@ def add_result(test_name: str, passed: bool, screenshot_path: str, details: str 
 def test_login_page(page: Page):
     """
     测试1: 登录页面渲染
-    访问 /login 页面，确认页面正常渲染
+    访问 /login 页面，确认页面正常渲染，检查标题、输入框、按钮等元素
     """
     print("\n" + "=" * 60)
     print("测试1: 登录页面渲染")
@@ -105,13 +106,13 @@ def test_login_page(page: Page):
         add_result("登录页面渲染", False, screenshot_path, f"异常: {str(e)}")
 
 
-def do_login(page: Page, username: str, password: str) -> bool:
+def do_login(page: Page, username: str, password: str) -> dict:
     """
-    执行登录操作，通过API获取token后注入localStorage
+    通过API获取token后注入localStorage实现登录
     @param page Playwright页面对象
     @param username 用户名
     @param password 密码
-    @return 登录是否成功
+    @return 登录结果字典，包含success和role字段
     """
     try:
         import requests as req_lib
@@ -124,11 +125,12 @@ def do_login(page: Page, username: str, password: str) -> bool:
 
         if not api_data.get("success"):
             print(f"  API登录失败: {api_data.get('error', '未知错误')}")
-            return False
+            return {"success": False, "role": ""}
 
         token = api_data["data"]["access_token"]
         refresh_token_val = api_data["data"].get("refresh_token", "")
         user_info = api_data["data"]["user"]
+        user_role = user_info.get("role", "user")
 
         page.goto(f"{FRONTEND_URL}/login", timeout=15000)
         page.wait_for_load_state("networkidle", timeout=15000)
@@ -147,7 +149,7 @@ def do_login(page: Page, username: str, password: str) -> bool:
                     "username": user_info["username"],
                     "email": user_info["email"],
                     "avatar": user_info.get("avatar_url", ""),
-                    "role": user_info["role"]
+                    "role": user_role
                 }
             }
         )
@@ -158,21 +160,21 @@ def do_login(page: Page, username: str, password: str) -> bool:
 
         current_url = page.url
         if "/login" not in current_url:
-            print(f"  登录成功，当前页面: {current_url}")
-            return True
+            print(f"  登录成功，当前页面: {current_url}，角色: {user_role}")
+            return {"success": True, "role": user_role}
         else:
             print(f"  登录注入后仍在登录页: {current_url}")
-            return False
+            return {"success": False, "role": user_role}
 
     except Exception as e:
         print(f"  登录异常: {str(e)}")
-        return False
+        return {"success": False, "role": ""}
 
 
 def test_knowledge_page(page: Page):
     """
     测试2: 知识图谱页面
-    登录后访问知识图谱功能，确认数据展示
+    登录后访问知识图谱功能，确认数据展示，检查搜索框、分类选择、病害卡片等
     """
     print("\n" + "=" * 60)
     print("测试2: 知识图谱页面")
@@ -227,9 +229,12 @@ def test_knowledge_page(page: Page):
         add_result("知识图谱页面", False, screenshot_path, f"异常: {str(e)}")
 
 
-def test_admin_overview(page: Page):
+def test_admin_overview(page: Page, is_admin: bool = True):
     """
     测试3a: Admin页面 - 系统概览Tab
+    检查统计卡片、用户统计、诊断统计等数据显示
+    @param page Playwright页面对象
+    @param is_admin 当前用户是否为管理员
     """
     print("\n" + "-" * 40)
     print("测试3a: Admin页面 - 系统概览")
@@ -239,6 +244,13 @@ def test_admin_overview(page: Page):
         page.goto(f"{FRONTEND_URL}/admin", timeout=15000)
         page.wait_for_load_state("networkidle", timeout=15000)
         time.sleep(3)
+
+        current_url = page.url
+        if "/admin" not in current_url:
+            screenshot_path = take_screenshot(page, "03a_admin_overview_redirect")
+            add_result("Admin-系统概览", False, screenshot_path,
+                       f"非管理员用户被重定向到: {current_url}")
+            return
 
         screenshot_path = take_screenshot(page, "03a_admin_overview")
 
@@ -253,13 +265,13 @@ def test_admin_overview(page: Page):
         if overview_tab.count() > 0:
             overview_active = "is-active" in (overview_tab.get_attribute("class") or "")
 
+        user_total_stat = page.locator(".el-statistic").first
+        has_stats = user_total_stat.is_visible() if user_total_stat.count() > 0 else False
+
         details_parts = []
         details_parts.append(f"页面标题: {'可见' if title_visible else '不可见'}")
         details_parts.append(f"统计卡片数量: {stat_count}")
         details_parts.append(f"系统概览Tab激活: {overview_active}")
-
-        user_total_stat = page.locator(".el-statistic").first
-        has_stats = user_total_stat.is_visible() if user_total_stat.count() > 0 else False
         details_parts.append(f"统计数据可见: {has_stats}")
 
         passed = title_visible and stat_count >= 3
@@ -273,12 +285,20 @@ def test_admin_overview(page: Page):
 def test_admin_logs(page: Page):
     """
     测试3b: Admin页面 - 诊断日志Tab
+    检查日志表格、统计描述、日志行数等
     """
     print("\n" + "-" * 40)
     print("测试3b: Admin页面 - 诊断日志")
     print("-" * 40)
 
     try:
+        current_url = page.url
+        if "/admin" not in current_url:
+            screenshot_path = take_screenshot(page, "03b_admin_logs_skip")
+            add_result("Admin-诊断日志", False, screenshot_path,
+                       "非管理员用户，无法访问Admin页面")
+            return
+
         logs_tab = page.locator('.el-tabs__item:has-text("诊断日志")')
         if logs_tab.count() > 0:
             logs_tab.click()
@@ -319,12 +339,20 @@ def test_admin_logs(page: Page):
 def test_admin_distribution(page: Page):
     """
     测试3c: Admin页面 - 病害分布Tab
+    检查ECharts图表容器和Canvas元素渲染
     """
     print("\n" + "-" * 40)
     print("测试3c: Admin页面 - 病害分布")
     print("-" * 40)
 
     try:
+        current_url = page.url
+        if "/admin" not in current_url:
+            screenshot_path = take_screenshot(page, "03c_admin_distribution_skip")
+            add_result("Admin-病害分布", False, screenshot_path,
+                       "非管理员用户，无法访问Admin页面")
+            return
+
         dist_tab = page.locator('.el-tabs__item:has-text("病害分布")')
         if dist_tab.count() > 0:
             dist_tab.click()
@@ -359,12 +387,20 @@ def test_admin_distribution(page: Page):
 def test_admin_monitor(page: Page):
     """
     测试3d: Admin页面 - 系统监控Tab
+    检查GPU监控、系统资源监控、缓存管理等卡片
     """
     print("\n" + "-" * 40)
     print("测试3d: Admin页面 - 系统监控")
     print("-" * 40)
 
     try:
+        current_url = page.url
+        if "/admin" not in current_url:
+            screenshot_path = take_screenshot(page, "03d_admin_monitor_skip")
+            add_result("Admin-系统监控", False, screenshot_path,
+                       "非管理员用户，无法访问Admin页面")
+            return
+
         monitor_tab = page.locator('.el-tabs__item:has-text("系统监控")')
         if monitor_tab.count() > 0:
             monitor_tab.click()
@@ -404,7 +440,7 @@ def test_admin_monitor(page: Page):
 def test_sessions_page(page: Page):
     """
     测试4: 会话管理页面
-    检查用户会话列表功能是否可用
+    检查用户会话列表功能是否可用，包括会话表格、刷新按钮、终止按钮等
     """
     print("\n" + "=" * 60)
     print("测试4: 会话管理页面")
@@ -459,6 +495,74 @@ def test_sessions_page(page: Page):
         except Exception:
             screenshot_path = "N/A"
         add_result("会话管理页面", False, screenshot_path, f"异常: {str(e)}")
+
+
+def test_records_page(page: Page):
+    """
+    测试5: 诊断记录页面
+    检查记录列表和导出报告功能，包括表格、搜索框、分页、导出按钮等
+    """
+    print("\n" + "=" * 60)
+    print("测试5: 诊断记录页面")
+    print("=" * 60)
+
+    try:
+        page.goto(f"{FRONTEND_URL}/records", timeout=15000)
+        page.wait_for_load_state("networkidle", timeout=15000)
+        time.sleep(3)
+
+        screenshot_path = take_screenshot(page, "05_records_page")
+
+        records_heading = page.locator(".records-container .card-header span:has-text('诊断记录')").first
+        heading_visible = records_heading.is_visible() if records_heading.count() > 0 else False
+
+        search_input = page.locator('.records-container input[placeholder="搜索记录"]')
+        search_visible = search_input.is_visible() if search_input.count() > 0 else False
+
+        records_table = page.locator(".records-container .el-table")
+        table_visible = records_table.is_visible() if records_table.count() > 0 else False
+
+        table_rows = page.locator(".records-container .el-table__body-wrapper .el-table__row")
+        row_count = table_rows.count()
+
+        empty_state = page.locator(".records-container .el-empty")
+        has_empty = empty_state.is_visible() if empty_state.count() > 0 else False
+
+        pagination = page.locator(".records-container .el-pagination")
+        pagination_visible = pagination.is_visible() if pagination.count() > 0 else False
+
+        export_buttons = page.locator('.records-container button:has-text("导出报告")')
+        export_count = export_buttons.count()
+
+        view_detail_buttons = page.locator('.records-container button:has-text("查看详情")')
+        view_detail_count = view_detail_buttons.count()
+
+        details_parts = []
+        details_parts.append(f"诊断记录标题: {'可见' if heading_visible else '不可见'}")
+        details_parts.append(f"搜索框: {'可见' if search_visible else '不可见'}")
+        details_parts.append(f"记录表格: {'可见' if table_visible else '不可见'}")
+        details_parts.append(f"记录行数: {row_count}")
+        details_parts.append(f"分页组件: {'可见' if pagination_visible else '不可见'}")
+        details_parts.append(f"导出报告按钮数量: {export_count}")
+        details_parts.append(f"查看详情按钮数量: {view_detail_count}")
+
+        if has_empty:
+            details_parts.append("显示空状态（暂无诊断记录）")
+
+        if row_count > 0 and export_count > 0:
+            details_parts.append("导出报告功能可用（有记录且有导出按钮）")
+        elif row_count == 0:
+            details_parts.append("无记录数据，导出报告功能无法验证")
+
+        passed = heading_visible and (table_visible or has_empty)
+        add_result("诊断记录页面", passed, screenshot_path, "; ".join(details_parts))
+
+    except Exception as e:
+        try:
+            screenshot_path = take_screenshot(page, "05_records_page_error")
+        except Exception:
+            screenshot_path = "N/A"
+        add_result("诊断记录页面", False, screenshot_path, f"异常: {str(e)}")
 
 
 def check_backend_health() -> bool:
@@ -527,24 +631,45 @@ def main():
         # 测试1: 登录页面
         test_login_page(page)
 
-        # 登录管理员账号（通过API注入token）
-        print("\n正在登录管理员账号...")
-        login_ok = do_login(page, ADMIN_USERNAME, ADMIN_PASSWORD)
+        # 通过API注入token登录
+        print("\n正在登录测试账号...")
+        login_result = do_login(page, TEST_USERNAME, TEST_PASSWORD)
+        login_ok = login_result["success"]
+        user_role = login_result["role"]
         if not login_ok:
-            print("⚠️ 管理员登录失败，尝试继续测试（部分页面可能被重定向到登录页）")
+            print("⚠️ 登录失败，尝试继续测试（部分页面可能被重定向到登录页）")
             take_screenshot(page, "login_failed")
 
         # 测试2: 知识图谱页面
         test_knowledge_page(page)
 
         # 测试3: Admin页面（需要管理员权限）
-        test_admin_overview(page)
-        test_admin_logs(page)
-        test_admin_distribution(page)
-        test_admin_monitor(page)
+        if user_role == "admin":
+            test_admin_overview(page, is_admin=True)
+            test_admin_logs(page)
+            test_admin_distribution(page)
+            test_admin_monitor(page)
+        else:
+            print(f"\n⚠️ 当前用户角色为 '{user_role}'，非管理员，尝试用管理员账号登录Admin页面...")
+            admin_login_result = do_login(page, "v21test_admin", "Test1234!")
+            if admin_login_result["success"] and admin_login_result["role"] == "admin":
+                test_admin_overview(page, is_admin=True)
+                test_admin_logs(page)
+                test_admin_distribution(page)
+                test_admin_monitor(page)
+                do_login(page, TEST_USERNAME, TEST_PASSWORD)
+            else:
+                print("  管理员账号登录失败，跳过Admin页面测试")
+                add_result("Admin-系统概览", False, "", "无法以管理员身份登录，测试跳过")
+                add_result("Admin-诊断日志", False, "", "无法以管理员身份登录，测试跳过")
+                add_result("Admin-病害分布", False, "", "无法以管理员身份登录，测试跳过")
+                add_result("Admin-系统监控", False, "", "无法以管理员身份登录，测试跳过")
 
         # 测试4: 会话管理页面
         test_sessions_page(page)
+
+        # 测试5: 诊断记录页面
+        test_records_page(page)
 
         browser.close()
 
