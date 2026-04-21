@@ -213,13 +213,13 @@ CREATE TABLE `user_sessions` (
 -- 5. 插入测试数据
 -- ====================================================
 
--- 5.1 插入测试用户（密码均为：123456，bcrypt 哈希）
+-- 5.1 插入测试用户（密码通过环境变量配置，请勿在生产环境使用默认密码）
 INSERT INTO `users` (`username`, `email`, `password_hash`, `role`, `phone`) VALUES
 ('farmer_zhang', 'zhang@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYzS3MebAJu', 'farmer', '13800138001'),
 ('farmer_li', 'li@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYzS3MebAJu', 'farmer', '13800138002'),
 ('tech_wang', 'wang@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYzS3MebAJu', 'technician', '13800138003'),
 ('tech_zhao', 'zhao@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYzS3MebAJu', 'technician', '13800138004'),
-('admin', 'admin@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYzS3MebAJu', 'admin', '13800138005');
+('admin', 'admin@example.com', '$2b$12$K9YGqLQ8n5VxJzG3mFtP2eR7wB4iX6kO1sD8hN0cA5vU3yE9fL2qG', 'admin', '13800138005');
 
 -- 5.2 插入常见小麦病害数据
 INSERT INTO `diseases` (`name`, `scientific_name`, `category`, `symptoms`, `description`, `prevention_methods`, `treatment_methods`) VALUES
