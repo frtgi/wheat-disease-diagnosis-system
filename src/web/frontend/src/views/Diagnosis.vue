@@ -299,6 +299,11 @@ const startStreamingDiagnosis = async (params: DiagnoseParams, imageUrl: string)
       searchParams.append('user_id', userStore.userInfo.id.toString())
     }
     
+    const token = localStorage.getItem('token')
+    if (token) {
+      searchParams.append('token', token)
+    }
+    
     const baseURL = import.meta.env.VITE_API_BASE_URL || ''
     const url = `${baseURL}/diagnosis/fusion/stream?${searchParams.toString()}`
     

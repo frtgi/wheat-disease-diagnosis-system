@@ -5,7 +5,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status, Header, Cookie
+from fastapi import Depends, HTTPException, status, Header, Cookie, Query
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import bcrypt
@@ -34,16 +34,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login", auto_error=Fa
 async def get_token_from_request(
     authorization: Optional[str] = Header(None, alias="Authorization"),
     access_token_cookie: Optional[str] = Cookie(None, alias="access_token"),
+    token_query: Optional[str] = Query(None, alias="token"),
 ) -> Optional[str]:
     """
     从请求中提取 Token
 
-    优先从 Authorization header 获取，其次从 httpOnly cookie 获取。
-    支持 httpOnly Cookie 迁移方案，确保向后兼容。
+    优先从 Authorization header 获取，其次从 httpOnly cookie 获取，最后从查询参数获取。
+    支持 httpOnly Cookie 迁移方案和 SSE 连接场景（EventSource 不支持自定义 Header）。
 
     参数:
         authorization: Authorization 请求头
         access_token_cookie: httpOnly cookie 中的 access_token
+        token_query: URL 查询参数中的 token（用于 SSE 连接）
 
     返回:
         Optional[str]: Token 字符串，未找到返回 None
@@ -52,6 +54,8 @@ async def get_token_from_request(
         return authorization[7:]
     if access_token_cookie:
         return access_token_cookie
+    if token_query:
+        return token_query
     return None
 
 
