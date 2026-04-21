@@ -64,7 +64,33 @@ CREATE TABLE `diseases` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='病害数据表';
 
 -- ====================================================
--- 3. 创建诊断记录表
+-- 3. 创建图像元数据表
+-- ====================================================
+DROP TABLE IF EXISTS `image_metadata`;
+
+-- === image_metadata ===
+CREATE TABLE `image_metadata` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '图像 ID',
+  `user_id` INT COMMENT '上传用户 ID',
+  `hash_value` VARCHAR(64) UNIQUE NOT NULL COMMENT '图像 SHA256 哈希值（用于去重）',
+  `original_filename` VARCHAR(255) NOT NULL COMMENT '原始文件名',
+  `file_path` VARCHAR(500) NOT NULL COMMENT '存储路径',
+  `file_size` INT NOT NULL COMMENT '文件大小（字节）',
+  `mime_type` VARCHAR(50) COMMENT 'MIME 类型（如 image/jpeg）',
+  `width` INT COMMENT '图像宽度（像素）',
+  `height` INT COMMENT '图像高度（像素）',
+  `storage_provider` ENUM('local', 'minio') DEFAULT 'local' COMMENT '存储提供者：local(本地)/minio(对象存储)',
+  `is_processed` BOOLEAN DEFAULT FALSE COMMENT '是否已处理（用于诊断标记）',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_hash_value` (`hash_value`),
+  INDEX `idx_created_at` (`created_at`),
+  INDEX `idx_image_user_created` (`user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='图像元数据表';
+
+-- ====================================================
+-- 4. 创建诊断记录表
 -- ====================================================
 DROP TABLE IF EXISTS `diagnoses`;
 
@@ -105,7 +131,7 @@ CREATE TABLE `diagnoses` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='诊断记录表';
 
 -- ====================================================
--- 4. 创建知识图谱表
+-- 5. 创建知识图谱表
 -- ====================================================
 DROP TABLE IF EXISTS `knowledge_graph`;
 
@@ -121,27 +147,6 @@ CREATE TABLE `knowledge_graph` (
   INDEX `idx_entity_type` (`entity_type`),
   INDEX `idx_relation` (`relation`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识图谱表';
-
--- === image_metadata ===
-CREATE TABLE `image_metadata` (
-  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '图像 ID',
-  `user_id` INT COMMENT '上传用户 ID',
-  `hash_value` VARCHAR(64) UNIQUE NOT NULL COMMENT '图像 SHA256 哈希值（用于去重）',
-  `original_filename` VARCHAR(255) NOT NULL COMMENT '原始文件名',
-  `file_path` VARCHAR(500) NOT NULL COMMENT '存储路径',
-  `file_size` INT NOT NULL COMMENT '文件大小（字节）',
-  `mime_type` VARCHAR(50) COMMENT 'MIME 类型（如 image/jpeg）',
-  `width` INT COMMENT '图像宽度（像素）',
-  `height` INT COMMENT '图像高度（像素）',
-  `storage_provider` ENUM('local', 'minio') DEFAULT 'local' COMMENT '存储提供者：local(本地)/minio(对象存储)',
-  `is_processed` BOOLEAN DEFAULT FALSE COMMENT '是否已处理（用于诊断标记）',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
-  INDEX `idx_user_id` (`user_id`),
-  INDEX `idx_hash_value` (`hash_value`),
-  INDEX `idx_created_at` (`created_at`),
-  INDEX `idx_image_user_created` (`user_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='图像元数据表';
 
 -- === diagnosis_confidences ===
 CREATE TABLE `diagnosis_confidences` (
@@ -223,7 +228,7 @@ CREATE TABLE `user_sessions` (
 -- 5. 插入测试数据
 -- ====================================================
 
--- 5.1 插入测试用户（密码通过环境变量配置，请勿在生产环境使用默认密码）
+-- 6.1 插入测试用户（密码通过环境变量配置，请勿在生产环境使用默认密码）
 INSERT INTO `users` (`username`, `email`, `password_hash`, `role`, `phone`) VALUES
 ('farmer_zhang', 'zhang@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYzS3MebAJu', 'farmer', '13800138001'),
 ('farmer_li', 'li@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYzS3MebAJu', 'farmer', '13800138002'),
@@ -236,13 +241,13 @@ INSERT INTO `diseases` (`name`, `scientific_name`, `category`, `symptoms`, `desc
 ('白粉病', 'Blumeria graminis', 'fungal', 
 '叶片表面出现白色粉状斑点，逐渐扩大形成白色粉层，严重时叶片变黄枯死。',
 '白粉病是小麦常见病害，主要危害叶片，也可危害叶鞘、茎秆和穗部。',
-'["选用抗病品种", "合理密植", "科学施肥", "及时排水"],
+'["选用抗病品种", "合理密植", "科学施肥", "及时排水"]',
 '["喷洒三唑酮可湿性粉剂", "使用烯唑醇", "喷施多菌灵"]'),
 
 ('锈病', 'Puccinia striiformis', 'fungal',
 '叶片表面出现黄色或褐色粉状孢子堆，呈条状或椭圆形排列。',
 '锈病是小麦重要病害，分为条锈、叶锈和秆锈三种类型。',
-'["选用抗病品种", "适期播种", "合理施肥", "清除自生麦"],
+'["选用抗病品种", "适期播种", "合理施肥", "清除自生麦"]',
 '["喷洒粉锈宁", "使用烯唑醇", "喷施三唑酮"]'),
 
 ('赤霉病', 'Fusarium graminearum', 'fungal',
@@ -254,16 +259,16 @@ INSERT INTO `diseases` (`name`, `scientific_name`, `category`, `symptoms`, `desc
 ('纹枯病', 'Rhizoctonia cerealis', 'fungal',
 '叶鞘出现椭圆形病斑，边缘褐色，中央淡褐色或灰白色。',
 '纹枯病主要危害叶鞘和叶片，严重时导致植株倒伏。',
-'["合理密植", "科学施肥", "及时排水", "清除病残体"],
+'["合理密植", "科学施肥", "及时排水", "清除病残体"]',
 '["喷洒井冈霉素", "使用多抗霉素", "喷施噻呋酰胺"]'),
 
 ('蚜虫', 'Sitobion avenae', 'pest',
 '叶片背面和嫩茎上聚集绿色或黑色小虫，吸食汁液，叶片卷曲。',
 '蚜虫是小麦常见害虫，群集危害，传播病毒病。',
-'["保护天敌", "黄板诱杀", "合理施肥", "及时灌溉"],
+'["保护天敌", "黄板诱杀", "合理施肥", "及时灌溉"]',
 '["喷洒吡虫啉", "使用啶虫脒", "喷施高效氯氰菊酯"]');
 
--- 5.3 插入知识图谱数据
+-- 6.3 插入知识图谱数据
 INSERT INTO `knowledge_graph` (`entity`, `entity_type`, `relation`, `target_entity`, `attributes`) VALUES
 ('白粉病', 'disease', 'HAS_SYMPTOM', '白色粉状斑点', '{"severity": "high"}'),
 ('白粉病', 'disease', 'TREATED_BY', '三唑酮', '{"effectiveness": 0.9}'),
@@ -280,7 +285,7 @@ INSERT INTO `knowledge_graph` (`entity`, `entity_type`, `relation`, `target_enti
 -- 6. 创建视图（可选）
 -- ====================================================
 
--- 6.1 诊断详情视图
+-- 7.1 诊断详情视图
 DROP VIEW IF EXISTS `v_diagnosis_detail`;
 
 CREATE VIEW `v_diagnosis_detail` AS
@@ -307,7 +312,7 @@ FROM diagnoses
 GROUP BY disease_name;
 
 -- ====================================================
--- 7. 完成提示
+-- 8. 完成提示
 -- ====================================================
 SELECT '数据库初始化完成！' as message;
 SELECT CONCAT('用户数：', COUNT(*)) as message FROM users;
