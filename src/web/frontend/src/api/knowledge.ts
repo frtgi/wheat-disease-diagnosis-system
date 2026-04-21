@@ -8,6 +8,27 @@ import { http } from '@/utils/request'
 const API_BASE = '/knowledge'
 
 /**
+ * 防治方法项类型
+ */
+export interface TreatmentItem {
+  method: string
+  description?: string
+  chemicals?: string[]
+  dosage?: string
+  timing?: string
+}
+
+/**
+ * 预防措施项类型
+ */
+export interface PreventionItem {
+  method: string
+  description?: string
+  conditions?: string[]
+  season?: string
+}
+
+/**
  * 病害知识类型
  */
 export interface DiseaseKnowledge {
@@ -17,8 +38,8 @@ export interface DiseaseKnowledge {
   category?: string
   symptoms?: string
   causes?: string
-  treatments?: any
-  prevention?: any
+  treatments?: TreatmentItem[]
+  prevention?: PreventionItem[]
   severity?: number
   scientific_name?: string
   description?: string
@@ -45,7 +66,7 @@ export interface KnowledgeRelation {
   from: string
   to: string
   type: string
-  properties?: Record<string, any>
+  properties?: Record<string, string | number | boolean>
 }
 
 /**

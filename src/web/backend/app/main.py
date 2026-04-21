@@ -45,7 +45,6 @@ if sys.platform == 'win32':
     if hasattr(sys.stderr, 'reconfigure'):
         sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-    import asyncio
     try:
         from asyncio.proactor_events import _ProactorBasePipeTransport
     except ImportError:

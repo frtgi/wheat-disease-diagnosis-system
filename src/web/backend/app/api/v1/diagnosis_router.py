@@ -478,7 +478,7 @@ async def _generate_diagnosis_stream_from_url(
                     progress=5,
                     message="图像加载完成，准备开始分析..."
                 ).to_sse()
-            except Exception as e:
+            except Exception:
                 yield LogEvent(
                     level="error",
                     message="图像读取失败，请检查文件格式",
@@ -528,7 +528,7 @@ async def _generate_diagnosis_stream_from_url(
                 progress=10,
                 message="正在初始化融合服务..."
             ).to_sse()
-            fusion_service.initialize()
+            await asyncio.to_thread(fusion_service.initialize)
 
         disease_context = None
         if symptoms:
@@ -616,7 +616,8 @@ async def _generate_diagnosis_stream_from_url(
             message="正在融合多模态特征..."
         ).to_sse()
 
-        fusion_result = fusion_service._fuse_features(
+        fusion_result = await asyncio.to_thread(
+            fusion_service._fuse_features,
             visual_result=visual_result,
             textual_result=textual_result,
             knowledge_context=knowledge_context,
@@ -895,7 +896,6 @@ async def _generate_diagnosis_stream(
         str: SSE 格式的事件字符串
     """
     start_time = time.time()
-    queue: asyncio.Queue = asyncio.Queue()
 
     yield ProgressEvent(
         event="start",
@@ -930,7 +930,7 @@ async def _generate_diagnosis_stream(
                     progress=5,
                     message="图像加载完成，准备开始分析..."
                 ).to_sse()
-            except Exception as e:
+            except Exception:
                 yield ProgressEvent(
                     event="error",
                     stage="init",
@@ -961,7 +961,7 @@ async def _generate_diagnosis_stream(
                 progress=5,
                 message="正在初始化融合服务..."
             ).to_sse()
-            fusion_service.initialize()
+            await asyncio.to_thread(fusion_service.initialize)
 
         yield ProgressEvent(
             event="progress",
@@ -1090,7 +1090,8 @@ async def _generate_diagnosis_stream(
             message="正在融合多模态特征..."
         ).to_sse()
 
-        fusion_result = fusion_service._fuse_features(
+        fusion_result = await asyncio.to_thread(
+            fusion_service._fuse_features,
             visual_result=visual_result,
             textual_result=textual_result,
             knowledge_context=knowledge_context,
@@ -1268,7 +1269,7 @@ async def diagnose_image(
         from app.services.yolo_service import get_yolo_service
 
         yolo_service = get_yolo_service()
-        result = yolo_service.detect(pil_image)
+        result = await asyncio.to_thread(yolo_service.detect, pil_image)
 
         if not result["success"]:
             elapsed = time.time() - start_time
@@ -1481,14 +1482,16 @@ async def diagnose_multimodal(
 
             if not qwen_service.is_loaded:
                 logger.warning("Qwen 模型未加载，使用文本诊断降级方案")
-                result = qwen_service.diagnose(
+                result = await asyncio.to_thread(
+                    qwen_service.diagnose,
                     symptoms=symptoms,
                     enable_thinking=thinking_mode,
                     use_graph_rag=use_graph_rag,
                     disease_context=disease_context or symptoms
                 )
             else:
-                result = qwen_service.diagnose(
+                result = await asyncio.to_thread(
+                    qwen_service.diagnose,
                     image=pil_image,
                     symptoms=symptoms,
                     enable_thinking=thinking_mode,
@@ -1740,7 +1743,7 @@ async def diagnose_text(
                     }
                 )
 
-        result = qwen_service.diagnose(symptoms=symptoms)
+        result = await asyncio.to_thread(qwen_service.diagnose, symptoms=symptoms)
 
         if not result["success"]:
             elapsed = time.time() - start_time
@@ -2042,7 +2045,8 @@ async def diagnose_batch(
                         continue
 
                 qwen_service = get_qwen_service()
-                result = qwen_service.diagnose(
+                result = await asyncio.to_thread(
+                    qwen_service.diagnose,
                     image=pil_image,
                     symptoms=symptoms,
                     enable_thinking=thinking_mode,

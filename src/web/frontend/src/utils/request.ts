@@ -54,7 +54,7 @@ async function refreshAccessToken(): Promise<string | null> {
       '/users/token/refresh',
       { refresh_token: refreshToken }
     )
-    const resData = response as any
+    const resData = response as { data?: { access_token?: string; refresh_token?: string }; access_token?: string; refresh_token?: string }
     const access_token = resData?.data?.access_token || resData?.access_token
     const newRefreshToken = resData?.data?.refresh_token || resData?.refresh_token
     
@@ -194,7 +194,7 @@ service.interceptors.response.use(
     
     // 处理不同的 HTTP 状态码
     if (error.response) {
-      const detail = (error.response.data as any)?.detail
+      const detail = (error.response.data as { detail?: string })?.detail
       const errorMessage = detail || null
 
       switch (error.response.status) {
@@ -239,23 +239,23 @@ service.interceptors.response.use(
  * 封装请求方法
  */
 export const http = {
-  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
     return service.get(url, config)
   },
 
-  post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     return service.post(url, data, config)
   },
 
-  put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     return service.put(url, data, config)
   },
 
-  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
     return service.delete(url, config)
   },
 
-  upload<T = any>(url: string, data: FormData, config?: AxiosRequestConfig): Promise<T> {
+  upload<T = unknown>(url: string, data: FormData, config?: AxiosRequestConfig): Promise<T> {
     return service.post(url, data, {
       ...config,
       headers: {

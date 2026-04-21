@@ -7,6 +7,52 @@ import { http } from '@/utils/request'
 const API_BASE = '/reports'
 
 /**
+ * 报告文件路径信息
+ */
+export interface ReportFiles {
+  pdf?: string
+  html?: string
+}
+
+/**
+ * 报告生成响应类型
+ */
+export interface ReportGenerateResponse {
+  success: boolean
+  diagnosis: {
+    disease_name: string
+    confidence: number
+    severity?: string
+    symptoms?: string
+    prevention_methods?: string
+    treatment_methods?: string
+  }
+  report_files: ReportFiles
+  message: string
+  has_image?: boolean
+}
+
+/**
+ * 报告列表项类型
+ */
+export interface ReportListItem {
+  filename: string
+  size: number
+  created_at: number
+  format: 'pdf' | 'html'
+}
+
+/**
+ * 报告列表响应类型
+ */
+export interface ReportListResponse {
+  success: boolean
+  reports: ReportListItem[]
+  total: number
+  message?: string
+}
+
+/**
  * 生成诊断报告
  * @param image 病害图像文件
  * @param symptoms 症状描述
@@ -17,12 +63,12 @@ export async function generateReport(
   image: File,
   symptoms: string = '',
   reportFormat: string = 'both'
-): Promise<any> {
+): Promise<ReportGenerateResponse> {
   const formData = new FormData()
   formData.append('image', image)
   formData.append('symptoms', symptoms)
   formData.append('report_format', reportFormat)
-  const response = await http.post(`${API_BASE}/generate`, formData, {
+  const response = await http.post<ReportGenerateResponse>(`${API_BASE}/generate`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 300000
   })
@@ -38,10 +84,10 @@ export async function generateReport(
 export async function generateReportFromRecord(
   diagnosisId: number,
   reportFormat: string = 'both'
-): Promise<any> {
+): Promise<ReportGenerateResponse> {
   const formData = new FormData()
   formData.append('report_format', reportFormat)
-  const response = await http.post(`${API_BASE}/generate-from-record/${diagnosisId}`, formData, {
+  const response = await http.post<ReportGenerateResponse>(`${API_BASE}/generate-from-record/${diagnosisId}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 120000
   })
@@ -81,7 +127,7 @@ export async function downloadReport(filename: string): Promise<void> {
  * 获取报告列表
  * @returns 报告文件列表
  */
-export async function getReportList(): Promise<any> {
-  const response = await http.get(`${API_BASE}/list`)
+export async function getReportList(): Promise<ReportListResponse> {
+  const response = await http.get<ReportListResponse>(`${API_BASE}/list`)
   return response.data || response
 }

@@ -145,7 +145,7 @@ export interface BatchDiagnosisItem {
   index: number
   filename: string
   success: boolean
-  diagnosis?: any
+  diagnosis?: DiagnosisResult
   error?: string
   cache_hit?: boolean
 }

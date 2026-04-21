@@ -12,6 +12,9 @@ import time
 
 router = APIRouter(prefix="/health", tags=["健康检查"])
 
+_components_cache = {"data": None, "timestamp": 0}
+COMPONENTS_CACHE_TTL = 5
+
 @router.get("/database")
 async def database_health():
     """
@@ -130,8 +133,12 @@ async def readiness_check():
 async def components_status():
     """
     组件状态检查
-    返回所有组件的详细状态
+    返回所有组件的详细状态（带 TTL 缓存）
     """
+    current_time = time.time()
+    if _components_cache["data"] and (current_time - _components_cache["timestamp"]) < COMPONENTS_CACHE_TTL:
+        return _components_cache["data"]
+
     try:
         get_startup_manager()
         
@@ -204,7 +211,7 @@ async def components_status():
                 "error": str(e)
             }
         
-        return {
+        result = {
             "status": "healthy",
             "components": components,
             "summary": {
@@ -214,5 +221,10 @@ async def components_status():
                 "degraded": sum(1 for c in components.values() if c["status"] == "degraded")
             }
         }
+
+        _components_cache["data"] = result
+        _components_cache["timestamp"] = current_time
+
+        return result
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"组件状态检查失败：{str(e)}")
