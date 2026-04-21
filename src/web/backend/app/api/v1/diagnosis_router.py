@@ -2054,7 +2054,7 @@ async def diagnose_batch(
 
                 if cache_manager and result["success"]:
                     cache_manager.set(
-                        image_bytes=image_bytes,
+                        image_data=image_bytes,
                         symptoms=symptoms,
                         diagnosis_result=result["diagnosis"],
                         ttl=3600
