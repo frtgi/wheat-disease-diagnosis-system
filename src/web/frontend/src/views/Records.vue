@@ -224,9 +224,8 @@ const handleExportReport = async (row: DiagnosisRecordItem) => {
     const result = await generateReportFromRecord(row.id, 'both')
     if (result.report_files) {
       ElMessage.success(`报告生成成功${result.has_image ? '（含诊断图像）' : '（无诊断图像）'}`)
-      const firstFile = Object.values(result.report_files)[0]
-      if (firstFile) {
-        const filename = String(firstFile).split(/[/\\]/).pop()
+      for (const filePath of Object.values(result.report_files)) {
+        const filename = String(filePath).split(/[/\\]/).pop()
         if (filename) {
           await downloadReport(filename)
         }

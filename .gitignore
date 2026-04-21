@@ -160,6 +160,11 @@ appendonly.aof
 *_report.json
 *_report.md
 *_results.json
+*_result.json
+
+# 临时运维脚本（含硬编码凭据）
+_update_role.py
+
 test_results/
 coverage.xml
 benchmark_results.json
