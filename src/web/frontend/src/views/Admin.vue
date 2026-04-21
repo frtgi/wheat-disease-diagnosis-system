@@ -365,7 +365,7 @@ const loadOverviewStats = async () => {
   try {
     const data = await getOverviewStats()
     overviewStats.value = data || {}
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('加载概览统计失败')
   }
 }
@@ -377,7 +377,7 @@ const loadUserStats = async () => {
   try {
     const data = await getUserStats()
     userStats.value = data || {}
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('加载用户统计失败')
   }
 }
@@ -389,7 +389,7 @@ const loadDiagnosisStats = async () => {
   try {
     const data = await getDiagnosisStats()
     diagnosisStats.value = data || {}
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('加载诊断统计失败')
   }
 }
@@ -402,7 +402,7 @@ const refreshVramStatus = async () => {
   try {
     const res = await getVramStatus()
     vramStatus.value = res?.data || null
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('获取显存状态失败')
   } finally {
     vramLoading.value = false
@@ -419,7 +419,7 @@ const handleCleanupVram = async () => {
     const freed = res?.freed_mb || 0
     ElMessage.success(`显存清理完成，释放 ${freed}MB`)
     await refreshVramStatus()
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('显存清理失败')
   } finally {
     vramCleaning.value = false
@@ -435,7 +435,7 @@ const refreshCacheStats = async () => {
     const res = await getCacheStats()
     cacheStats.value = res?.data || null
     cacheAvailable.value = !!res
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('获取缓存统计失败')
   } finally {
     cacheLoading.value = false
@@ -457,7 +457,7 @@ const refreshSystemMetrics = async () => {
       memory_total_mb: Math.round((sysMetrics.memory_total_mb || 0)),
       disk_percent: sysMetrics.disk_percent ?? 0
     }
-  } catch (e) {
+  } catch (_e) {
     // 静默失败，不影响用户体验
   }
 }
@@ -494,7 +494,7 @@ const handleClearCache = async () => {
     await clearCache()
     ElMessage.success('缓存已清空')
     await refreshCacheStats()
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('清空缓存失败')
   } finally {
     cacheClearing.value = false
@@ -513,7 +513,7 @@ const refreshLogStats = async () => {
     ])
     logStatistics.value = statsRes || null
     recentLogs.value = logsRes?.logs || []
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('加载日志统计失败')
   } finally {
     logLoading.value = false
@@ -528,7 +528,7 @@ const handlePreloadModels = async () => {
   try {
     await preloadAIModels()
     ElMessage.success('模型预加载成功')
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('模型预加载失败')
   } finally {
     preloading.value = false
@@ -565,7 +565,7 @@ const loadDiseaseDistribution = async () => {
         }]
       })
     }
-  } catch (e) {
+  } catch (_e) {
     ElMessage.error('加载病害分布失败')
   }
 }
