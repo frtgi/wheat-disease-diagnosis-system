@@ -72,7 +72,7 @@ import FusionResult from '@/components/diagnosis/FusionResult.vue'
 import InferenceProgress from '@/components/diagnosis/InferenceProgress.vue'
 import BatchDiagnosis from '@/components/diagnosis/BatchDiagnosis.vue'
 import http from '@/utils/request'
-import { generateReport, getReportDownloadUrl } from '@/api/report'
+import { generateReport, downloadReport } from '@/api/report'
 import type { FusionDiagnosisResult, FusionDiagnosisResponse } from '@/types'
 import { useUserStore } from '@/stores'
 
@@ -580,13 +580,13 @@ const handleExportReport = async (format: string): Promise<void> => {
       const downloadedFormats: string[] = []
       
       if (files.pdf) {
-        const pdfUrl = getReportDownloadUrl(files.pdf.split('/').pop() || files.pdf)
-        window.open(pdfUrl, '_blank')
+        const pdfFilename = files.pdf.split('/').pop() || files.pdf
+        await downloadReport(pdfFilename)
         downloadedFormats.push('PDF')
       }
       if (files.html) {
-        const htmlUrl = getReportDownloadUrl(files.html.split('/').pop() || files.html)
-        window.open(htmlUrl, '_blank')
+        const htmlFilename = files.html.split('/').pop() || files.html
+        await downloadReport(htmlFilename)
         downloadedFormats.push('HTML')
       }
       

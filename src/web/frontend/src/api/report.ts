@@ -58,6 +58,26 @@ export function getReportDownloadUrl(filename: string): string {
 }
 
 /**
+ * 下载报告文件（通过 axios 携带认证信息）
+ * @param filename 报告文件名
+ */
+export async function downloadReport(filename: string): Promise<void> {
+  const response = await http.get(`${API_BASE}/download/${filename}`, {
+    responseType: 'blob',
+    timeout: 60000
+  })
+  const blob = response instanceof Blob ? response : new Blob([response])
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}
+
+/**
  * 获取报告列表
  * @returns 报告文件列表
  */

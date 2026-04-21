@@ -88,7 +88,7 @@ import {
   deleteDiagnosis as apiDeleteDiagnosis,
   type DiagnosisRecordItem
 } from '@/api/diagnosis'
-import { generateReportFromRecord, getReportDownloadUrl } from '@/api/report'
+import { generateReportFromRecord, downloadReport } from '@/api/report'
 
 const searchQuery = ref('')
 
@@ -228,7 +228,7 @@ const handleExportReport = async (row: DiagnosisRecordItem) => {
       if (firstFile) {
         const filename = String(firstFile).split(/[/\\]/).pop()
         if (filename) {
-          window.open(getReportDownloadUrl(filename), '_blank')
+          await downloadReport(filename)
         }
       }
     }
