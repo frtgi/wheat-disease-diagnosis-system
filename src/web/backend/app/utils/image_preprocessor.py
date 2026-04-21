@@ -20,7 +20,7 @@ except ImportError:
     logger.warning("PIL 或 numpy 不可用，图像预处理功能受限")
 
 
-class ImagePreprocessor:
+class ImageUtils:
     """高效图像预处理器"""
 
     @staticmethod
@@ -176,9 +176,9 @@ class ImagePreprocessor:
         for i, img_input in enumerate(images):
             try:
                 if isinstance(img_input, str):
-                    img_array = ImagePreprocessor.load_image_jpeg_fast(img_input)
+                    img_array = ImageUtils.load_image_jpeg_fast(img_input)
                 elif isinstance(img_input, bytes):
-                    img_array = ImagePreprocessor.load_image_from_bytes(img_input)
+                    img_array = ImageUtils.load_image_from_bytes(img_input)
                 elif isinstance(img_input, np.ndarray):
                     img_array = img_input
                 else:
@@ -186,7 +186,7 @@ class ImagePreprocessor:
                     continue
                 
                 if img_array is not None:
-                    processed = ImagePreprocessor.resize_with_padding(
+                    processed = ImageUtils.resize_with_padding(
                         img_array, target_size=target_size
                     )
                     processed_images.append(processed)

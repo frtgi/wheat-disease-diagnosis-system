@@ -7,7 +7,7 @@ from .image_hash import (
     generate_cache_key
 )
 from .image_preprocessor import (
-    ImagePreprocessor,
+    ImageUtils,
     preprocess_image_for_yolo
 )
 
@@ -16,6 +16,6 @@ __all__ = [
     "ImageHashCacheKey",
     "compute_image_hash",
     "generate_cache_key",
-    "ImagePreprocessor",
+    "ImageUtils",
     "preprocess_image_for_yolo"
 ]
