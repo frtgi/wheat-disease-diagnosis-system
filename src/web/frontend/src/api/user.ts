@@ -134,7 +134,7 @@ export async function updateUser(userId: number, data: Partial<Pick<User, 'usern
 export const logout = async () => {
   try {
     await http.post('/users/logout')
-  } catch (error) {
+  } catch (_error) {
     // 即使后端登出失败，仍清除本地状态
   }
   localStorage.removeItem('token')
@@ -159,7 +159,7 @@ export function getUserInfo(): User | null {
   if (userStr) {
     try {
       return JSON.parse(userStr)
-    } catch (e) {
+    } catch (_e) {
       return null
     }
   }

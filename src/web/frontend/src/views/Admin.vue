@@ -37,12 +37,12 @@
           </el-col>
           <el-col :span="6">
             <el-card shadow="hover" class="stat-card stat-card-vram">
-              <el-statistic title="GPU 显存" :value="vramStatus.total_mb || 0" suffix="MB">
+              <el-statistic title="GPU 显存" :value="vramStatus?.total_mb || 0" suffix="MB">
                 <template #prefix><el-icon><Monitor /></el-icon></template>
               </el-statistic>
               <el-progress
-                :percentage="Math.round((vramStatus.usage_ratio || 0) * 100)"
-                :color="getVramColor(vramStatus.usage_ratio || 0)"
+                :percentage="Math.round((vramStatus?.usage_ratio || 0) * 100)"
+                :color="getVramColor(vramStatus?.usage_ratio || 0)"
                 :stroke-width="8"
                 class="vram-progress"
               />
@@ -110,21 +110,21 @@
               </template>
               <el-descriptions :column="2" border>
                 <el-descriptions-item label="已用显存">
-                  <span :style="{ color: getVramColor(vramStatus.usage_ratio || 0) }">
-                    {{ vramStatus.used_mb || 0 }} MB
+                  <span :style="{ color: getVramColor(vramStatus?.usage_ratio || 0) }">
+                    {{ vramStatus?.used_mb || 0 }} MB
                   </span>
                 </el-descriptions-item>
-                <el-descriptions-item label="空闲显存">{{ vramStatus.free_mb || 0 }} MB</el-descriptions-item>
-                <el-descriptions-item label="保留显存">{{ vramStatus.reserved_mb || 0 }} MB</el-descriptions-item>
+                <el-descriptions-item label="空闲显存">{{ vramStatus?.free_mb || 0 }} MB</el-descriptions-item>
+                <el-descriptions-item label="保留显存">{{ vramStatus?.reserved_mb || 0 }} MB</el-descriptions-item>
                 <el-descriptions-item label="使用率">
                   <el-progress
-                    :percentage="Math.round((vramStatus.usage_ratio || 0) * 100)"
-                    :color="getVramColor(vramStatus.usage_ratio || 0)"
+                    :percentage="Math.round((vramStatus?.usage_ratio || 0) * 100)"
+                    :color="getVramColor(vramStatus?.usage_ratio || 0)"
                     :stroke-width="14"
                   />
                 </el-descriptions-item>
-                <el-descriptions-item label="警告阈值">{{ Math.round((vramStatus.warning_threshold || 0.85) * 100) }}%</el-descriptions-item>
-                <el-descriptions-item label="临界阈值">{{ Math.round((vramStatus.critical_threshold || 0.95) * 100) }}%</el-descriptions-item>
+                <el-descriptions-item label="警告阈值">{{ Math.round((vramStatus?.warning_threshold || 0.85) * 100) }}%</el-descriptions-item>
+                <el-descriptions-item label="临界阈值">{{ Math.round((vramStatus?.critical_threshold || 0.95) * 100) }}%</el-descriptions-item>
               </el-descriptions>
             </el-card>
           </el-col>
@@ -198,10 +198,10 @@
             </div>
           </template>
 
-          <el-descriptions :column="3" border class="log-stats-desc" v-if="logStatistics.total_requests !== undefined">
-            <el-descriptions-item label="总诊断数">{{ logStatistics.total_requests || 0 }}</el-descriptions-item>
-            <el-descriptions-item label="成功数">{{ logStatistics.success_count || 0 }}</el-descriptions-item>
-            <el-descriptions-item label="失败数">{{ logStatistics.error_count || 0 }}</el-descriptions-item>
+          <el-descriptions :column="3" border class="log-stats-desc" v-if="logStatistics?.total_requests !== undefined">
+            <el-descriptions-item label="总诊断数">{{ logStatistics?.total_requests || 0 }}</el-descriptions-item>
+            <el-descriptions-item label="成功数">{{ logStatistics?.success_count || 0 }}</el-descriptions-item>
+            <el-descriptions-item label="失败数">{{ logStatistics?.failed_count || 0 }}</el-descriptions-item>
           </el-descriptions>
 
           <el-table :data="recentLogs" stripe border size="small" class="log-table" v-loading="logLoading">
@@ -302,7 +302,11 @@ import {
   getLogStatistics,
   getRecentLogs,
   preloadAIModels,
-  getDiseaseDistribution
+  getDiseaseDistribution,
+  type VramStatusData,
+  type CacheStatsData,
+  type LogStatisticsData,
+  type LogItem
 } from '@/api/admin'
 import { http } from '@/utils/request'
 
@@ -316,14 +320,14 @@ const route = useRoute()
 const activeTab = ref((route.query.tab as string) || 'overview')
 
 const overviewStats = ref<Record<string, number>>({})
-const userStats = ref<Record<string, any>>({})
-const diagnosisStats = ref<Record<string, any>>({})
-const vramStatus = ref<Record<string, any>>({})
-const cacheStats = ref<Record<string, any>>({})
+const userStats = ref<Record<string, unknown>>({})
+const diagnosisStats = ref<Record<string, unknown>>({})
+const vramStatus = ref<VramStatusData | null>(null)
+const cacheStats = ref<CacheStatsData | null>(null)
 const cacheAvailable = ref(false)
-const logStatistics = ref<Record<string, any>>({})
-const recentLogs = ref<any[]>([])
-const systemMetrics = ref<Record<string, any>>({})
+const logStatistics = ref<LogStatisticsData | null>(null)
+const recentLogs = ref<LogItem[]>([])
+const systemMetrics = ref<Record<string, unknown>>({})
 
 const vramLoading = ref(false)
 const vramCleaning = ref(false)
@@ -335,7 +339,7 @@ const preloading = ref(false)
 let monitorTimer: ReturnType<typeof setInterval> | null = null
 
 const diseaseChartRef = ref<HTMLElement | null>(null)
-let diseaseChartInstance: any = null
+let diseaseChartInstance: ReturnType<typeof echarts.init> | null = null
 
 /**
  * 返回上一页
@@ -397,7 +401,7 @@ const refreshVramStatus = async () => {
   vramLoading.value = true
   try {
     const res = await getVramStatus()
-    vramStatus.value = res || {}
+    vramStatus.value = res?.data || null
   } catch (e) {
     ElMessage.error('获取显存状态失败')
   } finally {
@@ -429,7 +433,7 @@ const refreshCacheStats = async () => {
   cacheLoading.value = true
   try {
     const res = await getCacheStats()
-    cacheStats.value = res || {}
+    cacheStats.value = res?.data || null
     cacheAvailable.value = !!res
   } catch (e) {
     ElMessage.error('获取缓存统计失败')
@@ -507,7 +511,7 @@ const refreshLogStats = async () => {
       getLogStatistics(logDuration.value),
       getRecentLogs({ page_size: 20 })
     ])
-    logStatistics.value = statsRes || {}
+    logStatistics.value = statsRes || null
     recentLogs.value = logsRes?.logs || []
   } catch (e) {
     ElMessage.error('加载日志统计失败')
@@ -553,7 +557,7 @@ const loadDiseaseDistribution = async () => {
           name: '病害分布',
           type: 'pie',
           radius: ['40%', '70%'],
-          data: chartData.map((item: any) => ({
+          data: chartData.map((item: { disease_name?: string; name?: string; disease_id?: number; count?: number }) => ({
             name: item.disease_name || item.name || `病害#${item.disease_id || 0}`,
             value: item.count || 0
           })),

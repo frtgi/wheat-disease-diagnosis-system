@@ -3,6 +3,8 @@ import typescriptEslint from 'typescript-eslint'
 import vueParser from 'vue-eslint-parser'
 
 export default [
+  ...typescriptEslint.configs.recommended,
+  ...pluginVue.configs['flat/recommended'],
   {
     files: ['**/*.{js,mjs,cjs,ts,vue}'],
     languageOptions: {
@@ -46,8 +48,11 @@ export default [
     rules: {
       'no-undef': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'vue/multi-word-component-names': 'off',
+      'vue/max-attributes-per-line': 'off',
+      'vue/singleline-html-element-content-newline': 'off',
+      'vue/attributes-order': 'off',
     },
   },
-  ...pluginVue.configs['flat/recommended'],
-  ...typescriptEslint.configs.recommended,
 ]
