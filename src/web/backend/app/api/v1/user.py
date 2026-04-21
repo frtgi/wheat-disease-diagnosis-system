@@ -342,6 +342,17 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
         logger.info(f"用户登录成功：username={user.username}, user_id={user.id}")
         record_login_attempt(db, login_data.username, True, request.client.host if request.client else None)
         
+        try:
+            create_user_session(
+                db=db,
+                user_id=user.id,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent")
+            )
+        except Exception as session_err:
+            db.rollback()
+            logger.warning(f"创建用户会话记录失败：{session_err}")
+        
         return {
             "success": True,
             "data": {
