@@ -222,7 +222,7 @@ class IndexOptimizer:
             使用统计
         """
         try:
-            sql = text(f"""
+            sql = text("""
                 SELECT 
                     INDEX_NAME,
                     CARDINALITY,

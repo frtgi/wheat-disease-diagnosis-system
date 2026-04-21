@@ -138,7 +138,7 @@ class DiagnosisRateLimiter:
                         f"剩余队列={len(self._queue)}"
                     )
                 else:
-                    logger.debug(f"队列中下一个请求的 Future 已完成或不存在，跳过")
+                    logger.debug("队列中下一个请求的 Future 已完成或不存在，跳过")
             else:
                 logger.debug(
                     f"释放诊断许可，当前活跃={self._active_count}/{self._max_concurrent}，队列为空"

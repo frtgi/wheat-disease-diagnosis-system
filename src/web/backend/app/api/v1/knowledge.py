@@ -297,7 +297,7 @@ def get_knowledge_graph(
                     rel_keys.add(rel_key)
                     relations.append({"from": src_id, "to": tgt_id, "type": triple.relation.upper()})
 
-        diseases = db.query(Disease).filter(Disease.is_active == True)
+        diseases = db.query(Disease).filter(Disease.is_active is True)
         if disease_id:
             diseases = diseases.filter(Disease.id == disease_id)
         diseases = diseases.limit(20).all()
@@ -456,13 +456,13 @@ def get_knowledge_stats(db: Session = Depends(get_db), current_user: User = Depe
         包含总数和分类统计的字典
     """
     try:
-        total = db.query(func.count(Disease.id)).filter(Disease.is_active == True).scalar()
+        total = db.query(func.count(Disease.id)).filter(Disease.is_active.is_(True)).scalar()
         
         by_category = {}
         category_stats = db.query(
             Disease.category,
             func.count(Disease.id)
-        ).filter(Disease.is_active == True).group_by(Disease.category).all()
+        ).filter(Disease.is_active.is_(True)).group_by(Disease.category).all()
         
         for cat, count in category_stats:
             by_category[cat or "unknown"] = count

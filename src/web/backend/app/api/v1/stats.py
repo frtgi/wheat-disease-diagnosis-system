@@ -121,7 +121,7 @@ def get_user_stats(db: Session = Depends(get_db), current_user: User = Depends(r
     返回活跃用户数、角色分布等
     """
     total_users = db.query(func.count(User.id)).scalar()
-    active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
+    active_users = db.query(func.count(User.id)).filter(User.is_active.is_(True)).scalar()
     
     # 按角色统计
     role_stats = db.query(

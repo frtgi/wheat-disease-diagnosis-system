@@ -357,7 +357,7 @@ async def preload_qwen_service(progress_callback: Optional[Callable] = None) -> 
         
         logger.info(f"Qwen 模型加载完成，耗时 {load_time:.2f}秒")
         logger.info(f"显存变化: +{memory_delta['delta_used_mb']:.0f}MB")
-        logger.info(f"量化模式: INT4 (显存占用约 2.6GB)")
+        logger.info("量化模式: INT4 (显存占用约 2.6GB)")
         logger.info("=" * 50)
         
     except Exception as e:

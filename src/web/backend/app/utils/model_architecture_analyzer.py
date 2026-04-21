@@ -43,7 +43,7 @@ def analyze_model_architecture() -> dict:
         
         config_path = os.path.join(model_path, "config.json")
         if os.path.exists(config_path):
-            print(f"  配置文件: 存在")
+            print("  配置文件: 存在")
             try:
                 with open(config_path, "r", encoding="utf-8") as f:
                     config = json.load(f)
@@ -182,9 +182,9 @@ def analyze_model_architecture() -> dict:
                 print(f"  解析配置文件失败: {e}")
                 result["model"]["config_error"] = str(e)
         else:
-            print(f"  配置文件不存在")
+            print("  配置文件不存在")
     else:
-        print(f"  模型路径不存在")
+        print("  模型路径不存在")
         result["model"]["path_exists"] = False
     
     print("\n[7] 优化建议")

@@ -72,7 +72,7 @@ def analyze_hardware() -> dict:
                     "impact": 0.9
                 }
                 result["bottlenecks"].append(bottleneck)
-                print(f"  ⚠️ 瓶颈: 显存容量不足")
+                print("  ⚠️ 瓶颈: 显存容量不足")
             
             # 尝试获取 NVML 信息
             try:
@@ -158,7 +158,7 @@ def analyze_hardware() -> dict:
                 "impact": 0.5
             }
             result["bottlenecks"].append(bottleneck)
-            print(f"  ⚠️ 瓶颈: 系统内存压力大")
+            print("  ⚠️ 瓶颈: 系统内存压力大")
             
     except ImportError:
         print("  (psutil 未安装，跳过内存分析)")

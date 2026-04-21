@@ -238,7 +238,7 @@ def verify_password_reset_token(db: Session, token: str) -> Optional[User]:
     reset_token = db.query(PasswordResetToken).filter(
         and_(
             PasswordResetToken.token == _hash_token(token),
-            PasswordResetToken.used == False,
+            PasswordResetToken.used.is_(False),
             PasswordResetToken.expires_at > datetime.utcnow()
         )
     ).first()
@@ -316,7 +316,7 @@ def verify_refresh_token(db: Session, token: str) -> Optional[User]:
     refresh_token = db.query(RefreshToken).filter(
         and_(
             RefreshToken.token == token_hash,
-            RefreshToken.revoked == False,
+            RefreshToken.revoked.is_(False),
             RefreshToken.expires_at > datetime.utcnow()
         )
     ).first()
@@ -325,7 +325,7 @@ def verify_refresh_token(db: Session, token: str) -> Optional[User]:
         refresh_token = db.query(RefreshToken).filter(
             and_(
                 RefreshToken.token == token,
-                RefreshToken.revoked == False,
+                RefreshToken.revoked.is_(False),
                 RefreshToken.expires_at > datetime.utcnow()
             )
         ).first()
@@ -380,7 +380,7 @@ def revoke_all_user_refresh_tokens(db: Session, user_id: int) -> int:
     count = db.query(RefreshToken).filter(
         and_(
             RefreshToken.user_id == user_id,
-            RefreshToken.revoked == False
+            RefreshToken.revoked.is_(False)
         )
     ).update({"revoked": True})
     db.commit()
@@ -436,7 +436,7 @@ def get_user_sessions(db: Session, user_id: int) -> List[UserSession]:
     return db.query(UserSession).filter(
         and_(
             UserSession.user_id == user_id,
-            UserSession.is_active == True,
+            UserSession.is_active.is_(True),
             UserSession.expires_at > datetime.utcnow()
         )
     ).all()
@@ -483,7 +483,7 @@ def revoke_all_user_sessions(db: Session, user_id: int) -> int:
     count = db.query(UserSession).filter(
         and_(
             UserSession.user_id == user_id,
-            UserSession.is_active == True
+            UserSession.is_active.is_(True)
         )
     ).update({"is_active": False})
     db.commit()
@@ -526,7 +526,7 @@ def check_login_attempts(db: Session, email: str) -> int:
     failed_count = db.query(LoginAttempt).filter(
         and_(
             LoginAttempt.username == email,
-            LoginAttempt.success == False,
+            LoginAttempt.success.is_(False),
             LoginAttempt.timestamp > cutoff_time
         )
     ).count()

@@ -358,7 +358,7 @@ class DiagnosisService:
                                 recommendations = ai_diagnosis['recommendations']
                             if ai_result.get('knowledge_links'):
                                 knowledge_links = ai_result['knowledge_links']
-                            print(f"✅ AI 增强分析完成")
+                            print("✅ AI 增强分析完成")
                 except Exception as e:
                     logger.warning(f"AI 增强分析失败：{e}")
                 
@@ -402,7 +402,7 @@ class DiagnosisService:
             DiagnosisResult: 诊断结果
         """
         try:
-            print(f"\n📝 开始文本诊断...")
+            print("\n📝 开始文本诊断...")
             
             # 使用 Qwen 引擎进行文本分析
             qwen_engine = get_qwen_engine()
@@ -415,7 +415,7 @@ class DiagnosisService:
             
             try:
                 # 尝试使用 Qwen 的 diagnose 方法（支持 GraphRAG）
-                print(f"🔍 调用 Qwen diagnose 方法...")
+                print("🔍 调用 Qwen diagnose 方法...")
                 print(f"   - disease_context: {disease_name}")
                 print(f"   - qwen_engine.enable_graph_rag: {getattr(qwen_engine, 'enable_graph_rag', 'N/A')}")
                 print(f"   - qwen_engine.graphrag_engine: {getattr(qwen_engine, 'graphrag_engine', 'N/A')}")

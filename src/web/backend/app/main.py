@@ -304,7 +304,7 @@ def create_application() -> FastAPI:
         startup_mgr.set_gpu_info(device_info)
         
         if device_info.get("cuda_available"):
-            print(f"\n[GPU 检测]:")
+            print("\n[GPU 检测]:")
             for device in device_info.get("devices", []):
                 print(f"   GPU {device['id']}: {device['name']} ({device['total_memory_mb']:.0f}MB)")
         else:
@@ -353,7 +353,7 @@ def create_application() -> FastAPI:
             
             if ai_results.get("final_gpu_memory"):
                 gpu_mem = ai_results["final_gpu_memory"]
-                print(f"\n📊 最终显存状态:")
+                print("\n📊 最终显存状态:")
                 print(f"   已用: {gpu_mem['used_mb']:.0f}MB")
                 print(f"   可用: {gpu_mem['free_mb']:.0f}MB")
                 print(f"   利用率: {gpu_mem['utilization_percent']:.1f}%")
@@ -423,8 +423,8 @@ def create_application() -> FastAPI:
                     print(f"      建议: {error.suggestion}")
         
         print("\n🌐 服务地址:")
-        print(f"   API 文档: http://localhost:8000/docs")
-        print(f"   健康检查: http://localhost:8000/api/v1/health")
+        print("   API 文档: http://localhost:8000/docs")
+        print("   健康检查: http://localhost:8000/api/v1/health")
         print("=" * 71)
 
         asyncio.create_task(_system_metrics_collector_loop())

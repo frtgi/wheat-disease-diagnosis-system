@@ -582,7 +582,7 @@ class CacheManager:
                     "timestamp": datetime.now().isoformat()
                 }
             )
-            logger.debug(f"语义缓存已更新")
+            logger.debug("语义缓存已更新")
     
     def get_stats(self) -> Dict[str, Any]:
         """获取缓存统计信息"""
