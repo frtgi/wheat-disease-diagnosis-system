@@ -151,22 +151,6 @@ def get_password_hash(password: str) -> str:
         raise ValueError(f"密码哈希生成失败: {e}")
 
 
-def hash_password(password: str) -> str:
-    """
-    密码哈希别名函数
-
-    为保持向后兼容性提供的 get_password_hash 别名，
-    部分模块和测试可能通过此名称引用密码哈希功能。
-
-    参数:
-        password: 用户输入的明文密码
-
-    返回:
-        str: bcrypt 哈希后的密码字符串
-    """
-    return get_password_hash(password)
-
-
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
     创建访问令牌

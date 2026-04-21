@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 import base64
-import io
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +45,7 @@ class ReportGenerator:
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib.units import inch, cm
             from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
-            from reportlab.lib.enums import TA_CENTER, TA_LEFT
-            from reportlab.pdfgen import canvas
+            from reportlab.lib.enums import TA_CENTER
             
             # 生成文件名
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

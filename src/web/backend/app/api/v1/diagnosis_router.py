@@ -26,7 +26,7 @@ import os
 from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Depends, Query
 from fastapi.responses import StreamingResponse
-from typing import Optional, Dict, Any, List, AsyncGenerator, Union
+from typing import Optional, Dict, Any, List, AsyncGenerator
 from PIL import Image
 import io
 
@@ -47,10 +47,7 @@ from app.utils.xss_protection import sanitize_response
 from .sse_stream_manager import (
     ProgressEvent,
     LogEvent,
-    StepIndicator,
-    HeartbeatEvent,
-    SSEStreamManager,
-    format_sse_event
+    StepIndicator
 )
 from .diagnosis_validator import (
     validate_image,
@@ -2384,7 +2381,9 @@ async def update_diagnosis_record(
             setattr(record, field, value)
 
     db.commit()
-    db.refresh(record)
+    record = db.query(Diagnosis).options(
+        joinedload(Diagnosis.disease)
+    ).filter(Diagnosis.id == diagnosis_id).first()
 
     return DiagnosisResponse(
         id=record.id,

@@ -13,8 +13,7 @@ from fastapi import HTTPException, status
 
 from ..models.user import User
 from ..models.auth import PasswordResetToken, RefreshToken, LoginAttempt, UserSession
-from ..core.security import verify_password, get_password_hash, create_access_token
-from ..core.config import settings
+from ..core.security import verify_password, get_password_hash
 from .cache import cache_service
 
 

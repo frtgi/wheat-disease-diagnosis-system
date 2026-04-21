@@ -18,7 +18,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Dict, List, Callable, Any
+from typing import Optional, Dict, List, Any
 
 
 @dataclass

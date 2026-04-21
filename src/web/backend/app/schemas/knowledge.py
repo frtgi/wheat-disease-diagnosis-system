@@ -3,7 +3,7 @@
 定义疾病知识数据的请求和响应格式
 """
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 

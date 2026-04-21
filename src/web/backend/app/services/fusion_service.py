@@ -15,8 +15,7 @@ import time
 import asyncio
 import warnings
 from functools import wraps
-from typing import Dict, List, Optional, Any, Callable
-from dataclasses import dataclass
+from typing import Dict, Optional, Any, Callable
 from contextlib import contextmanager
 from PIL import Image
 import numpy as np

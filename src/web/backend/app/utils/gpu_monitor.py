@@ -98,7 +98,7 @@ def get_gpu_memory_info(device_id: int = 0) -> GPUMemoryInfo:
 
         total_memory = torch.cuda.get_device_properties(device_id).total_memory
         reserved_memory = torch.cuda.memory_reserved(device_id)
-        allocated_memory = torch.cuda.memory_allocated(device_id)
+        torch.cuda.memory_allocated(device_id)
 
         used_memory = min(reserved_memory, total_memory)
         free_memory = total_memory - used_memory

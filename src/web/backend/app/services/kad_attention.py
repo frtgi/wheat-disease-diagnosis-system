@@ -5,7 +5,7 @@ KAD-Former 知识引导注意力模块 (Knowledge-Aided Deep fusion Transformer)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)

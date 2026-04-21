@@ -2,8 +2,7 @@
 FastAPI 依赖项
 提供分页参数等通用依赖注入功能
 """
-from fastapi import Query, Depends
-from typing import Optional
+from fastapi import Query
 
 from app.schemas.common import PaginationParams
 

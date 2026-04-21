@@ -16,10 +16,9 @@ import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Request, Depends
 from datetime import datetime, timedelta
-from collections import Counter
 from sqlalchemy import func
 
-from app.core.security import require_admin, verify_token
+from app.core.security import require_admin
 from app.core.dependencies import get_pagination_params
 from app.schemas.common import PaginationParams
 from app.rate_limiter import limiter

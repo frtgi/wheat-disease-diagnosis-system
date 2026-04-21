@@ -13,19 +13,17 @@ import asyncio
 import warnings
 from functools import wraps
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Callable, Union
+from typing import Dict, Any, Optional, Callable
 from PIL import Image
 
 from .qwen.qwen_config import (
     MODEL_NAME,
-    MODEL_PATH,
-    INFERENCE_PARAMS,
-    PROMPT_TEMPLATES
+    MODEL_PATH
 )
-from .qwen.qwen_loader import QwenModelLoader, get_model_loader, ModelState
-from .qwen.qwen_preprocessor import QwenPreprocessor, get_preprocessor
-from .qwen.qwen_inferencer import QwenInferencer, get_inferencer
-from .qwen.qwen_postprocessor import QwenPostprocessor, get_postprocessor
+from .qwen.qwen_loader import get_model_loader, ModelState
+from .qwen.qwen_preprocessor import get_preprocessor
+from .qwen.qwen_inferencer import get_inferencer
+from .qwen.qwen_postprocessor import get_postprocessor
 
 logger = logging.getLogger(__name__)
 

@@ -8,14 +8,14 @@
 4. 告警管理接口
 """
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from .metrics_collector import get_metrics_collector
-from .alert_manager import get_alert_manager, AlertLevel
+from .alert_manager import get_alert_manager
 
 logger = logging.getLogger(__name__)
 

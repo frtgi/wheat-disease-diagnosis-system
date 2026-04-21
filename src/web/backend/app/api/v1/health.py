@@ -133,7 +133,7 @@ async def components_status():
     返回所有组件的详细状态
     """
     try:
-        startup_mgr = get_startup_manager()
+        get_startup_manager()
         
         components = {}
         

@@ -469,7 +469,7 @@ class ImagePreprocessor:
         Returns:
             PreprocessResult: 预处理结果
         """
-        start_time = time.time()
+        time.time()
         
         try:
             loaded_image = self._load_image(image)

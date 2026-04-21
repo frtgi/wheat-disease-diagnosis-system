@@ -14,7 +14,7 @@
 """
 import logging
 import time
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import torch
 

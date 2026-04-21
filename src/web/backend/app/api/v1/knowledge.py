@@ -15,11 +15,10 @@ from ...models.user import User
 from ...models.disease import Disease
 from ...models.knowledge import KnowledgeGraph
 from ...schemas.common import PaginationParams
-from ...schemas.knowledge import DiseaseCreate, DiseaseResponse, DiseaseUpdate, DiseaseSearch
+from ...schemas.knowledge import DiseaseCreate, DiseaseResponse, DiseaseUpdate
 from ...services.knowledge import (
     create_disease,
     get_disease_by_id,
-    search_diseases,
     update_disease,
     delete_disease,
     get_all_categories

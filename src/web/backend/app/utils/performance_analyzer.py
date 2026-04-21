@@ -6,7 +6,7 @@
 import time
 import logging
 import json
-from typing import Dict, Any, Optional, List, Callable
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from datetime import datetime
 from contextlib import contextmanager

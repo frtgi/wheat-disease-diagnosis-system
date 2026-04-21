@@ -14,15 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.error_codes import (
-    get_error_code,
-    get_error_message,
-    get_http_code,
-    SystemErrorCode,
-    AuthErrorCode,
-    UserErrorCode,
-    DiagnosisErrorCode,
-    AIErrorCode,
-    DatabaseErrorCode
+    get_error_code
 )
 from app.core.config import settings
 

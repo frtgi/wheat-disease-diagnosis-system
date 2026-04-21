@@ -190,7 +190,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             
             return response
             
-        except Exception as e:
+        except Exception:
             latency = time.time() - start_time
             
             metrics_collector.record_request(

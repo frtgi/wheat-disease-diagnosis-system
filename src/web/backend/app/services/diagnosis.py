@@ -4,8 +4,6 @@
 """
 import logging
 import asyncio
-import hashlib
-from pathlib import Path
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -14,9 +12,7 @@ from datetime import datetime
 from PIL import Image
 
 from ..models.diagnosis import Diagnosis
-from ..models.disease import Disease
 from ..schemas.diagnosis import DiagnosisCreate, DiagnosisUpdate
-from .cache import cache_service
 from .yolo_service import get_yolo_service
 from .qwen_service import get_qwen_service
 

@@ -140,7 +140,6 @@ class ModelManager:
             bool: psutil 是否可用
         """
         try:
-            import psutil
             return True
         except ImportError:
             logger.warning("psutil 未安装，系统内存监控功能将受限")

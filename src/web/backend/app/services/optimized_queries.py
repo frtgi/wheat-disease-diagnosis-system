@@ -3,7 +3,7 @@
 提供使用 Eager Loading 和查询优化的数据访问层
 """
 from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session, joinedload, selectinload, contains_eager
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 from datetime import datetime, timedelta
 

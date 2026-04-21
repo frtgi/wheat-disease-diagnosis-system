@@ -65,13 +65,11 @@ def receive_connect(dbapi_connection, connection_record):
 @event.listens_for(sync_engine, "checkout")
 def receive_checkout(dbapi_connection, connection_record, connection_proxy):
     """从连接池获取连接时的回调"""
-    pass
 
 
 @event.listens_for(sync_engine, "checkin")
 def receive_checkin(dbapi_connection, connection_record):
     """连接归还到连接池时的回调"""
-    pass
 
 Base = declarative_base()
 

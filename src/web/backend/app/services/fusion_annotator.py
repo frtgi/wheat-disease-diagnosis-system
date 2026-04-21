@@ -13,7 +13,6 @@
 import logging
 import base64
 import io
-import asyncio
 from typing import Dict, List, Optional, Any
 from PIL import Image, ImageDraw, ImageFont
 
@@ -283,7 +282,6 @@ class ResultAnnotator:
                 - reasoning_chain: 推理链（如果启用）
                 - timing: 计时信息（如果提供）
         """
-        from .fusion_engine import FusionResult
         
         response = {
             "success": True,

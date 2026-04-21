@@ -14,16 +14,16 @@ from ...core.security import create_access_token, decode_access_token, add_token
 from ...schemas.user import (
     UserCreate, UserResponse, UserLogin, Token, UserUpdate,
     PasswordResetRequest, PasswordReset, TokenRefresh,
-    SessionResponse, MessageResponse, LoginResponse
+    SessionResponse, MessageResponse
 )
 from ...services.auth import (
     authenticate_user, create_user, get_user_by_id,
     create_password_reset_token, verify_password_reset_token,
     mark_password_reset_token_used, create_refresh_token,
-    verify_refresh_token, revoke_refresh_token,
-    create_user_session, get_user_sessions, revoke_session,
-    revoke_all_user_sessions, revoke_all_user_refresh_tokens,
-    record_login_attempt, is_account_locked
+    verify_refresh_token, create_user_session,
+    get_user_sessions, revoke_session, revoke_all_user_sessions,
+    revoke_all_user_refresh_tokens, record_login_attempt,
+    is_account_locked
 )
 from ...models.user import User
 from ...core.security import get_password_hash
@@ -793,7 +793,13 @@ def reset_password(
     
     user.password_hash = get_password_hash(reset_data.new_password)
     mark_password_reset_token_used(db, reset_data.token)
-    
+
+    try:
+        revoke_all_user_sessions(db, user.id)
+        revoke_all_user_refresh_tokens(db, user.id)
+    except Exception as revoke_err:
+        logger.warning(f"密码重置后撤销会话失败：{revoke_err}")
+
     db.commit()
     
     logger.info(f"密码重置成功：user_id={user.id}")
@@ -951,7 +957,6 @@ async def logout(
     if authorization and authorization.startswith("Bearer "):
         token = authorization[7:]
     else:
-        from ...core.security import get_token_from_request
         token = request.cookies.get("access_token")
 
     if not token:

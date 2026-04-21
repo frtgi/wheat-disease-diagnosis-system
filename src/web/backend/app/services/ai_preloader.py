@@ -7,19 +7,14 @@ AI 服务预加载模块
 import asyncio
 import logging
 import time
-import torch
 from typing import Dict, Any, Optional, Callable
-from pathlib import Path
 
 from ..core.ai_config import AIConfig
 from ..core.startup_manager import get_startup_manager, ComponentStatus, StartupPhase
 from ..utils.gpu_monitor import (
-    get_gpu_memory_info,
     log_gpu_memory,
-    check_gpu_available,
     check_memory_sufficient,
-    get_memory_usage_delta,
-    GPUMemoryInfo
+    get_memory_usage_delta
 )
 
 logger = logging.getLogger(__name__)

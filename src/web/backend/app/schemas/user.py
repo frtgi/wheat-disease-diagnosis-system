@@ -4,7 +4,7 @@
 """
 from datetime import datetime
 from typing import Optional, Dict, Any, Type
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 
 
 class UserBase(BaseModel):

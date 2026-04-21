@@ -3,7 +3,6 @@
 提供诊断结果等数据的缓存管理
 """
 import json
-import hashlib
 from typing import Optional, Dict, Any
 from datetime import timedelta
 from collections import OrderedDict

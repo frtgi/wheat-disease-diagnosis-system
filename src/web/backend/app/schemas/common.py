@@ -2,7 +2,7 @@
 公共 Pydantic 模式
 定义分页等通用请求和响应格式
 """
-from typing import Generic, TypeVar, List, Optional
+from typing import Generic, TypeVar, List
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")

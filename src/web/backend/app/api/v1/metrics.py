@@ -11,13 +11,13 @@
 
 import logging
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Depends
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import deque
 import statistics
 
-from app.core.security import get_current_user, require_admin
+from app.core.security import get_current_user
 from app.models.user import User
 
 logger = logging.getLogger(__name__)

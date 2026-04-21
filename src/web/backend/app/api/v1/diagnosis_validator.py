@@ -9,8 +9,7 @@
 - 缓存管理
 """
 import logging
-import os
-from typing import Optional, Tuple, Any, Dict
+from typing import Optional, Tuple, Any
 from PIL import Image
 import io
 

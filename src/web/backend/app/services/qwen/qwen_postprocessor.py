@@ -3,7 +3,7 @@ Qwen3-VL 输出后处理模块
 提供响应解析、病害信息提取、置信度格式化等功能
 """
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 from .qwen_config import (
     COMMON_DISEASES,

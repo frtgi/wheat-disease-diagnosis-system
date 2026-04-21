@@ -6,7 +6,7 @@
 """
 import hashlib
 import logging
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Dict, Any
 import io
 
 logger = logging.getLogger(__name__)

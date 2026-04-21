@@ -2,15 +2,13 @@
 文件上传 API 路由
 处理图像文件上传功能
 """
-import os
 import uuid
 import logging
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException, Request, Depends
-from typing import Optional
 
 from app.utils.file_validator import validate_upload_file, get_file_extension
-from app.core.security import get_current_user, verify_token
+from app.core.security import get_current_user
 from app.rate_limiter import limiter
 from app.models.user import User
 

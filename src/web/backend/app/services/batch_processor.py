@@ -14,7 +14,6 @@ import logging
 import gc
 from typing import Any, Dict, List, Optional, Callable, Awaitable
 from dataclasses import dataclass, field
-from datetime import datetime
 from collections import deque
 import threading
 
@@ -318,7 +317,7 @@ class DynamicBatcher:
     def _update_stats(self, batch_size: int, processing_time: float, 
                      total_wait_time: float) -> None:
         """更新统计信息"""
-        n = self._stats["total_batches"]
+        self._stats["total_batches"]
         
         # 滑动平均
         alpha = 0.1  # 平滑系数

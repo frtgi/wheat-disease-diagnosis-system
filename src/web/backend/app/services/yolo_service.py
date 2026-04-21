@@ -7,10 +7,9 @@ import logging
 import time
 import hashlib
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Callable, Set, Tuple
+from typing import Dict, List, Any, Optional, Callable, Set
 from collections import OrderedDict
 from PIL import Image
-import numpy as np
 
 logger = logging.getLogger(__name__)
 

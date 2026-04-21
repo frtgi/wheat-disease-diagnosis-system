@@ -4,6 +4,14 @@ GPU 显存监控核心模块
 此模块已合并至 app.utils.gpu_monitor，所有功能从该模块重新导出以保持向后兼容。
 新代码请直接使用: from app.utils.gpu_monitor import ...
 """
+import warnings
+
+warnings.warn(
+    "core.gpu_monitor 已弃用，请使用 utils.gpu_monitor 替代",
+    DeprecationWarning,
+    stacklevel=2
+)
+
 from app.utils.gpu_monitor import (
     GPUMemoryInfo,
     GPUStatus,

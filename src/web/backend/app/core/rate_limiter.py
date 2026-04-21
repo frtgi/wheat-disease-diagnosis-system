@@ -4,7 +4,7 @@
 """
 import asyncio
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 from dataclasses import dataclass, field
 import logging

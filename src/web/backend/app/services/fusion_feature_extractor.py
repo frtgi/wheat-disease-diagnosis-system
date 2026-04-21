@@ -10,7 +10,7 @@
 提供统一的特征提取接口，支持并行和串行两种模式。
 """
 import logging
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, Optional, Any, Tuple
 import torch
 import numpy as np
 from PIL import Image

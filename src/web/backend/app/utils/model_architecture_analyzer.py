@@ -88,7 +88,7 @@ def analyze_model_architecture() -> dict:
                 vision_hidden = vision_config.get("hidden_size", 1024)
                 vision_layers = vision_config.get("depth", 24)
                 vision_heads = vision_config.get("num_heads", 16)
-                vision_intermediate = vision_config.get("intermediate_size", 4096)
+                vision_config.get("intermediate_size", 4096)
                 patch_size = vision_config.get("patch_size", 16)
                 deepstack = vision_config.get("deepstack_visual_indexes", [5, 11, 17])
                 

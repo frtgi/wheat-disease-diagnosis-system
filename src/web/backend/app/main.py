@@ -21,14 +21,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import Response
 from pathlib import Path as FilePath
 from .core.config import settings
 
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
-from .rate_limiter import limiter, add_rate_limit_middleware
+from .rate_limiter import limiter
 from .core.database import init_db_async
 from .core.startup_manager import initialize_startup_manager, get_startup_manager, StartupPhase, ComponentStatus
 from .core.exceptions import register_exception_handlers
@@ -36,7 +35,7 @@ from .services.ai_preloader import preload_ai_services
 from .services.cache_manager import get_cache_manager
 from .api.v1 import user, knowledge, stats, health, ai_diagnosis, metrics, logs, reports, upload
 from .monitoring.monitoring_api import router as monitoring_router
-from .utils.gpu_monitor import log_gpu_memory, get_device_info, check_gpu_available
+from .utils.gpu_monitor import get_device_info
 
 from .core.logging_config import setup_logging
 
@@ -193,6 +192,9 @@ def create_application() -> FastAPI:
         expose_headers=["X-Request-ID"],
         max_age=settings.CORS_MAX_AGE,
     )
+
+    if not settings.DEBUG and not settings.CORS_ORIGINS:
+        logger.warning("生产环境未配置 CORS_ORIGINS，请设置环境变量以确保安全")
     
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):
@@ -367,7 +369,7 @@ def create_application() -> FastAPI:
         startup_mgr.update_phase(StartupPhase.SERVICES, "初始化服务组件")
         
         try:
-            cache_mgr = get_cache_manager()
+            get_cache_manager()
             startup_mgr.register_component("cache")
             startup_mgr.update_component_status("cache", ComponentStatus.READY, 100, "缓存就绪")
             logger.info("✅ 缓存管理器初始化完成")
@@ -448,38 +450,6 @@ def create_application() -> FastAPI:
             "version": settings.APP_VERSION,
             "docs": "/docs"
         }
-    
-    @app.get("/health", tags=["健康检查"])
-    async def health_check():
-        """
-        健康检查接口
-        返回服务基本健康状态
-        """
-        return {"status": "healthy"}
-    
-    @app.get("/api/v1/health", tags=["健康检查"])
-    async def api_health_check():
-        """
-        API健康检查接口
-        返回详细的服务健康状态信息
-        """
-        try:
-            startup_mgr = get_startup_manager()
-            is_ready = startup_mgr.is_ready()
-            is_degraded = startup_mgr.is_degraded()
-            
-            return {
-                "status": "healthy" if is_ready else ("degraded" if is_degraded else "unhealthy"),
-                "version": settings.APP_VERSION,
-                "ready": is_ready,
-                "degraded": is_degraded,
-                "components": {k: v.to_dict() for k, v in startup_mgr.progress.components.items()}
-            }
-        except Exception as e:
-            return {
-                "status": "unhealthy",
-                "error": str(e)
-            }
     
     return app
 

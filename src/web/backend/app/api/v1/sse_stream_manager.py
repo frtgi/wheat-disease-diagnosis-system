@@ -13,7 +13,7 @@ import time
 import json
 import asyncio
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List, AsyncGenerator, Callable
+from typing import Optional, Dict, Any, AsyncGenerator, Callable
 
 from app.core.config import settings
 

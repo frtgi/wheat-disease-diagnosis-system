@@ -6,8 +6,7 @@
 import json
 import logging
 import time
-import io
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from datetime import timedelta
 from dataclasses import dataclass, field
 
@@ -24,7 +23,6 @@ except ImportError:
     logger.warning("redis.asyncio 不可用，缓存功能受限")
 
 try:
-    from PIL import Image
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
@@ -171,7 +169,7 @@ class InferenceCacheService:
             缓存的诊断结果，未命中返回 None
         """
         self._stats.total_requests += 1
-        start_time = time.time()
+        time.time()
         
         try:
             redis_client = await self._get_redis()

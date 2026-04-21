@@ -7,7 +7,6 @@ import time
 from typing import Dict, Any, Optional, List, Generator
 from PIL import Image
 
-from .qwen_config import INFERENCE_PARAMS
 
 logger = logging.getLogger(__name__)
 

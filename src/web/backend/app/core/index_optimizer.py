@@ -4,7 +4,7 @@
 """
 import logging
 import re
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from sqlalchemy import text, inspect
 from sqlalchemy.orm import Session
 

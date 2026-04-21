@@ -3,7 +3,7 @@
 提供文件类型、大小和内容的综合安全验证功能
 """
 import logging
-from typing import Tuple, Optional, Dict, Any
+from typing import Optional, Dict
 from dataclasses import dataclass
 from enum import Enum
 

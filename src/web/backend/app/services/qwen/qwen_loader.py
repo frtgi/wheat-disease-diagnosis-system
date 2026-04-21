@@ -393,7 +393,6 @@ class QwenModelLoader:
                 quantization_config = None
                 if self.load_in_4bit:
                     try:
-                        import bitsandbytes as bnb
                         quantization_config = BitsAndBytesConfig(**QUANTIZATION_CONFIG)
                         logger.info("启用 INT4 量化加载（NF4 量化 + 双重量化）")
                     except ImportError:

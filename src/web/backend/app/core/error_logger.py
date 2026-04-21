@@ -9,7 +9,6 @@
 """
 import json
 import logging
-import os
 import threading
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
