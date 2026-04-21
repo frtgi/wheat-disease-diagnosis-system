@@ -27,7 +27,7 @@ class DiagnosisRequest:
 class DiagnosisRateLimiter:
     """
     诊断请求并发限制器
-    
+
     使用信号量模式控制并发诊断请求数量，
     超过并发上限的请求进入等待队列，
     队列满后拒绝新请求。
@@ -52,13 +52,13 @@ class DiagnosisRateLimiter:
     async def acquire(self, request: DiagnosisRequest) -> bool:
         """
         获取诊断执行许可
-        
+
         如果当前并发数未满，立即返回 True。
         否则加入队列等待（有超时机制）。
-        
+
         Args:
             request: 诊断请求信息
-            
+
         Returns:
             bool: 是否获得许可（False 表示队列已满被拒绝）
         """
@@ -118,7 +118,7 @@ class DiagnosisRateLimiter:
     async def release(self) -> None:
         """
         释放一个诊断许可
-        
+
         释放后会唤醒队列中的下一个等待者（如果有）。
         """
         async with self._lock:
@@ -162,7 +162,7 @@ class DiagnosisRateLimiter:
     def get_status(self) -> dict:
         """
         获取限流器状态信息
-        
+
         Returns:
             dict: 包含活跃数、队列长度等信息的字典
         """

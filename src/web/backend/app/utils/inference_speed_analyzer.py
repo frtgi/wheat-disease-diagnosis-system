@@ -21,17 +21,17 @@ def generate_inference_speed_report():
         "recommendations": [],
         "priority_matrix": {}
     }
-    
+
     print("=" * 70)
     print("AI 模型推理速度综合分析报告")
     print("=" * 70)
     print(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print()
-    
+
     # 1. 硬件分析
     print("[1] 硬件资源配置分析")
     print("-" * 50)
-    
+
     hardware = {
         "gpu": {
             "name": "NVIDIA GeForce RTX 3050 Laptop GPU",
@@ -47,18 +47,18 @@ def generate_inference_speed_report():
         }
     }
     report["hardware"] = hardware
-    
+
     print(f"  GPU: {hardware['gpu']['name']}")
     print(f"  显存: {hardware['gpu']['memory_mb']}MB")
     print(f"  CUDA 核心: {hardware['gpu']['cuda_cores']}")
     print(f"  显存带宽: {hardware['gpu']['memory_bandwidth_gbps']} GB/s")
     print(f"  系统内存: {hardware['system']['system_memory_gb']}GB")
     print()
-    
+
     # 2. 模型架构分析
     print("[2] 模型架构设计分析")
     print("-" * 50)
-    
+
     model = {
         "name": "Qwen3-VL-2B-Instruct",
         "parameters_b": 2.0,
@@ -81,7 +81,7 @@ def generate_inference_speed_report():
         }
     }
     report["model"] = model
-    
+
     print(f"  模型: {model['name']}")
     print(f"  参数量: {model['parameters_b']}B")
     print(f"  隐藏层维度: {model['hidden_size']}")
@@ -90,11 +90,11 @@ def generate_inference_speed_report():
     print(f"  FFN 扩展比: {model['intermediate_size'] / model['hidden_size']:.1f}x")
     print(f"  INT4 显存估算: {model['estimated_memory']['total_mb']}MB")
     print()
-    
+
     # 3. 软件优化分析
     print("[3] 软件优化程度分析")
     print("-" * 50)
-    
+
     software = {
         "quantization": {
             "method": "INT4 (NF4)",
@@ -113,17 +113,17 @@ def generate_inference_speed_report():
         }
     }
     report["software"] = software
-    
+
     print(f"  量化方法: {software['quantization']['method']}")
     print(f"  推理引擎: {software['inference_engine']['current']}")
     print(f"  Flash Attention: {'已启用' if software['inference_engine']['flash_attention'] else '未启用'}")
     print(f"  批处理大小: {software['batch_size']}")
     print()
-    
+
     # 4. 输入特征分析
     print("[4] 输入数据特征分析")
     print("-" * 50)
-    
+
     input_features = {
         "image_resolution": "640x480",
         "max_sequence_length": 1024,
@@ -135,17 +135,17 @@ def generate_inference_speed_report():
         }
     }
     report["input_features"] = input_features
-    
+
     print(f"  图像分辨率: {input_features['image_resolution']}")
     print(f"  最大序列长度: {input_features['max_sequence_length']}")
     print(f"  Thinking 模式: {'启用' if input_features['thinking_mode'] else '禁用'}")
     print(f"  预估输出 Token: {input_features['estimated_tokens']['output_thinking']} (Thinking)")
     print()
-    
+
     # 5. 瓶颈识别
     print("[5] 性能瓶颈识别")
     print("-" * 50)
-    
+
     bottlenecks = [
         {
             "name": "显存容量不足",
@@ -177,17 +177,17 @@ def generate_inference_speed_report():
         }
     ]
     report["bottlenecks"] = bottlenecks
-    
+
     for i, bn in enumerate(bottlenecks, 1):
         print(f"  {i}. [{bn['severity'].upper()}] {bn['name']}")
         print(f"     影响: {bn['impact']}%")
         print(f"     {bn['description']}")
     print()
-    
+
     # 6. 优化建议
     print("[6] 优化建议（按优先级排序）")
     print("-" * 50)
-    
+
     recommendations = [
         {
             "priority": "P0 (立即)",
@@ -231,17 +231,17 @@ def generate_inference_speed_report():
         }
     ]
     report["recommendations"] = recommendations
-    
+
     for i, rec in enumerate(recommendations, 1):
         print(f"  {i}. [{rec['priority']}] {rec['title']}")
         print(f"     预期改进: {rec['expected_improvement']}")
         print(f"     实施难度: {rec['effort']}")
     print()
-    
+
     # 7. 影响程度矩阵
     print("[7] 各因素影响程度矩阵")
     print("-" * 50)
-    
+
     priority_matrix = {
         "显存容量": {"impact": 95, "category": "硬件", "fixable": "部分"},
         "Thinking 模式": {"impact": 80, "category": "软件配置", "fixable": "是"},
@@ -251,17 +251,17 @@ def generate_inference_speed_report():
         "推理引擎": {"impact": 35, "category": "软件优化", "fixable": "是"}
     }
     report["priority_matrix"] = priority_matrix
-    
+
     print(f"  {'因素':<20} {'影响程度':<10} {'类别':<15} {'可优化':<10}")
     print("  " + "-" * 55)
     for factor, data in sorted(priority_matrix.items(), key=lambda x: x[1]["impact"], reverse=True):
         print(f"  {factor:<20} {data['impact']}%{'':<5} {data['category']:<15} {data['fixable']:<10}")
     print()
-    
+
     # 8. 总结
     print("[8] 总结")
     print("-" * 50)
-    
+
     summary = {
         "root_cause": "显存容量不足（4GB）是导致推理缓慢的根本原因",
         "secondary_causes": [
@@ -280,7 +280,7 @@ def generate_inference_speed_report():
         ]
     }
     report["summary"] = summary
-    
+
     print(f"  根本原因: {summary['root_cause']}")
     print()
     print("  次要原因:")
@@ -294,17 +294,17 @@ def generate_inference_speed_report():
     print("  长期解决方案:")
     for solution in summary["long_term_solutions"]:
         print(f"    - {solution}")
-    
+
     print()
     print("=" * 70)
-    
+
     # 保存结果
     output_path = os.path.join(os.path.dirname(__file__), "inference_speed_analysis_report.json")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    
+
     print(f"\n报告已保存到: {output_path}")
-    
+
     return report
 
 

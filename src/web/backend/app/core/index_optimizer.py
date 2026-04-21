@@ -14,14 +14,14 @@ logger = logging.getLogger(__name__)
 class IndexOptimizer:
     """
     数据库索引优化器
-    
+
     功能：
     1. 分析现有索引
     2. 推荐缺失索引
     3. 创建优化索引
     4. 检测冗余索引
     """
-    
+
     # 推荐的索引配置
     RECOMMENDED_INDEXES = {
         "users": [
@@ -52,24 +52,24 @@ class IndexOptimizer:
             {"columns": ["entity_type", "entity"], "name": "idx_knowledge_type_entity"},
         ],
     }
-    
+
     def __init__(self, db: Session):
         """
         初始化索引优化器
-        
+
         Args:
             db: 数据库会话
         """
         self.db = db
         self.inspector = inspect(db.bind)
-    
+
     def get_existing_indexes(self, table_name: str) -> List[Dict[str, Any]]:
         """
         获取表的现有索引
-        
+
         Args:
             table_name: 表名
-        
+
         Returns:
             索引列表
         """
@@ -79,27 +79,27 @@ class IndexOptimizer:
         except Exception as e:
             logger.error(f"获取表 {table_name} 的索引失败：{e}")
             return []
-    
+
     def analyze_table_indexes(self, table_name: str) -> Dict[str, Any]:
         """
         分析表的索引情况
-        
+
         Args:
             table_name: 表名
-        
+
         Returns:
             分析结果
         """
         existing = self.get_existing_indexes(table_name)
         existing_names = {idx["name"] for idx in existing}
-        
+
         recommended = self.RECOMMENDED_INDEXES.get(table_name, [])
         missing = []
-        
+
         for idx in recommended:
             if idx["name"] not in existing_names:
                 missing.append(idx)
-        
+
         return {
             "table": table_name,
             "existing_indexes": existing,
@@ -107,7 +107,7 @@ class IndexOptimizer:
             "total_existing": len(existing),
             "total_missing": len(missing)
         }
-    
+
     @staticmethod
     def _validate_identifier(name: str) -> str:
         """
@@ -150,7 +150,7 @@ class IndexOptimizer:
             columns_str = ", ".join(columns)
 
             sql = f"""
-            CREATE {unique_str} INDEX {index_name} 
+            CREATE {unique_str} INDEX {index_name}
             ON {table_name} ({columns_str})
             """
 
@@ -164,14 +164,14 @@ class IndexOptimizer:
             self.db.rollback()
             logger.error(f"创建索引失败 {index_name}：{e}")
             return False
-    
+
     def create_missing_indexes(self, table_name: str) -> Dict[str, Any]:
         """
         创建表的缺失索引
-        
+
         Args:
             table_name: 表名
-        
+
         Returns:
             创建结果
         """
@@ -180,7 +180,7 @@ class IndexOptimizer:
             "created": [],
             "failed": []
         }
-        
+
         for idx in analysis["missing_indexes"]:
             success = self.create_index(
                 table_name=table_name,
@@ -188,42 +188,42 @@ class IndexOptimizer:
                 index_name=idx["name"],
                 unique=idx.get("unique", False)
             )
-            
+
             if success:
                 results["created"].append(idx["name"])
             else:
                 results["failed"].append(idx["name"])
-        
+
         return results
-    
+
     def optimize_all_tables(self) -> Dict[str, Any]:
         """
         优化所有表的索引
-        
+
         Returns:
             优化结果
         """
         results = {}
-        
+
         for table_name in self.RECOMMENDED_INDEXES.keys():
             logger.info(f"正在优化表：{table_name}")
             results[table_name] = self.create_missing_indexes(table_name)
-        
+
         return results
-    
+
     def get_index_usage_stats(self, table_name: str) -> Dict[str, Any]:
         """
         获取索引使用统计（MySQL 特定）
-        
+
         Args:
             table_name: 表名
-        
+
         Returns:
             使用统计
         """
         try:
             sql = text("""
-                SELECT 
+                SELECT
                     INDEX_NAME,
                     CARDINALITY,
                     SEQ_IN_INDEX,
@@ -233,10 +233,10 @@ class IndexOptimizer:
                 AND TABLE_NAME = :table_name
                 ORDER BY INDEX_NAME, SEQ_IN_INDEX
             """)
-            
+
             result = self.db.execute(sql, {"table_name": table_name})
             rows = result.fetchall()
-            
+
             stats = {}
             for row in rows:
                 index_name = row[0]
@@ -246,13 +246,13 @@ class IndexOptimizer:
                         "columns": []
                     }
                 stats[index_name]["columns"].append(row[3])
-            
+
             return stats
-            
+
         except Exception as e:
             logger.error(f"获取索引使用统计失败：{e}")
             return {}
-    
+
     def analyze_query_performance(self, query: str) -> Dict[str, Any]:
         """
         分析查询性能（使用 EXPLAIN）
@@ -280,7 +280,7 @@ class IndexOptimizer:
             explain_sql = text(f"EXPLAIN {query}")
             result = self.db.execute(explain_sql)
             rows = result.fetchall()
-            
+
             analysis = []
             for row in rows:
                 analysis.append({
@@ -295,13 +295,13 @@ class IndexOptimizer:
                     "rows": row[8],
                     "Extra": row[9]
                 })
-            
+
             return {
                 "query": query,
                 "analysis": analysis,
                 "using_index": any(row["key"] for row in analysis)
             }
-            
+
         except Exception as e:
             logger.error(f"分析查询性能失败：{e}")
             return {"error": str(e)}
@@ -310,10 +310,10 @@ class IndexOptimizer:
 def optimize_database_indexes(db: Session) -> Dict[str, Any]:
     """
     优化数据库索引的便捷函数
-    
+
     Args:
         db: 数据库会话
-    
+
     Returns:
         优化结果
     """

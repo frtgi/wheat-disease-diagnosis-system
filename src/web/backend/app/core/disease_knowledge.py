@@ -94,7 +94,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="medium"
     ),
-    
+
     "Black Rust": DiseaseInfo(
         name_en="Black Rust",
         name_cn="秆锈病",
@@ -155,7 +155,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="high"
     ),
-    
+
     "Blast": DiseaseInfo(
         name_en="Blast",
         name_cn="稻瘟病",
@@ -216,7 +216,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="high"
     ),
-    
+
     "Brown Rust": DiseaseInfo(
         name_en="Brown Rust",
         name_cn="叶锈病",
@@ -268,7 +268,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="medium"
     ),
-    
+
     "Common Root Rot": DiseaseInfo(
         name_en="Common Root Rot",
         name_cn="根腐病",
@@ -320,7 +320,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="high"
     ),
-    
+
     "Fusarium Head Blight": DiseaseInfo(
         name_en="Fusarium Head Blight",
         name_cn="赤霉病",
@@ -381,7 +381,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="high"
     ),
-    
+
     "Healthy": DiseaseInfo(
         name_en="Healthy",
         name_cn="健康",
@@ -404,7 +404,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         medicines=[],
         severity="low"
     ),
-    
+
     "Leaf Blight": DiseaseInfo(
         name_en="Leaf Blight",
         name_cn="叶枯病",
@@ -456,7 +456,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="medium"
     ),
-    
+
     "Mildew": DiseaseInfo(
         name_en="Mildew",
         name_cn="白粉病",
@@ -517,7 +517,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="medium"
     ),
-    
+
     "Mite": DiseaseInfo(
         name_en="Mite",
         name_cn="螨虫",
@@ -569,7 +569,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="medium"
     ),
-    
+
     "Septoria": DiseaseInfo(
         name_en="Septoria",
         name_cn="壳针孢叶斑病",
@@ -621,7 +621,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="medium"
     ),
-    
+
     "Smut": DiseaseInfo(
         name_en="Smut",
         name_cn="黑粉病",
@@ -673,7 +673,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="high"
     ),
-    
+
     "Stem fly": DiseaseInfo(
         name_en="Stem fly",
         name_cn="茎蝇",
@@ -725,7 +725,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="high"
     ),
-    
+
     "Tan spot": DiseaseInfo(
         name_en="Tan spot",
         name_cn="褐斑病",
@@ -777,7 +777,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
         ],
         severity="medium"
     ),
-    
+
     "Yellow Rust": DiseaseInfo(
         name_en="Yellow Rust",
         name_cn="条锈病",
@@ -844,29 +844,29 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, DiseaseInfo] = {
 def get_disease_info(disease_name: str) -> Optional[DiseaseInfo]:
     """
     获取病害信息
-    
+
     参数:
         disease_name: 病害名称（中文或英文）
-        
+
     返回:
         DiseaseInfo 或 None
     """
     # 先尝试英文名称
     if disease_name in DISEASE_KNOWLEDGE_BASE:
         return DISEASE_KNOWLEDGE_BASE[disease_name]
-    
+
     # 再尝试中文名称
     for info in DISEASE_KNOWLEDGE_BASE.values():
         if info.name_cn == disease_name:
             return info
-    
+
     return None
 
 
 def get_all_diseases() -> List[Dict[str, Any]]:
     """
     获取所有病害信息列表
-    
+
     返回:
         病害信息列表
     """
@@ -884,15 +884,15 @@ def get_all_diseases() -> List[Dict[str, Any]]:
 def generate_recommendations(disease_name: str) -> Dict[str, Any]:
     """
     生成防治建议和用药指导
-    
+
     参数:
         disease_name: 病害名称
-        
+
     返回:
         包含防治建议和用药指导的字典
     """
     info = get_disease_info(disease_name)
-    
+
     if not info:
         return {
             "disease_name": disease_name,
@@ -902,7 +902,7 @@ def generate_recommendations(disease_name: str) -> Dict[str, Any]:
             "treatment": [],
             "medicines": []
         }
-    
+
     return {
         "disease_name": info.name_cn,
         "name_en": info.name_en,

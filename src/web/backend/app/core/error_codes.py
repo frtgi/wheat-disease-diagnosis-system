@@ -25,9 +25,9 @@ from typing import Optional, Dict, List, Any
 class ErrorCode:
     """
     错误码数据类
-    
+
     用于封装单个错误码的完整信息。
-    
+
     Attributes:
         code: 错误码字符串，如 "AUTH_001"
         message: 错误消息描述
@@ -40,7 +40,7 @@ class ErrorCode:
     http_code: int
     category: Optional[str] = None
     solution: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """
         转换为字典格式
@@ -63,11 +63,11 @@ class ErrorCode:
 class SystemErrorCode(Enum):
     """
     系统级错误码枚举
-    
+
     用于表示系统层面的错误，如内部错误、服务不可用等。
     HTTP 状态码范围：500-599
     """
-    
+
     SYS_001 = ErrorCode(
         code="SYS_001",
         message="系统内部错误",
@@ -124,7 +124,7 @@ class SystemErrorCode(Enum):
         category="system",
         solution="该功能正在开发中，敬请期待"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -134,11 +134,11 @@ class SystemErrorCode(Enum):
 class AuthErrorCode(Enum):
     """
     认证相关错误码枚举
-    
+
     用于表示用户认证、授权相关的错误。
     HTTP 状态码范围：401、403
     """
-    
+
     AUTH_001 = ErrorCode(
         code="AUTH_001",
         message="用户名或密码错误",
@@ -209,7 +209,7 @@ class AuthErrorCode(Enum):
         category="auth",
         solution="密码需包含字母、数字，长度至少8位"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -219,11 +219,11 @@ class AuthErrorCode(Enum):
 class UserErrorCode(Enum):
     """
     用户相关错误码枚举
-    
+
     用于表示用户管理相关的错误。
     HTTP 状态码范围：400、404、409
     """
-    
+
     USER_001 = ErrorCode(
         code="USER_001",
         message="用户已存在",
@@ -294,7 +294,7 @@ class UserErrorCode(Enum):
         category="user",
         solution="请联系客服处理"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -304,11 +304,11 @@ class UserErrorCode(Enum):
 class DiagnosisErrorCode(Enum):
     """
     诊断相关错误码枚举
-    
+
     用于表示小麦病害诊断相关的错误。
     HTTP 状态码范围：400、404、500、504
     """
-    
+
     DIAG_001 = ErrorCode(
         code="DIAG_001",
         message="诊断失败",
@@ -386,7 +386,7 @@ class DiagnosisErrorCode(Enum):
         category="diagnosis",
         solution="单次最多支持 20 张图像"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -396,11 +396,11 @@ class DiagnosisErrorCode(Enum):
 class AIErrorCode(Enum):
     """
     AI 服务错误码枚举
-    
+
     用于表示 AI 模型服务相关的错误。
     HTTP 状态码范围：404、500、503、504
     """
-    
+
     AI_001 = ErrorCode(
         code="AI_001",
         message="AI 服务不可用",
@@ -464,7 +464,7 @@ class AIErrorCode(Enum):
         category="ai",
         solution="请稍后重试"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -474,11 +474,11 @@ class AIErrorCode(Enum):
 class DatabaseErrorCode(Enum):
     """
     数据库错误码枚举
-    
+
     用于表示数据库操作相关的错误。
     HTTP 状态码范围：500、504
     """
-    
+
     DB_001 = ErrorCode(
         code="DB_001",
         message="数据库连接失败",
@@ -542,7 +542,7 @@ class DatabaseErrorCode(Enum):
         category="database",
         solution="关联数据不存在或无法删除"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -552,11 +552,11 @@ class DatabaseErrorCode(Enum):
 class FileErrorCode(Enum):
     """
     文件操作错误码枚举
-    
+
     用于表示文件上传、下载、处理相关的错误。
     HTTP 状态码范围：400、404、413、500
     """
-    
+
     FILE_001 = ErrorCode(
         code="FILE_001",
         message="文件上传失败",
@@ -613,7 +613,7 @@ class FileErrorCode(Enum):
         category="file",
         solution="服务器存储空间不足，请联系管理员"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -623,11 +623,11 @@ class FileErrorCode(Enum):
 class ValidationErrorCode(Enum):
     """
     验证错误码枚举
-    
+
     用于表示数据验证相关的错误。
     HTTP 状态码范围：422
     """
-    
+
     VALIDATION_001 = ErrorCode(
         code="VALIDATION_001",
         message="请求参数验证失败",
@@ -663,7 +663,7 @@ class ValidationErrorCode(Enum):
         category="validation",
         solution="请使用有效的字段值"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -673,11 +673,11 @@ class ValidationErrorCode(Enum):
 class ExternalServiceErrorCode(Enum):
     """
     外部服务错误码枚举
-    
+
     用于表示第三方服务调用相关的错误。
     HTTP 状态码范围：502、503
     """
-    
+
     EXT_001 = ErrorCode(
         code="EXT_001",
         message="外部服务不可用",
@@ -706,7 +706,7 @@ class ExternalServiceErrorCode(Enum):
         category="external",
         solution="请联系管理员"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -716,11 +716,11 @@ class ExternalServiceErrorCode(Enum):
 class KnowledgeGraphErrorCode(Enum):
     """
     知识图谱错误码枚举
-    
+
     用于表示知识图谱相关操作的错误。
     HTTP 状态码范围：400、404、500
     """
-    
+
     KG_001 = ErrorCode(
         code="KG_001",
         message="知识图谱查询失败",
@@ -756,7 +756,7 @@ class KnowledgeGraphErrorCode(Enum):
         category="knowledge_graph",
         solution="请检查数据格式后重试"
     )
-    
+
     @property
     def error(self) -> ErrorCode:
         """获取错误码对象"""
@@ -784,7 +784,7 @@ for enum_class in _ERROR_CODE_ENUMS:
     for error_enum in enum_class:
         error_code = error_enum.value
         _ERROR_CODE_MAP[error_code.code] = error_code
-        
+
         if error_code.category:
             if error_code.category not in _CATEGORY_MAP:
                 _CATEGORY_MAP[error_code.category] = []
@@ -794,13 +794,13 @@ for enum_class in _ERROR_CODE_ENUMS:
 def get_error_code(code: str) -> Optional[ErrorCode]:
     """
     根据错误码字符串获取错误信息
-    
+
     Args:
         code: 错误码字符串，如 "AUTH_001"
-    
+
     Returns:
         ErrorCode 对象，如果不存在则返回 None
-    
+
     Example:
         >>> error = get_error_code("AUTH_001")
         >>> print(error.message)
@@ -812,14 +812,14 @@ def get_error_code(code: str) -> Optional[ErrorCode]:
 def get_error_message(code: str, default: str = "未知错误") -> str:
     """
     根据错误码字符串获取错误消息
-    
+
     Args:
         code: 错误码字符串，如 "AUTH_001"
         default: 默认错误消息，当错误码不存在时返回
-    
+
     Returns:
         错误消息字符串
-    
+
     Example:
         >>> message = get_error_message("AUTH_001")
         >>> print(message)
@@ -832,14 +832,14 @@ def get_error_message(code: str, default: str = "未知错误") -> str:
 def get_http_code(code: str, default: int = 500) -> int:
     """
     根据错误码字符串获取 HTTP 状态码
-    
+
     Args:
         code: 错误码字符串，如 "AUTH_001"
         default: 默认 HTTP 状态码，当错误码不存在时返回
-    
+
     Returns:
         HTTP 状态码
-    
+
     Example:
         >>> http_code = get_http_code("AUTH_001")
         >>> print(http_code)
@@ -852,14 +852,14 @@ def get_http_code(code: str, default: int = 500) -> int:
 def get_error_solution(code: str, default: str = "请稍后重试") -> str:
     """
     根据错误码字符串获取解决方案建议
-    
+
     Args:
         code: 错误码字符串，如 "AUTH_001"
         default: 默认解决方案，当错误码不存在时返回
-    
+
     Returns:
         解决方案字符串
-    
+
     Example:
         >>> solution = get_error_solution("AUTH_001")
         >>> print(solution)
@@ -874,13 +874,13 @@ def get_error_solution(code: str, default: str = "请稍后重试") -> str:
 def get_errors_by_category(category: str) -> List[ErrorCode]:
     """
     根据类别获取所有错误码
-    
+
     Args:
         category: 错误类别，如 "auth"、"diagnosis"
-    
+
     Returns:
         该类别下的所有错误码列表
-    
+
     Example:
         >>> errors = get_errors_by_category("auth")
         >>> for e in errors:
@@ -893,7 +893,7 @@ def get_errors_by_category(category: str) -> List[ErrorCode]:
 def get_all_error_codes() -> Dict[str, ErrorCode]:
     """
     获取所有错误码
-    
+
     Returns:
         所有错误码的字典，键为错误码字符串，值为 ErrorCode 对象
     """
@@ -903,7 +903,7 @@ def get_all_error_codes() -> Dict[str, ErrorCode]:
 def get_all_categories() -> List[str]:
     """
     获取所有错误类别
-    
+
     Returns:
         所有错误类别的列表
     """
@@ -913,10 +913,10 @@ def get_all_categories() -> List[str]:
 def validate_error_code(code: str) -> bool:
     """
     验证错误码是否有效
-    
+
     Args:
         code: 错误码字符串
-    
+
     Returns:
         如果错误码存在则返回 True，否则返回 False
     """
@@ -972,22 +972,22 @@ def register_custom_error_code(
 ) -> ErrorCode:
     """
     注册自定义错误码
-    
+
     允许在运行时添加新的错误码。
-    
+
     Args:
         code: 错误码字符串
         message: 错误消息
         http_code: HTTP 状态码
         category: 错误类别
         solution: 解决方案
-    
+
     Returns:
         新创建的 ErrorCode 对象
-    
+
     Raises:
         ValueError: 如果错误码已存在
-    
+
     Example:
         >>> error = register_custom_error_code(
         ...     "CUSTOM_001",
@@ -998,7 +998,7 @@ def register_custom_error_code(
     """
     if code in _ERROR_CODE_MAP:
         raise ValueError(f"错误码 {code} 已存在")
-    
+
     error = ErrorCode(
         code=code,
         message=message,
@@ -1006,12 +1006,12 @@ def register_custom_error_code(
         category=category,
         solution=solution
     )
-    
+
     _ERROR_CODE_MAP[code] = error
-    
+
     if category:
         if category not in _CATEGORY_MAP:
             _CATEGORY_MAP[category] = []
         _CATEGORY_MAP[category].append(code)
-    
+
     return error

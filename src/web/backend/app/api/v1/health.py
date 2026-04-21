@@ -23,26 +23,26 @@ async def database_health():
     """
     try:
         db = SyncSessionLocal()
-        
+
         # 测试连接
         start_time = time.time()
         db.execute(text("SELECT 1"))
         query_time = round((time.time() - start_time) * 1000, 2)
-        
+
         # 获取数据库信息
         result = db.execute(text("SELECT DATABASE()")).fetchone()
         database_name = result[0] if result else "unknown"
-        
+
         # 获取表数量
         result = db.execute(text("""
-            SELECT COUNT(*) 
-            FROM information_schema.tables 
+            SELECT COUNT(*)
+            FROM information_schema.tables
             WHERE table_schema = DATABASE()
         """)).fetchone()
         table_count = result[0] if result else 0
-        
+
         db.close()
-        
+
         return {
             "status": "healthy",
             "database": database_name,
@@ -63,13 +63,13 @@ async def startup_status():
     try:
         startup_mgr = get_startup_manager()
         status = startup_mgr.get_status()
-        
+
         return {
             "status": status["status"],
             "progress": status["progress"]["overall_progress"],
             "phase": status["progress"]["phase"],
             "components": {
-                name: info.to_dict() 
+                name: info.to_dict()
                 for name, info in startup_mgr.progress.components.items()
             },
             "elapsed_time": status["progress"]["elapsed_time"],
@@ -90,24 +90,24 @@ async def readiness_check():
     """
     try:
         startup_mgr = get_startup_manager()
-        
+
         is_ready = startup_mgr.is_ready()
         is_degraded = startup_mgr.is_degraded()
         is_failed = startup_mgr.is_failed()
-        
+
         # 检查关键组件
         critical_components = {
             "database": False,
             "yolo": False,
             "qwen": False
         }
-        
+
         for name, component in startup_mgr.progress.components.items():
             if name in critical_components:
                 critical_components[name] = (
                     component.status.value in ["ready", "degraded"]
                 )
-        
+
         return {
             "ready": is_ready,
             "degraded": is_degraded,
@@ -116,8 +116,8 @@ async def readiness_check():
             "critical_components": critical_components,
             "all_components_ready": all(critical_components.values()),
             "message": "服务已就绪" if is_ready else (
-                "服务降级运行" if is_degraded else 
-                "服务正在启动" if not is_failed else 
+                "服务降级运行" if is_degraded else
+                "服务正在启动" if not is_failed else
                 "服务启动失败"
             )
         }
@@ -141,9 +141,9 @@ async def components_status():
 
     try:
         get_startup_manager()
-        
+
         components = {}
-        
+
         # 数据库状态
         try:
             db = SyncSessionLocal()
@@ -153,7 +153,7 @@ async def components_status():
             result = db.execute(text("SELECT DATABASE()")).fetchone()
             database_name = result[0] if result else "unknown"
             db.close()
-            
+
             components["database"] = {
                 "status": "ready",
                 "name": database_name,
@@ -164,7 +164,7 @@ async def components_status():
                 "status": "failed",
                 "error": str(e)
             }
-        
+
         # YOLO 服务状态
         try:
             yolo_service = get_yolo_service()
@@ -178,7 +178,7 @@ async def components_status():
                 "status": "failed",
                 "error": str(e)
             }
-        
+
         # Qwen 服务状态
         try:
             qwen_service = get_qwen_service()
@@ -197,7 +197,7 @@ async def components_status():
                 "status": "failed",
                 "error": str(e)
             }
-        
+
         # 缓存状态
         try:
             cache_mgr = get_cache_manager()
@@ -210,7 +210,7 @@ async def components_status():
                 "status": "failed",
                 "error": str(e)
             }
-        
+
         result = {
             "status": "healthy",
             "components": components,

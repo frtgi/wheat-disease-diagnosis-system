@@ -13,15 +13,15 @@ logger = logging.getLogger(__name__)
 
 class RedisClient:
     """Redis 客户端管理类"""
-    
+
     _instance: Optional[redis.Redis] = None
     _async_instance: Optional[aioredis.Redis] = None
-    
+
     @classmethod
     def get_client(cls) -> redis.Redis:
         """
         获取同步 Redis 客户端（单例模式）
-        
+
         配置说明：
         - max_connections: 最大连接数
         - socket_connect_timeout: 连接超时
@@ -43,12 +43,12 @@ class RedisClient:
             )
             logger.info("Redis 同步客户端初始化完成")
         return cls._instance
-    
+
     @classmethod
     async def get_async_client(cls) -> aioredis.Redis:
         """
         获取异步 Redis 客户端（单例模式）
-        
+
         配置说明：
         - max_connections: 最大连接数
         - socket_connect_timeout: 连接超时
@@ -69,7 +69,7 @@ class RedisClient:
             )
             logger.info("Redis 异步客户端初始化完成")
         return cls._async_instance
-    
+
     @classmethod
     def test_connection(cls) -> bool:
         """测试 Redis 连接"""
@@ -80,7 +80,7 @@ class RedisClient:
         except Exception as e:
             logger.debug(f"Redis 连接测试失败: {e}")
             return False
-    
+
     @classmethod
     async def test_async_connection(cls) -> bool:
         """测试异步 Redis 连接"""
@@ -91,7 +91,7 @@ class RedisClient:
         except Exception as e:
             logger.debug(f"Redis 异步连接测试失败: {e}")
             return False
-    
+
     @classmethod
     def close(cls):
         """关闭 Redis 连接"""
@@ -99,7 +99,7 @@ class RedisClient:
             cls._instance.close()
             cls._instance = None
             logger.info("Redis 同步客户端连接已关闭")
-    
+
     @classmethod
     async def close_async(cls):
         """关闭异步 Redis 连接"""

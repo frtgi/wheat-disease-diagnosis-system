@@ -77,12 +77,12 @@ Base = declarative_base()
 def get_db() -> Session:
     """
     获取数据库会话的依赖注入函数（同步版本）
-    
+
     使用方式:
         @app.get("/items/")
         def get_items(db: Session = Depends(get_db)):
             ...
-    
+
     返回:
         数据库会话对象
     """
@@ -96,12 +96,12 @@ def get_db() -> Session:
 async def get_db_async() -> Session:
     """
     获取数据库会话的依赖注入函数（异步版本）
-    
+
     使用方式:
         @app.get("/items/")
         async def get_items(db: Session = Depends(get_db_async)):
             ...
-    
+
     返回:
         数据库会话对象
     """

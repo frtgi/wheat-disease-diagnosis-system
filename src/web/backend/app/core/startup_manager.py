@@ -42,7 +42,7 @@ class ErrorInfo:
     error_message: str
     suggestion: str
     timestamp: float = field(default_factory=time.time)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
         return {
@@ -63,7 +63,7 @@ class ComponentInfo:
     error: Optional[str] = None
     load_time: float = 0.0
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
         return {
@@ -86,19 +86,19 @@ class StartupProgress:
     components: Dict[str, ComponentInfo] = field(default_factory=dict)
     start_time: float = field(default_factory=time.time)
     estimated_total_time: float = 120.0
-    
+
     def elapsed_time(self) -> float:
         """获取已用时间"""
         return time.time() - self.start_time
-    
+
     def remaining_time(self) -> float:
         """获取预计剩余时间"""
         if self.overall_progress == 0:
             return self.estimated_total_time
-        
+
         estimated_total = self.elapsed_time() / (self.overall_progress / 100)
         return max(0, estimated_total - self.elapsed_time())
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
         return {
@@ -114,14 +114,14 @@ class StartupProgress:
 
 class StartupManager:
     """启动管理器（增强版）
-    
+
     支持错误收集、摘要生成和修复建议
     """
-    
+
     def __init__(self, timeout: float = 120.0):
         """
         初始化启动管理器
-        
+
         Args:
             timeout: 启动超时时间（秒）
         """
@@ -132,16 +132,16 @@ class StartupManager:
         self._error_message: Optional[str] = None
         self._errors: List[ErrorInfo] = []
         self._gpu_info: Dict[str, Any] = {}
-    
+
     def register_callback(self, callback: Callable[[StartupProgress], Awaitable[None]]) -> None:
         """
         注册进度回调函数
-        
+
         Args:
             callback: 进度回调函数
         """
         self.callbacks.append(callback)
-    
+
     async def _notify_progress(self) -> None:
         """通知进度更新"""
         for callback in self.callbacks:
@@ -149,11 +149,11 @@ class StartupManager:
                 await callback(self.progress)
             except Exception as e:
                 logger.error(f"进度回调失败：{e}")
-    
+
     def update_phase(self, phase: StartupPhase, message: str = "") -> None:
         """
         更新启动阶段
-        
+
         Args:
             phase: 启动阶段
             message: 阶段消息
@@ -161,11 +161,11 @@ class StartupManager:
         self.progress.phase = phase
         if message:
             logger.info(f"[{phase.value.upper()}] {message}")
-    
+
     def register_component(self, name: str, metadata: Optional[Dict[str, Any]] = None) -> None:
         """
         注册组件
-        
+
         Args:
             name: 组件名称
             metadata: 组件元数据
@@ -177,7 +177,7 @@ class StartupManager:
         )
         self.progress.components[name] = component
         logger.debug(f"注册组件：{name}")
-    
+
     def update_component_status(
         self,
         name: str,
@@ -188,7 +188,7 @@ class StartupManager:
     ) -> None:
         """
         更新组件状态
-        
+
         Args:
             name: 组件名称
             status: 组件状态
@@ -198,23 +198,23 @@ class StartupManager:
         """
         if name not in self.progress.components:
             self.register_component(name)
-        
+
         component = self.progress.components[name]
         component.status = status
         component.progress = min(100, max(0, progress))
         component.message = message
         component.error = error
-        
+
         if status == ComponentStatus.READY:
             component.load_time = time.time() - self.progress.start_time
-        
+
         self.progress.current_component = name
         self._calculate_overall_progress()
-    
+
     def add_error(self, component: str, error_message: str, suggestion: str = "") -> None:
         """
         添加错误信息
-        
+
         Args:
             component: 组件名称
             error_message: 错误消息
@@ -229,15 +229,15 @@ class StartupManager:
         logger.error(f"[{component}] 错误: {error_message}")
         if error_info.suggestion:
             logger.info(f"[{component}] 建议: {error_info.suggestion}")
-    
+
     def _get_default_suggestion(self, component: str, error_message: str) -> str:
         """
         根据组件和错误信息生成默认建议
-        
+
         Args:
             component: 组件名称
             error_message: 错误消息
-        
+
         Returns:
             修复建议
         """
@@ -262,29 +262,29 @@ class StartupManager:
                 "auth": "检查 Neo4j 用户名和密码是否正确"
             }
         }
-        
+
         component_suggestions = suggestions.get(component, {})
         error_lower = error_message.lower()
-        
+
         for key, suggestion in component_suggestions.items():
             if key in error_lower:
                 return suggestion
-        
+
         return "检查相关配置和日志，确保依赖服务正常运行"
-    
+
     def set_gpu_info(self, gpu_info: Dict[str, Any]) -> None:
         """
         设置 GPU 信息
-        
+
         Args:
             gpu_info: GPU 信息字典
         """
         self._gpu_info = gpu_info
-    
+
     def get_device_info(self) -> Dict[str, Any]:
         """
         获取设备信息（GPU/CPU）
-        
+
         Returns:
             设备信息字典
         """
@@ -298,12 +298,12 @@ class StartupManager:
                 "devices": [],
                 "message": "GPU 监控模块未安装"
             }
-    
+
     def _calculate_overall_progress(self) -> None:
         """计算总体进度"""
         if not self.progress.components:
             return
-        
+
         weights = {
             StartupPhase.INIT: 0.2,
             StartupPhase.DATABASE: 0.2,
@@ -311,14 +311,14 @@ class StartupManager:
             StartupPhase.SERVICES: 0.1,
             StartupPhase.READY: 0.0
         }
-        
+
         phase_weight = weights.get(self.progress.phase, 0.0)
-        
+
         if self.progress.components:
             avg_progress = sum(c.progress for c in self.progress.components.values()) / len(self.progress.components)
         else:
             avg_progress = 0
-        
+
         phase_start = {
             StartupPhase.INIT: 0,
             StartupPhase.DATABASE: 20,
@@ -326,14 +326,14 @@ class StartupManager:
             StartupPhase.SERVICES: 90,
             StartupPhase.READY: 100
         }
-        
+
         phase_base = phase_start.get(self.progress.phase, 0)
         self.progress.overall_progress = min(100, phase_base + int(avg_progress * phase_weight))
-    
+
     def fail(self, error: str) -> None:
         """
         标记启动失败
-        
+
         Args:
             error: 错误信息
         """
@@ -341,55 +341,55 @@ class StartupManager:
         self._error_message = error
         self.progress.phase = StartupPhase.FAILED
         logger.error(f"启动失败：{error}")
-    
+
     def is_ready(self) -> bool:
         """检查是否已就绪"""
         return self.progress.phase == StartupPhase.READY and not self._failed
-    
+
     def is_failed(self) -> bool:
         """检查是否失败"""
         return self._failed or self.progress.phase == StartupPhase.FAILED
-    
+
     def is_degraded(self) -> bool:
         """检查是否降级运行"""
         if self._failed:
             return False
-        
+
         for component in self.progress.components.values():
             if component.status == ComponentStatus.DEGRADED:
                 return True
-        
+
         return False
-    
+
     def get_errors(self) -> List[ErrorInfo]:
         """获取所有错误信息"""
         return self._errors
-    
+
     def get_error_summary(self) -> str:
         """
         生成错误摘要报告
-        
+
         Returns:
             错误摘要字符串
         """
         if not self._errors:
             return "无错误"
-        
+
         lines = ["=" * 50, "启动错误摘要", "=" * 50]
-        
+
         for i, error in enumerate(self._errors, 1):
             lines.append(f"\n错误 {i}: [{error.component}]")
             lines.append(f"  消息: {error.error_message}")
             if error.suggestion:
                 lines.append(f"  建议: {error.suggestion}")
-        
+
         lines.append("\n" + "=" * 50)
         return "\n".join(lines)
-    
+
     def get_startup_report(self) -> str:
         """
         生成启动报告
-        
+
         Returns:
             启动报告字符串
         """
@@ -404,7 +404,7 @@ class StartupManager:
             "组件状态:",
             "-" * 50
         ]
-        
+
         for name, component in self.progress.components.items():
             status_icon = {
                 ComponentStatus.READY: "✅",
@@ -413,11 +413,11 @@ class StartupManager:
                 ComponentStatus.LOADING: "⏳",
                 ComponentStatus.PENDING: "⏸️"
             }.get(component.status, "❓")
-            
+
             lines.append(f"  {status_icon} {name}: {component.status.value} - {component.message}")
             if component.error:
                 lines.append(f"      错误: {component.error}")
-        
+
         if self._gpu_info:
             lines.extend([
                 "",
@@ -429,7 +429,7 @@ class StartupManager:
                     lines.append(f"  GPU {device['id']}: {device['name']} ({device['total_memory_mb']:.0f}MB)")
             else:
                 lines.append(f"  CUDA 不可用: {self._gpu_info.get('message', '未知原因')}")
-        
+
         if self._errors:
             lines.extend([
                 "",
@@ -440,10 +440,10 @@ class StartupManager:
                 lines.append(f"  [{error.component}] {error.error_message}")
                 if error.suggestion:
                     lines.append(f"    建议: {error.suggestion}")
-        
+
         lines.append("=" * 70)
         return "\n".join(lines)
-    
+
     def get_status(self) -> Dict[str, Any]:
         """获取启动状态"""
         return {
@@ -456,28 +456,28 @@ class StartupManager:
             "errors": [e.to_dict() for e in self._errors],
             "gpu_info": self._gpu_info
         }
-    
+
     async def wait_for_ready(self, poll_interval: float = 1.0) -> bool:
         """
         等待启动完成
-        
+
         Args:
             poll_interval: 轮询间隔（秒）
-        
+
         Returns:
             是否成功启动
         """
         start_time = time.time()
-        
+
         while time.time() - start_time < self.timeout:
             if self.is_ready():
                 return True
-            
+
             if self.is_failed():
                 return False
-            
+
             await asyncio.sleep(poll_interval)
-        
+
         self.fail(f"启动超时（{self.timeout}秒）")
         return False
 

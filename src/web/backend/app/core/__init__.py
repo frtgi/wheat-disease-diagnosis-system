@@ -93,7 +93,7 @@ __all__ = [
     'ErrorDetail',
     'register_exception_handlers',
     'raise_from_code',
-    
+
     # 错误码
     'ErrorCode',
     'SystemErrorCode',
@@ -116,7 +116,7 @@ __all__ = [
     'validate_error_code',
     'error_code_to_response',
     'register_custom_error_code',
-    
+
     # 错误日志
     'ErrorLogger',
     'ErrorLogEntry',
@@ -125,7 +125,7 @@ __all__ = [
     'error_logger',
     'email_alert_handler',
     'webhook_alert_handler',
-    
+
     # 响应
     'ApiResponse',
     'ResponseErrorDetail',

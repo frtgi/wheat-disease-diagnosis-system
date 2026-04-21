@@ -15,19 +15,19 @@ logger = logging.getLogger(__name__)
 
 class CacheService:
     """缓存服务类"""
-    
+
     DIAGNOSIS_PREFIX = "diagnosis:"
     USER_PREFIX = "user:"
     KNOWLEDGE_PREFIX = "knowledge:"
     TOKEN_BLACKLIST_PREFIX = "revoked_token:"
     LOGIN_ATTEMPTS_PREFIX = "login_attempts:"
-    
+
     DIAGNOSIS_TTL = int(timedelta(hours=24).total_seconds())
     USER_TTL = int(timedelta(hours=12).total_seconds())
     KNOWLEDGE_TTL = int(timedelta(hours=6).total_seconds())
     TOKEN_BLACKLIST_TTL = int(timedelta(hours=24).total_seconds())
     LOGIN_ATTEMPTS_TTL = int(timedelta(minutes=30).total_seconds())
-    
+
     def __init__(self):
         """初始化缓存服务"""
         self._redis: Optional[aioredis.Redis] = None
@@ -36,30 +36,30 @@ class CacheService:
         self._local_login_attempts: Dict[str, Dict] = {}
         self._local_login_max_attempts = 5
         self._local_login_lockout_seconds = 1800
-    
+
     async def _get_redis(self) -> aioredis.Redis:
         """获取 Redis 连接"""
         if self._redis is None:
             self._redis = await get_async_redis()
         return self._redis
-    
+
     def _generate_diagnosis_key(self, image_md5: str) -> str:
         """生成诊断结果缓存键
-        
+
         Args:
             image_md5: 图像的 MD5 哈希值
-            
+
         Returns:
             缓存键字符串
         """
         return f"{self.DIAGNOSIS_PREFIX}{image_md5}"
-    
+
     async def get_diagnosis(self, image_md5: str) -> Optional[Dict[str, Any]]:
         """获取诊断结果缓存
-        
+
         Args:
             image_md5: 图像的 MD5 哈希值
-            
+
         Returns:
             诊断结果字典，如果不存在则返回 None
         """
@@ -67,21 +67,21 @@ class CacheService:
             redis_client = await self._get_redis()
             key = self._generate_diagnosis_key(image_md5)
             cached_data = await redis_client.get(key)
-            
+
             if cached_data:
                 return json.loads(cached_data)
             return None
         except Exception as e:
             logger.debug(f"获取诊断缓存失败：{e}")
             return None
-    
+
     async def set_diagnosis(self, image_md5: str, diagnosis_result: Dict[str, Any]) -> bool:
         """设置诊断结果缓存
-        
+
         Args:
             image_md5: 图像的 MD5 哈希值
             diagnosis_result: 诊断结果字典
-            
+
         Returns:
             是否设置成功
         """
@@ -98,13 +98,13 @@ class CacheService:
         except Exception as e:
             logger.debug(f"设置诊断缓存失败：{e}")
             return False
-    
+
     async def delete_diagnosis(self, image_md5: str) -> bool:
         """删除诊断结果缓存
-        
+
         Args:
             image_md5: 图像的 MD5 哈希值
-            
+
         Returns:
             是否删除成功
         """
@@ -116,13 +116,13 @@ class CacheService:
         except Exception as e:
             logger.debug(f"删除诊断缓存失败：{e}")
             return False
-    
+
     async def get_user_info(self, user_id: int) -> Optional[Dict[str, Any]]:
         """获取用户信息缓存
-        
+
         Args:
             user_id: 用户 ID
-            
+
         Returns:
             用户信息字典，如果不存在则返回 None
         """
@@ -130,32 +130,32 @@ class CacheService:
             redis_client = await self._get_redis()
             key = f"{self.USER_PREFIX}{user_id}"
             cached_data = await redis_client.get(key)
-            
+
             if cached_data:
                 return json.loads(cached_data)
             return None
         except Exception as e:
             logger.debug(f"获取用户缓存失败：{e}")
             return None
-    
+
     async def set_user_info(self, user_id: int, user_info: Dict[str, Any]) -> bool:
         """设置用户信息缓存（自动过滤敏感字段）
-        
+
         Args:
             user_id: 用户 ID
             user_info: 用户信息字典
-            
+
         Returns:
             是否设置成功
         """
         try:
             redis_client = await self._get_redis()
             key = f"{self.USER_PREFIX}{user_id}"
-            
+
             # 安全过滤：移除敏感字段，防止密码哈希泄露到缓存
             sensitive_fields = ['password', 'password_hash']
             safe_user_info = {k: v for k, v in user_info.items() if k not in sensitive_fields}
-            
+
             await redis_client.setex(
                 key,
                 self.USER_TTL,
@@ -165,13 +165,13 @@ class CacheService:
         except Exception as e:
             logger.debug(f"设置用户缓存失败：{e}")
             return False
-    
+
     async def invalidate_user_cache(self, user_id: int) -> bool:
         """使指定用户的缓存失效
-        
+
         Args:
             user_id: 用户 ID
-            
+
         Returns:
             是否成功
         """
@@ -183,15 +183,15 @@ class CacheService:
         except Exception as e:
             logger.debug(f"删除用户缓存失败：{e}")
             return False
-    
+
     async def add_token_to_blacklist(self, token: str, expire: int = None) -> bool:
         """
         将 Token 添加到黑名单
-        
+
         Args:
             token: JWT Token
             expire: 过期时间（秒），默认使用 TOKEN_BLACKLIST_TTL
-            
+
         Returns:
             是否添加成功
         """
@@ -209,14 +209,14 @@ class CacheService:
         except Exception as e:
             logger.debug(f"添加 Token 黑名单失败（已写入本地缓存）：{e}")
             return True
-    
+
     async def is_token_revoked(self, token: str) -> bool:
         """
         检查 Token 是否已被撤销
-        
+
         Args:
             token: JWT Token
-            
+
         Returns:
             是否已被撤销
         """
@@ -233,22 +233,22 @@ class CacheService:
                 else:
                     del self._local_token_blacklist[token]
             return False
-    
+
     async def record_login_attempt(self, email: str, success: bool) -> int:
         """
         记录登录尝试
-        
+
         Args:
             email: 用户邮箱
             success: 是否成功
-            
+
         Returns:
             当前失败次数
         """
         try:
             redis_client = await self._get_redis()
             key = f"{self.LOGIN_ATTEMPTS_PREFIX}{email}"
-            
+
             if success:
                 await redis_client.delete(key)
                 self._local_login_attempts.pop(email, None)
@@ -275,14 +275,14 @@ class CacheService:
                     attempt["first_attempt_at"] = now
                 self._local_login_attempts[email] = attempt
                 return attempt["count"]
-    
+
     async def get_login_attempts(self, email: str) -> int:
         """
         获取登录失败次数
-        
+
         Args:
             email: 用户邮箱
-            
+
         Returns:
             失败次数
         """
@@ -302,10 +302,10 @@ class CacheService:
                 self._local_login_attempts.pop(email, None)
                 return 0
             return attempt.get("count", 0)
-    
+
     async def get_stats(self) -> Dict[str, Any]:
         """获取缓存统计信息
-        
+
         Returns:
             缓存统计字典
         """
@@ -313,7 +313,7 @@ class CacheService:
             redis_client = await self._get_redis()
             info = await redis_client.info("stats")
             keys_count = await redis_client.dbsize()
-            
+
             return {
                 "connected": True,
                 "keys_count": keys_count,

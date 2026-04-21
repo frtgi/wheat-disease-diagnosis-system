@@ -49,7 +49,7 @@ SESSION_TAG = "会话管理"
 
 ### 注册流程
 1. 邮箱唯一性预检查
-2. 用户名唯一性预检查  
+2. 用户名唯一性预检查
 3. 密码安全哈希处理（使用 bcrypt）
 4. 用户数据持久化到数据库
 
@@ -137,31 +137,31 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
     """
     try:
         logger.info(f"收到注册请求：username={user_data.username}, email={user_data.email}")
-        
+
         is_valid, error_msg = validate_username(user_data.username)
         if not is_valid:
             logger.warning(f"注册失败 - 用户名验证失败：{user_data.username}, 错误：{error_msg}")
             raise HTTPException(status_code=400, detail=error_msg)
-        
+
         existing_email = db.query(User).filter(User.email == user_data.email).first()
         if existing_email:
             logger.warning(f"注册失败 - 邮箱已被注册：{user_data.email}")
             raise HTTPException(status_code=409, detail="该邮箱已被注册，请使用其他邮箱")
-        
+
         existing_username = db.query(User).filter(User.username == user_data.username).first()
         if existing_username:
             logger.warning(f"注册失败 - 用户名已被使用：{user_data.username}")
             raise HTTPException(status_code=409, detail="该用户名已被使用，请选择其他用户名")
-        
+
         user = create_user(
             db=db,
             username=user_data.username,
             email=user_data.email,
             password=user_data.password
         )
-        
+
         logger.info(f"用户注册成功：username={user.username}, user_id={user.id}")
-        
+
         return {
             "success": True,
             "data": {
@@ -174,7 +174,7 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
             },
             "message": "注册成功"
         }
-        
+
     except HTTPException:
         raise
     except ValueError as e:
@@ -298,7 +298,7 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
             }
 
         user = authenticate_user(db, login_data.username, login_data.password)
-        
+
         if not user:
             logger.warning(f"登录失败 - 用户名或密码错误：{login_data.username}")
             record_login_attempt(db, login_data.username, False, request.client.host if request.client else None)
@@ -307,7 +307,7 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
                 "error": "用户名或密码错误",
                 "error_code": "AUTH_002"
             }
-        
+
         if not user.is_active:
             logger.warning(f"登录失败 - 账号已禁用：{login_data.username}")
             record_login_attempt(db, login_data.username, False, request.client.host if request.client else None)
@@ -316,10 +316,10 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
                 "error": "用户账号已被禁用",
                 "error_code": "AUTH_004"
             }
-        
+
         access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
         refresh_token = create_refresh_token(db, user.id)
-        
+
         response.set_cookie(
             key="access_token",
             value=access_token,
@@ -338,10 +338,10 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
             max_age=604800,
             path="/"
         )
-        
+
         logger.info(f"用户登录成功：username={user.username}, user_id={user.id}")
         record_login_attempt(db, login_data.username, True, request.client.host if request.client else None)
-        
+
         try:
             nested = db.begin_nested()
             create_user_session(
@@ -356,7 +356,7 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
             except Exception:
                 pass
             logger.warning(f"创建用户会话记录失败：{session_err}")
-        
+
         return {
             "success": True,
             "data": {
@@ -373,7 +373,7 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
             },
             "message": "登录成功"
         }
-        
+
     except Exception as e:
         logger.error(f"登录失败 - 未知错误：{e}", exc_info=True)
         return {
@@ -449,32 +449,32 @@ async def get_current_user_info(
     authorization: Optional[str] = Header(None)
 ):
     from ...services.cache import cache_service
-    
+
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="缺少认证令牌"
         )
-    
+
     token = authorization.replace("Bearer ", "")
     payload = decode_access_token(token)
-    
+
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="无效的认证令牌"
         )
-    
+
     if await is_token_blacklisted(token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="令牌已失效，请重新登录",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     username = payload.get("sub")
     user_id = payload.get("user_id")
-    
+
     if user_id:
         try:
             cached_user = await cache_service.get_user_info(user_id)
@@ -483,15 +483,15 @@ async def get_current_user_info(
                 return User(**cached_user)
         except Exception as e:
             logger.warning(f"读取用户缓存失败：{e}")
-    
+
     user = db.query(User).filter(User.username == username).first()
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="用户不存在"
         )
-    
+
     try:
         user_dict = {
             "id": user.id,
@@ -507,7 +507,7 @@ async def get_current_user_info(
         await cache_service.set_user_info(user.id, user_dict)
     except Exception as e:
         logger.warning(f"设置用户缓存失败：{e}")
-    
+
     return user
 
 
@@ -560,15 +560,15 @@ async def get_current_user_info(
 def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.id != user_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="无权查看其他用户信息")
-    
+
     user = get_user_by_id(db, user_id)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="用户不存在"
         )
-    
+
     return user
 
 
@@ -633,15 +633,15 @@ def update_user(
 ):
     if current_user.id != user_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="无权修改其他用户信息")
-    
+
     user = get_user_by_id(db, user_id)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="用户不存在"
         )
-    
+
     if user_data.username:
         is_valid, error_msg = validate_username(user_data.username)
         if not is_valid:
@@ -650,14 +650,14 @@ def update_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=error_msg
             )
-    
+
     update_dict = user_data.model_dump(exclude_unset=True, by_alias=True)
     for field, value in update_dict.items():
         setattr(user, field, value)
-    
+
     db.commit()
     db.refresh(user)
-    
+
     return user
 
 
@@ -718,15 +718,15 @@ def request_password_reset(
         统一的密码重置请求响应
     """
     logger.info(f"收到密码重置请求：email={request_data.email}")
-    
+
     token = create_password_reset_token(db, request_data.email)
-    
+
     if not token:
         logger.warning(f"密码重置失败，邮箱不存在：{request_data.email}")
         return {"message": "如果该邮箱已注册，您将收到密码重置邮件", "success": True}
-    
+
     logger.info(f"密码重置令牌已创建：email={request_data.email}")
-    
+
     return {"message": "如果该邮箱已注册，您将收到密码重置邮件", "success": True}
 
 
@@ -781,16 +781,16 @@ def reset_password(
     db: Session = Depends(get_db)
 ):
     logger.info("收到密码重置执行请求")
-    
+
     user = verify_password_reset_token(db, reset_data.token)
-    
+
     if not user:
         logger.warning("密码重置令牌无效或已过期")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="重置令牌无效或已过期"
         )
-    
+
     user.password_hash = get_password_hash(reset_data.new_password)
     mark_password_reset_token_used(db, reset_data.token)
 
@@ -801,9 +801,9 @@ def reset_password(
         logger.warning(f"密码重置后撤销会话失败：{revoke_err}")
 
     db.commit()
-    
+
     logger.info(f"密码重置成功：user_id={user.id}")
-    
+
     return {"message": "密码重置成功", "success": True}
 
 
@@ -864,23 +864,23 @@ def refresh_token(
     db: Session = Depends(get_db)
 ):
     user = verify_refresh_token(db, refresh_data.refresh_token)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="刷新令牌无效或已过期"
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="用户账号已被禁用"
         )
-    
+
     access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
-    
+
     logger.info(f"令牌刷新成功：user_id={user.id}")
-    
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -1055,33 +1055,33 @@ async def get_sessions(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="缺少认证令牌"
         )
-    
+
     token = authorization.replace("Bearer ", "")
     payload = decode_access_token(token)
-    
+
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="无效的认证令牌"
         )
-    
+
     if await is_token_blacklisted(token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="令牌已失效，请重新登录",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     user_id = payload.get("user_id")
-    
+
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="无效的认证令牌"
         )
-    
+
     sessions = get_user_sessions(db, user_id)
-    
+
     return sessions
 
 
@@ -1150,39 +1150,39 @@ async def terminate_session(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="缺少认证令牌"
         )
-    
+
     token = authorization.replace("Bearer ", "")
     payload = decode_access_token(token)
-    
+
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="无效的认证令牌"
         )
-    
+
     if await is_token_blacklisted(token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="令牌已失效，请重新登录",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     user_id = payload.get("user_id")
-    
+
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="无效的认证令牌"
         )
-    
+
     success = revoke_session(db, session_id, user_id)
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="会话不存在或无权终止"
         )
-    
+
     logger.info(f"会话终止成功：session_id={session_id}, user_id={user_id}")
-    
+
     return {"message": "会话已终止", "success": True}

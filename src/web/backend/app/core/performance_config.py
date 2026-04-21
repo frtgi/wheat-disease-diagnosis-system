@@ -7,58 +7,58 @@ from typing import Dict, Any
 
 class CacheConfig:
     """缓存配置类"""
-    
+
     USER_INFO_TTL = 43200
     USER_INFO_MAX_SIZE = 1000
-    
+
     DIAGNOSIS_HISTORY_TTL = 300
     DIAGNOSIS_HISTORY_MAX_SIZE = 2000
-    
+
     KNOWLEDGE_QUERY_TTL = 21600
     KNOWLEDGE_QUERY_MAX_SIZE = 500
-    
+
     DISEASE_INFO_TTL = 86400
     DISEASE_INFO_MAX_SIZE = 300
-    
+
     DIAGNOSIS_RESULT_TTL = 86400
     DIAGNOSIS_RESULT_MAX_SIZE = 1000
-    
+
     TOKEN_BLACKLIST_TTL = 86400
-    
+
     LOGIN_ATTEMPTS_TTL = 1800
 
 
 class DatabaseConfig:
     """数据库配置类"""
-    
+
     SLOW_QUERY_THRESHOLD = 1.0
-    
+
     QUERY_TIMEOUT = 30
-    
+
     CONNECTION_POOL_SIZE = 10
     CONNECTION_MAX_OVERFLOW = 20
     CONNECTION_TIMEOUT = 30
     CONNECTION_RECYCLE = 3600
-    
+
     ENABLE_QUERY_MONITORING = True
-    
+
     ENABLE_EAGER_LOADING = True
 
 
 class PerformanceConfig:
     """性能配置类"""
-    
+
     ENABLE_RESPONSE_CACHE = True
-    
+
     ENABLE_QUERY_OPTIMIZATION = True
-    
+
     ENABLE_COMPRESSION = False
-    
+
     MAX_PAGE_SIZE = 1000
     DEFAULT_PAGE_SIZE = 20
-    
+
     API_RATE_LIMIT = "100/minute"
-    
+
     ENABLE_METRICS = True
 
 
@@ -117,10 +117,10 @@ PERFORMANCE_THRESHOLDS: Dict[str, Any] = {
 def get_cache_ttl(cache_type: str) -> int:
     """
     获取缓存 TTL
-    
+
     Args:
         cache_type: 缓存类型
-    
+
     Returns:
         TTL（秒）
     """
@@ -130,10 +130,10 @@ def get_cache_ttl(cache_type: str) -> int:
 def should_enable_cache(cache_type: str) -> bool:
     """
     判断是否启用缓存
-    
+
     Args:
         cache_type: 缓存类型
-    
+
     Returns:
         是否启用
     """
@@ -143,11 +143,11 @@ def should_enable_cache(cache_type: str) -> bool:
 def get_performance_threshold(metric: str, level: str) -> int:
     """
     获取性能阈值
-    
+
     Args:
         metric: 性能指标
         level: 性能等级
-    
+
     Returns:
         阈值
     """

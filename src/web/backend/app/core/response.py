@@ -21,7 +21,7 @@ class ErrorDetail(BaseModel):
 class ApiResponse(BaseModel):
     """
     统一 API 响应模型
-    
+
     提供标准化的 API 响应格式，支持成功和错误两种响应类型
     """
     success: bool = Field(..., description="请求是否成功")
@@ -39,14 +39,14 @@ def success_response(
 ) -> Dict[str, Any]:
     """
     生成成功响应
-    
+
     创建一个标准化的成功响应格式，包含成功状态、状态码、消息、数据和时间戳。
-    
+
     参数:
         data: 响应数据，默认为空字典
         message: 响应消息，默认为 "操作成功"
         code: HTTP 状态码，默认为 200
-    
+
     返回:
         标准化的成功响应字典，格式如下：
         {
@@ -56,7 +56,7 @@ def success_response(
             "data": { ... },
             "timestamp": "2026-03-13T12:00:00Z"
         }
-    
+
     示例:
         >>> response = success_response({"user_id": 1, "name": "张三"})
         >>> print(response)
@@ -69,7 +69,7 @@ def success_response(
         }
     """
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    
+
     return {
         "success": True,
         "code": code,
@@ -87,15 +87,15 @@ def error_response(
 ) -> Dict[str, Any]:
     """
     生成错误响应
-    
+
     创建一个标准化的错误响应格式，包含错误状态、HTTP状态码、错误详情和时间戳。
-    
+
     参数:
         error_code: 错误代码，如 "AUTH_001"、"VALIDATION_002" 等
         message: 错误消息，简要描述错误类型
         detail: 错误详细信息，提供更多上下文，默认为 None
         http_code: HTTP 状态码，默认为 400
-    
+
     返回:
         标准化的错误响应字典，格式如下：
         {
@@ -128,15 +128,15 @@ def error_response(
         }
     """
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    
+
     error_info = {
         "error_code": error_code,
         "message": message
     }
-    
+
     if detail is not None:
         error_info["detail"] = detail
-    
+
     return {
         "success": False,
         "code": http_code,

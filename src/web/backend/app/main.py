@@ -105,7 +105,7 @@ def _print_startup_phase(phase_num: int, total_phases: int, phase_name: str, pro
 async def _verify_fusion_diagnosis() -> dict:
     """
     验证融合诊断模块
-    
+
     Returns:
         验证结果字典
     """
@@ -116,7 +116,7 @@ async def _verify_fusion_diagnosis() -> dict:
         "fusion_available": False,
         "errors": []
     }
-    
+
     try:
         from .services import yolo_service
         result["yolo_available"] = yolo_service._yolo_service is not None and yolo_service._yolo_service.is_loaded
@@ -128,7 +128,7 @@ async def _verify_fusion_diagnosis() -> dict:
     except Exception as e:
         result["errors"].append(f"YOLO 服务验证失败: {e}")
         logger.error(f"❌ YOLO 服务验证失败: {e}")
-    
+
     try:
         from .services import qwen_service
         result["qwen_available"] = qwen_service._qwen_service is not None and qwen_service._qwen_service.is_loaded
@@ -140,7 +140,7 @@ async def _verify_fusion_diagnosis() -> dict:
     except Exception as e:
         result["errors"].append(f"Qwen 服务验证失败: {e}")
         logger.error(f"❌ Qwen 服务验证失败: {e}")
-    
+
     try:
         from .services.graphrag_service import get_graphrag_service
         graphrag = get_graphrag_service()
@@ -153,16 +153,16 @@ async def _verify_fusion_diagnosis() -> dict:
     except Exception as e:
         result["errors"].append(f"GraphRAG 服务验证失败: {e}")
         logger.warning(f"⚠️ GraphRAG 服务验证失败: {e}")
-    
+
     result["fusion_available"] = result["yolo_available"] and result["qwen_available"]
-    
+
     return result
 
 
 def create_application() -> FastAPI:
     """
     创建 FastAPI 应用实例
-    
+
     返回:
         配置好的 FastAPI 应用
     """
@@ -174,14 +174,14 @@ def create_application() -> FastAPI:
         redoc_url="/redoc",
         openapi_url="/openapi.json"
     )
-    
+
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    
+
     register_exception_handlers(app)
-    
+
     app.add_middleware(GZipMiddleware, minimum_size=1000)
-    
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -194,7 +194,7 @@ def create_application() -> FastAPI:
 
     if not settings.DEBUG and not settings.CORS_ORIGINS:
         logger.warning("生产环境未配置 CORS_ORIGINS，请设置环境变量以确保安全")
-    
+
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):
         """
@@ -203,11 +203,11 @@ def create_application() -> FastAPI:
         """
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         request_id_var.set(request_id)
-        
+
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
         return response
-    
+
     @app.middleware("http")
     async def add_security_headers(request: Request, call_next):
         """
@@ -250,7 +250,7 @@ def create_application() -> FastAPI:
         )
 
         return response
-    
+
     @app.middleware("http")
     async def retry_middleware(request: Request, call_next):
         """
@@ -259,7 +259,7 @@ def create_application() -> FastAPI:
         """
         max_retries = 3
         last_exception = None
-        
+
         for attempt in range(max_retries):
             try:
                 response = await call_next(request)
@@ -271,10 +271,10 @@ def create_application() -> FastAPI:
                     logger.error(f"重试失败，放弃请求：{e}")
                     raise
                 await asyncio.sleep(0.1 * (2 ** attempt))
-        
+
         if last_exception:
             raise last_exception
-    
+
     app.include_router(user.router, prefix=settings.API_PREFIX)
     app.include_router(knowledge.router, prefix=settings.API_PREFIX)
     app.include_router(stats.router, prefix=settings.API_PREFIX)
@@ -285,24 +285,24 @@ def create_application() -> FastAPI:
     app.include_router(reports.router, prefix=settings.API_PREFIX)
     app.include_router(upload.router, prefix=settings.API_PREFIX)
     app.include_router(monitoring_router, prefix=settings.API_PREFIX)
-    
+
     uploads_dir = FilePath(__file__).parent / "uploads"
     uploads_dir.mkdir(exist_ok=True)
     app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
-    
+
     @app.on_event("startup")
     async def startup_event():
         """应用启动时执行分阶段初始化（优化版）"""
         total_start = time.time()
-        
+
         _print_banner()
-        
+
         startup_mgr = initialize_startup_manager(timeout=120.0)
         startup_mgr.update_phase(StartupPhase.INIT, "开始初始化基础服务")
-        
+
         device_info = get_device_info()
         startup_mgr.set_gpu_info(device_info)
-        
+
         if device_info.get("cuda_available"):
             print("\n[GPU 检测]:")
             for device in device_info.get("devices", []):
@@ -310,21 +310,21 @@ def create_application() -> FastAPI:
         else:
             print(f"\n[警告] GPU 不可用: {device_info.get('message', '未知原因')}")
             print("   AI 模型将无法加载，请检查 GPU 驱动和 CUDA 安装")
-        
+
         _print_startup_phase(1, 4, "基础服务初始化", "0-20%")
         startup_mgr.progress.overall_progress = 0
         logger.info("初始化基础配置...")
         await asyncio.sleep(0.1)
         startup_mgr.progress.overall_progress = 20
         logger.info("基础服务初始化完成")
-        
+
         _print_startup_phase(2, 4, "数据库初始化", "20-40%")
         startup_mgr.update_phase(StartupPhase.DATABASE, "初始化数据库连接")
         startup_mgr.progress.overall_progress = 20
-        
+
         startup_mgr.register_component("database")
         startup_mgr.update_component_status("database", ComponentStatus.LOADING, 0, "连接数据库")
-        
+
         try:
             await init_db_async()
             startup_mgr.update_component_status("database", ComponentStatus.READY, 100, "数据库就绪")
@@ -335,38 +335,38 @@ def create_application() -> FastAPI:
             startup_mgr.add_error("database", str(e), "检查数据库服务是否启动，连接参数是否正确")
             print(f"⚠️ 数据库初始化失败: {e}")
             print("   应用仍可启动，但数据库相关功能将不可用")
-        
+
         startup_mgr.progress.overall_progress = 40
-        
+
         _print_startup_phase(3, 4, "AI 模型加载", "40-90%")
         startup_mgr.update_phase(StartupPhase.AI_LOADING, "预加载 AI 模型")
-        
+
         try:
             ai_results = await preload_ai_services()
-            
+
             if ai_results["success_count"] == 2:
                 logger.info(f"✅ AI 模型加载成功：2/2 ({ai_results['total_time']:.2f}秒)")
             elif ai_results["success_count"] == 1:
                 logger.warning(f"⚠️ AI 模型部分加载：1/2 ({ai_results['total_time']:.2f}秒)，降级模式")
             else:
                 logger.error(f"❌ AI 模型加载失败：0/2 ({ai_results['total_time']:.2f}秒)")
-            
+
             if ai_results.get("final_gpu_memory"):
                 gpu_mem = ai_results["final_gpu_memory"]
                 print("\n📊 最终显存状态:")
                 print(f"   已用: {gpu_mem['used_mb']:.0f}MB")
                 print(f"   可用: {gpu_mem['free_mb']:.0f}MB")
                 print(f"   利用率: {gpu_mem['utilization_percent']:.1f}%")
-                
+
         except Exception as e:
             logger.error(f"❌ AI 模型加载异常：{e}")
             startup_mgr.add_error("ai_models", str(e), "检查模型路径、GPU 显存是否充足")
-        
+
         startup_mgr.progress.overall_progress = 90
-        
+
         _print_startup_phase(4, 4, "服务组件初始化", "90-100%")
         startup_mgr.update_phase(StartupPhase.SERVICES, "初始化服务组件")
-        
+
         try:
             get_cache_manager()
             startup_mgr.register_component("cache")
@@ -376,11 +376,11 @@ def create_application() -> FastAPI:
             logger.error(f"❌ 缓存管理器初始化失败：{e}")
             startup_mgr.register_component("cache")
             startup_mgr.update_component_status("cache", ComponentStatus.FAILED, 0, "缓存失败", str(e))
-        
+
         logger.info("验证融合诊断模块...")
         fusion_result = await _verify_fusion_diagnosis()
         startup_mgr.register_component("fusion_diagnosis")
-        
+
         if fusion_result["fusion_available"]:
             startup_mgr.update_component_status("fusion_diagnosis", ComponentStatus.READY, 100, "融合诊断就绪")
             logger.info("✅ 融合诊断模块验证通过")
@@ -389,21 +389,21 @@ def create_application() -> FastAPI:
             logger.warning("⚠️ 融合诊断模块部分可用")
             for error in fusion_result["errors"]:
                 logger.warning(f"   - {error}")
-        
+
         startup_mgr.update_phase(StartupPhase.READY, "服务就绪")
         startup_mgr.progress.overall_progress = 100
-        
+
         total_time = time.time() - total_start
-        
+
         print("\n" + "=" * 71)
         print("🚀 启动完成！")
         print("=" * 71)
         print(f"总耗时: {total_time:.2f}秒")
-        
+
         status = "就绪" if startup_mgr.is_ready() else "降级" if startup_mgr.is_degraded() else "失败"
         status_icon = "✅" if startup_mgr.is_ready() else "⚠️" if startup_mgr.is_degraded() else "❌"
         print(f"状态: {status_icon} {status}")
-        
+
         print("\n📋 组件状态:")
         for name, component in startup_mgr.progress.components.items():
             icon = {
@@ -414,14 +414,14 @@ def create_application() -> FastAPI:
                 ComponentStatus.PENDING: "⏸️"
             }.get(component.status, "❓")
             print(f"   {icon} {name}: {component.message}")
-        
+
         if startup_mgr.get_errors():
             print("\n❌ 错误摘要:")
             for error in startup_mgr.get_errors():
                 print(f"   [{error.component}] {error.error_message}")
                 if error.suggestion:
                     print(f"      建议: {error.suggestion}")
-        
+
         print("\n🌐 服务地址:")
         print("   API 文档: http://localhost:8000/docs")
         print("   健康检查: http://localhost:8000/api/v1/health")
@@ -440,7 +440,7 @@ def create_application() -> FastAPI:
             except Exception:
                 pass
             await asyncio.sleep(10)
-    
+
     @app.get("/", tags=["根路径"])
     async def root():
         """根路径，返回应用信息"""
@@ -449,7 +449,7 @@ def create_application() -> FastAPI:
             "version": settings.APP_VERSION,
             "docs": "/docs"
         }
-    
+
     return app
 
 
@@ -458,7 +458,7 @@ app = create_application()
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",

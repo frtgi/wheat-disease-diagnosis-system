@@ -14,25 +14,25 @@ logger = logging.getLogger(__name__)
 
 class Settings:
     """应用配置类"""
-    
+
     _jwt_secret_key_cache: str = None
-    
+
     APP_NAME: str = "基于多模态融合的小麦病害诊断系统"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
     API_PREFIX: str = os.getenv("API_PREFIX", "/api/v1")
-    
+
     DATABASE_HOST: str = os.getenv("DATABASE_HOST", "localhost")
     DATABASE_PORT: int = int(os.getenv("DATABASE_PORT", "3306"))
     DATABASE_NAME: str = os.getenv("DATABASE_NAME", "wheat_agent_db")
     DATABASE_USER: str = os.getenv("DATABASE_USER", "root")
     DATABASE_PASSWORD: str = os.getenv("DATABASE_PASSWORD", "")
-    
+
     DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "10"))
     DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "20"))
     DB_POOL_TIMEOUT: int = int(os.getenv("DB_POOL_TIMEOUT", "30"))
     DB_POOL_RECYCLE: int = int(os.getenv("DB_POOL_RECYCLE", "3600"))
-    
+
     @property
     def DATABASE_URL(self) -> str:
         """获取数据库连接 URL"""
@@ -41,22 +41,22 @@ class Settings:
             f"@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
             f"?charset=utf8mb4"
         )
-    
+
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
     REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
     REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
-    
+
     @property
     def REDIS_URL(self) -> str:
         """获取 Redis 连接 URL"""
         if self.REDIS_PASSWORD:
             return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
-    
+
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = int(os.getenv("JWT_EXPIRE_HOURS", "24"))
-    
+
     @property
     def JWT_SECRET_KEY(self) -> str:
         """
@@ -66,7 +66,7 @@ class Settings:
         """
         if Settings._jwt_secret_key_cache is not None:
             return Settings._jwt_secret_key_cache
-        
+
         jwt_secret = os.getenv("JWT_SECRET_KEY", "")
         if not jwt_secret:
             if self.DEBUG:
@@ -74,10 +74,10 @@ class Settings:
                 logger.warning("JWT_SECRET_KEY 未配置，已生成临时密钥（仅限开发环境）")
             else:
                 raise ValueError("生产环境必须配置 JWT_SECRET_KEY 环境变量")
-        
+
         Settings._jwt_secret_key_cache = jwt_secret
         return jwt_secret
-    
+
     _cors_origins = os.environ.get("CORS_ORIGINS", "")
     if _cors_origins:
         CORS_ORIGINS: list = [origin.strip() for origin in _cors_origins.split(",") if origin.strip()]
@@ -101,18 +101,18 @@ class Settings:
         ]
         logger.warning("⚠️ CORS_ORIGINS 环境变量未配置，使用默认的 localhost 域名")
         logger.info("💡 建议：在生产环境中通过 CORS_ORIGINS 环境变量配置允许的域名")
-    
+
     CORS_ALLOW_CREDENTIALS: bool = os.environ.get("CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
     CORS_MAX_AGE: int = int(os.environ.get("CORS_MAX_AGE", "600"))
-    
+
     CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/1")
     CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/2")
-    
+
     MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "localhost:9000")
     MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "")
     MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "")
     MINIO_BUCKET_NAME: str = os.getenv("MINIO_BUCKET_NAME", "wheatagent")
-    
+
     @property
     def MINIO_CONFIGURED(self) -> bool:
         """
@@ -120,24 +120,24 @@ class Settings:
         验证访问密钥和秘密密钥是否都已设置
         """
         return bool(self.MINIO_ACCESS_KEY and self.MINIO_SECRET_KEY)
-    
+
     FUSION_DEGRADATION_FACTOR: float = float(os.getenv("FUSION_DEGRADATION_FACTOR", "0.9"))
     FUSION_VISUAL_WEIGHT: float = float(os.getenv("FUSION_VISUAL_WEIGHT", "0.4"))
     FUSION_TEXTUAL_WEIGHT: float = float(os.getenv("FUSION_TEXTUAL_WEIGHT", "0.35"))
     FUSION_KNOWLEDGE_WEIGHT: float = float(os.getenv("FUSION_KNOWLEDGE_WEIGHT", "0.25"))
-    
+
     INFERENCE_CACHE_TTL: int = int(os.getenv("INFERENCE_CACHE_TTL", str(24 * 3600)))
     INFERENCE_CACHE_ENABLE_SIMILAR_SEARCH: bool = os.getenv("INFERENCE_CACHE_ENABLE_SIMILAR_SEARCH", "true").lower() == "true"
     INFERENCE_CACHE_SIMILARITY_THRESHOLD: int = int(os.getenv("INFERENCE_CACHE_SIMILARITY_THRESHOLD", "5"))
     INFERENCE_CACHE_ENABLED: bool = os.getenv("INFERENCE_CACHE_ENABLED", "true").lower() == "true"
-    
+
     NEO4J_URI: str = os.getenv("NEO4J_URI", "bolt://localhost:7687")
     NEO4J_USER: str = os.getenv("NEO4J_USER", "neo4j")
     NEO4J_PASSWORD: str = os.getenv("NEO4J_PASSWORD", "")
     NEO4J_DATABASE: str = os.getenv("NEO4J_DATABASE", "neo4j")
     NEO4J_MAX_CONNECTION_POOL_SIZE: int = int(os.getenv("NEO4J_MAX_CONNECTION_POOL_SIZE", "50"))
     NEO4J_CONNECTION_TIMEOUT: int = int(os.getenv("NEO4J_CONNECTION_TIMEOUT", "30"))
-    
+
     RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
     RATE_LIMIT_DEFAULT: str = os.getenv("RATE_LIMIT_DEFAULT", "60/minute")
     RATE_LIMIT_DIAGNOSIS: str = os.getenv("RATE_LIMIT_DIAGNOSIS", "10/minute")
@@ -155,7 +155,7 @@ class Settings:
 
     # GPU 显存监控阈值
     GPU_MEMORY_THRESHOLD: float = float(os.getenv("GPU_MEMORY_THRESHOLD", "0.90"))
-    
+
     def validate_minio_config(self) -> None:
         """
         验证 MinIO 配置

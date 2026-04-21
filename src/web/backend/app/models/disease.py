@@ -13,13 +13,13 @@ from ..core.database import Base
 class Disease(Base):
     """
     疾病模型类
-    
+
     对应数据库表：diseases
     存储小麦病害的详细信息，包括症状、病因、防治方法等
     """
-    
+
     __tablename__ = "diseases"
-    
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, comment="疾病 ID")
     name = Column(String(100), nullable=False, index=True, comment="疾病名称")
     scientific_name = Column(String(100), nullable=True, comment="学名")
@@ -36,13 +36,13 @@ class Disease(Base):
     is_active = Column(Boolean, default=True, index=True, comment="是否启用")
     created_at = Column(DateTime, default=datetime.utcnow, index=True, comment="创建时间")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
-    
+
     __table_args__ = (
         Index('idx_disease_category_name', 'category', 'name'),
         Index('idx_disease_severity', 'severity'),
         Index('idx_disease_category_active_severity', 'category', 'is_active', 'severity'),
     )
-    
+
     @property
     def treatments(self):
         """获取治疗方法（兼容 schema 字段名）"""

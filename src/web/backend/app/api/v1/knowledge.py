@@ -457,16 +457,16 @@ def get_knowledge_stats(db: Session = Depends(get_db), current_user: User = Depe
     """
     try:
         total = db.query(func.count(Disease.id)).filter(Disease.is_active.is_(True)).scalar()
-        
+
         by_category = {}
         category_stats = db.query(
             Disease.category,
             func.count(Disease.id)
         ).filter(Disease.is_active.is_(True)).group_by(Disease.category).all()
-        
+
         for cat, count in category_stats:
             by_category[cat or "unknown"] = count
-        
+
         return {"total": total, "by_category": by_category}
     except Exception as e:
         logger.error(f"获取知识库统计失败：{e}")
@@ -528,13 +528,13 @@ def get_knowledge_stats(db: Session = Depends(get_db), current_user: User = Depe
 )
 def get_knowledge(disease_id: int, db: Session = Depends(get_db)):
     disease = get_disease_by_id(db, disease_id)
-    
+
     if not disease:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="疾病不存在"
         )
-    
+
     return disease
 
 

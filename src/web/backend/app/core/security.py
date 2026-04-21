@@ -62,13 +62,13 @@ async def get_token_from_request(
 def _truncate_password(password: str) -> bytes:
     """
     截断密码以符合 bcrypt 的 72 字节限制
-    
+
     bcrypt 限制密码长度为 72 字节，超过此长度会抛出异常。
     此函数将密码截断为 72 字节（UTF-8 编码）。
-    
+
     参数:
         password: 原始密码字符串
-        
+
     返回:
         截断后的密码字节
     """
@@ -82,17 +82,17 @@ def _truncate_password(password: str) -> bytes:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     验证密码
-    
+
     使用 bcrypt 库进行密码验证，支持自动处理 72 字节长度限制。
     此函数直接使用 bcrypt 避免 passlib 版本兼容性问题。
-    
+
     参数:
         plain_password: 用户输入的明文密码
         hashed_password: 数据库存储的密码哈希值
-        
+
     返回:
         bool: 验证成功返回 True，失败返回 False
-        
+
     注意:
         bcrypt 4.1+ 版本移除了 __about__ 属性，导致 passlib 无法正确读取版本信息，
         因此直接使用 bcrypt 库进行验证。
@@ -115,26 +115,26 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """
     生成密码哈希
-    
+
     使用 bcrypt 算法生成密码哈希值，自动处理 72 字节长度限制。
     此函数直接使用 bcrypt 避免 passlib 版本兼容性问题。
-    
+
     参数:
         password: 用户输入的明文密码
-        
+
     返回:
         str: bcrypt 哈希后的密码字符串
-        
+
     异常:
         ValueError: 密码为空或哈希生成失败
-        
+
     注意:
         bcrypt 限制密码长度为 72 字节，超过部分将被自动截断。
         建议在前端进行密码长度验证，提升用户体验。
     """
     if not password:
         raise ValueError("密码不能为空")
-    
+
     try:
         password_bytes = _truncate_password(password)
         salt = bcrypt.gensalt()
@@ -154,34 +154,34 @@ def get_password_hash(password: str) -> str:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
     创建访问令牌
-    
+
     参数:
         data: 令牌数据
         expires_delta: 过期时间增量
-    
+
     返回:
         JWT 令牌
     """
     to_encode = data.copy()
-    
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(hours=settings.JWT_EXPIRE_HOURS)
-    
+
     to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-    
+
     return encoded_jwt
 
 
 def decode_access_token(token: str) -> Optional[dict]:
     """
     解码访问令牌
-    
+
     参数:
         token: JWT 令牌
-    
+
     返回:
         解码后的数据，如果失败则返回 None
     """

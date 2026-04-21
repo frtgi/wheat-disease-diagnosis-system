@@ -681,13 +681,13 @@ async def _generate_diagnosis_stream_from_url(
                             image_path = os.path.join("uploads", image_url.replace("/uploads/", ""))
                         if image_url.startswith("/api/v1/upload/"):
                             image_path = image_url.replace("/api/v1/upload/", "uploads/")
-                        
+
                         if os.path.exists(image_path):
                             with open(image_path, 'rb') as f:
                                 file_data = f.read()
                                 hash_value = hashlib.sha256(file_data).hexdigest()
                                 file_size = len(file_data)
-                            
+
                             existing_meta = db.query(ImageMetadata).filter(ImageMetadata.hash_value == hash_value).first()
                             if existing_meta:
                                 image_id = existing_meta.id

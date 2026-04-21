@@ -18,7 +18,7 @@ else:
 def add_rate_limit_middleware(app: FastAPI):
     """
     为应用添加限流中间件
-    
+
     参数:
         app: FastAPI 应用实例
     """
@@ -29,11 +29,11 @@ def add_rate_limit_middleware(app: FastAPI):
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
     """
     限流异常处理器
-    
+
     参数:
         request: 请求对象
         exc: 限流异常
-    
+
     返回:
         HTTPException: 429 错误响应
     """

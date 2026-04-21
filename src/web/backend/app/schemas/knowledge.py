@@ -48,7 +48,7 @@ class DiseaseResponse(DiseaseBase):
     image_urls: Optional[Any] = None
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 

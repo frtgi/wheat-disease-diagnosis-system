@@ -29,21 +29,21 @@ async def generate_report(
 ):
     """
     生成诊断报告
-    
+
     参数:
         image: 上传的图像文件
         symptoms: 症状描述
         thinking_mode: 是否启用 Thinking 模式
         use_graph_rag: 是否使用 Graph-RAG
         report_format: 报告格式（pdf/html/both）
-        
+
     返回:
         诊断结果和报告文件路径
     """
     try:
         from app.services.qwen_service import get_qwen_service
         from app.services.report_generator import get_report_generator
-        
+
         pil_image = None
         image_bytes = None
         if image:
@@ -62,7 +62,7 @@ async def generate_report(
                     status_code=422,
                     detail=f"图像文件格式无效或已损坏：{str(img_err)}"
                 )
-        
+
         if not pil_image and not symptoms.strip():
             raise HTTPException(
                 status_code=422,
@@ -77,10 +77,10 @@ async def generate_report(
             enable_thinking=thinking_mode,
             use_graph_rag=use_graph_rag
         )
-        
+
         if not diagnosis_result["success"]:
             raise HTTPException(status_code=500, detail=diagnosis_result.get("error", "诊断失败"))
-        
+
         # 适配数据结构，兼容 diagnosis 和 data 两种字段名
         adapted_result = {
             "data": diagnosis_result.get("diagnosis", {}),
@@ -96,7 +96,7 @@ async def generate_report(
             image_data=image_bytes,
             format=report_format
         )
-        
+
         return {
             "success": True,
             "diagnosis": diagnosis_result["diagnosis"],
@@ -105,7 +105,7 @@ async def generate_report(
             },
             "message": f"报告生成成功，共 {len(report_files)} 个文件"
         }
-        
+
     except Exception as e:
         logger.error(f"报告生成失败：{e}", exc_info=True)
         raise HTTPException(status_code=500, detail="报告生成失败，请稍后重试")
@@ -225,33 +225,33 @@ async def generate_report_from_record(
 async def download_report(filename: str, current_user: User = Depends(get_current_user)):
     """
     下载报告文件
-    
+
     参数:
         filename: 报告文件名
-        
+
     返回:
         报告文件
     """
     try:
         from app.services.report_generator import get_report_generator
         from fastapi.responses import FileResponse
-        
+
         report_generator = get_report_generator()
         allowed_dir = os.path.abspath(str(report_generator.output_dir))
         file_path = os.path.abspath(os.path.join(allowed_dir, filename))
-        
+
         if not file_path.startswith(allowed_dir + os.sep) and file_path != allowed_dir:
             raise HTTPException(status_code=403, detail="Access denied")
-        
+
         if not os.path.exists(file_path) or not os.path.isfile(file_path):
             raise HTTPException(status_code=404, detail="报告文件不存在")
-        
+
         return FileResponse(
             path=file_path,
             filename=filename,
             media_type="application/pdf" if filename.endswith(".pdf") else "text/html"
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -263,18 +263,18 @@ async def download_report(filename: str, current_user: User = Depends(get_curren
 async def list_reports(current_user: User = Depends(get_current_user)):
     """
     列出所有报告文件
-    
+
     返回:
         报告文件列表
     """
     try:
         from app.services.report_generator import get_report_generator
-        
+
         report_generator = get_report_generator()
-        
+
         if not report_generator.output_dir.exists():
             return {"success": True, "reports": [], "message": "报告目录不存在"}
-        
+
         reports = []
         for file in report_generator.output_dir.glob("diagnosis_report_*"):
             if file.is_file():
@@ -284,16 +284,16 @@ async def list_reports(current_user: User = Depends(get_current_user)):
                     "created_at": file.stat().st_ctime,
                     "format": "pdf" if file.suffix == ".pdf" else "html"
                 })
-        
+
         # 按创建时间倒序排序
         reports.sort(key=lambda x: x["created_at"], reverse=True)
-        
+
         return {
             "success": True,
             "reports": reports,
             "total": len(reports)
         }
-        
+
     except Exception as e:
         logger.error(f"列出报告失败：{e}", exc_info=True)
         raise HTTPException(status_code=500, detail="列出报告失败，请稍后重试")

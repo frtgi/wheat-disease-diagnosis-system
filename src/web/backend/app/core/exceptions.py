@@ -333,10 +333,10 @@ class RateLimitError(AppException):
 class AIServiceError(AppException):
     """
     AI 服务错误
-    
+
     用于表示 AI 模型服务相关的错误。
     """
-    
+
     def __init__(
         self,
         message: str = "AI 服务暂时不可用",
@@ -345,7 +345,7 @@ class AIServiceError(AppException):
     ):
         """
         初始化 AI 服务错误
-        
+
         Args:
             message: 错误消息
             code: 错误代码
@@ -449,10 +449,10 @@ class FileUploadError(AppException):
 def _get_trace_id(request: Request) -> Optional[str]:
     """
     从请求中获取追踪ID
-    
+
     Args:
         request: FastAPI 请求对象
-        
+
     Returns:
         追踪ID字符串，如果不存在则返回 None
     """
@@ -473,11 +473,11 @@ def _build_error_response(
 ) -> JSONResponse:
     """
     构建标准错误响应
-    
+
     Args:
         error_detail: 错误详情对象
         status_code: HTTP 状态码
-        
+
     Returns:
         JSONResponse 对象
     """
@@ -494,18 +494,18 @@ def _build_error_response(
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
     """
     应用异常处理器
-    
+
     处理 AppException 及其子类异常，返回统一的错误响应格式。
-    
+
     Args:
         request: FastAPI 请求对象
         exc: 应用异常实例
-        
+
     Returns:
         标准格式的错误响应
     """
     trace_id = _get_trace_id(request)
-    
+
     _log_error(
         request=request,
         error_code=exc.error_code,
@@ -514,7 +514,7 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
         trace_id=trace_id,
         level="error"
     )
-    
+
     error_detail = exc.to_error_detail(trace_id)
     return _build_error_response(error_detail, exc.status_code)
 
@@ -522,21 +522,21 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """
     HTTP 异常处理器
-    
+
     处理 FastAPI HTTPException 异常，转换为统一的错误响应格式。
-    
+
     Args:
         request: FastAPI 请求对象
         exc: HTTP 异常实例
-        
+
     Returns:
         标准格式的错误响应
     """
     trace_id = _get_trace_id(request)
-    
+
     error_code = f"HTTP_{exc.status_code}"
     error_message = str(exc.detail) if exc.detail else "请求处理失败"
-    
+
     _log_error(
         request=request,
         error_code=error_code,
@@ -545,7 +545,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         trace_id=trace_id,
         level="warning"
     )
-    
+
     error_detail = ErrorDetail(
         error_code=error_code,
         message=error_message,
@@ -559,21 +559,21 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """
     请求验证异常处理器
-    
+
     处理 Pydantic 验证错误，转换为统一的错误响应格式。
-    
+
     Args:
         request: FastAPI 请求对象
         exc: 请求验证异常实例
-        
+
     Returns:
         标准格式的错误响应
     """
     trace_id = _get_trace_id(request)
-    
+
     errors = exc.errors()
     formatted_errors = _format_validation_errors(errors)
-    
+
     _log_error(
         request=request,
         error_code="VALIDATION_001",
@@ -582,7 +582,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         trace_id=trace_id,
         level="warning"
     )
-    
+
     error_detail = ErrorDetail(
         error_code="VALIDATION_001",
         message="请求参数验证失败",
@@ -596,19 +596,19 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     全局异常处理器
-    
+
     捕获所有未处理的异常，返回统一的错误响应格式。
     记录详细的错误日志用于调试。
-    
+
     Args:
         request: FastAPI 请求对象
         exc: 异常实例
-        
+
     Returns:
         标准格式的错误响应
     """
     trace_id = _get_trace_id(request)
-    
+
     _log_error(
         request=request,
         error_code="SYS_001",
@@ -620,7 +620,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         trace_id=trace_id,
         level="critical"
     )
-    
+
     error_detail = ErrorDetail(
         error_code="SYS_001",
         message="服务器内部错误，请稍后重试",
@@ -634,12 +634,12 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 def _format_validation_errors(errors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     格式化验证错误列表
-    
+
     将 Pydantic 验证错误转换为更友好的格式。
-    
+
     Args:
         errors: Pydantic 验证错误列表
-        
+
     Returns:
         格式化后的错误列表
     """
@@ -647,7 +647,7 @@ def _format_validation_errors(errors: List[Dict[str, Any]]) -> List[Dict[str, An
     for error in errors:
         loc = error.get("loc", [])
         field = ".".join(str(x) for x in loc if x)
-        
+
         formatted.append({
             "field": field,
             "message": error.get("msg", "验证失败"),
@@ -667,9 +667,9 @@ def _log_error(
 ) -> None:
     """
     记录错误日志
-    
+
     将错误信息记录到日志系统，包含请求上下文信息。
-    
+
     Args:
         request: FastAPI 请求对象
         error_code: 错误代码
@@ -689,7 +689,7 @@ def _log_error(
         "trace_id": trace_id,
         "details": details
     }
-    
+
     log_method = getattr(logger, level, logger.error)
     log_method(f"[{error_code}] {error_message}", extra=log_data)
 
@@ -697,13 +697,13 @@ def _log_error(
 def register_exception_handlers(app):
     """
     注册异常处理器到 FastAPI 应用
-    
+
     将所有异常处理器注册到 FastAPI 应用实例中，
     确保所有异常都能被统一处理并返回标准格式。
-    
+
     Args:
         app: FastAPI 应用实例
-        
+
     Example:
         >>> from fastapi import FastAPI
         >>> app = FastAPI()
@@ -714,28 +714,28 @@ def register_exception_handlers(app):
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(Exception, global_exception_handler)
-    
+
     logger.info("异常处理器注册完成，统一错误响应格式已启用")
 
 
 def raise_from_code(code: str, details: Optional[Any] = None) -> None:
     """
     根据错误码抛出对应的异常
-    
+
     根据错误码自动选择合适的异常类型并抛出。
-    
+
     Args:
         code: 错误代码
         details: 错误详情
-        
+
     Raises:
         对应的 AppException 子类异常
-        
+
     Example:
         >>> raise_from_code("AUTH_001", {"reason": "密码错误"})
     """
     error_info = get_error_code(code)
-    
+
     if not error_info:
         raise AppException(
             error_code=code,

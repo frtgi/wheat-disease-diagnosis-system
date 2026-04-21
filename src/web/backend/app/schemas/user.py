@@ -105,7 +105,7 @@ class SessionResponse(BaseModel):
     is_active: bool = True
     created_at: datetime
     expires_at: datetime
-    
+
     class Config:
         from_attributes = True
 

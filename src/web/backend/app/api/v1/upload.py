@@ -29,18 +29,18 @@ async def upload_image(
 ):
     """
     上传图像文件（需认证）
-    
+
     参数:
         request: FastAPI 请求对象（用于限流）
         file: 上传的图像文件（JPG/PNG/WEBP 格式，最大 10MB）
         current_user: 当前认证用户（通过 JWT 令牌验证）
-        
+
     返回:
         dict: 包含上传成功的文件 URL
             - success: 是否成功
             - url: 文件访问 URL
             - filename: 保存的文件名
-    
+
     安全验证:
         - 用户身份认证（JWT 令牌验证）
         - 频率限制（每分钟最多 10 次）
@@ -51,37 +51,37 @@ async def upload_image(
     """
     if not current_user.is_active:
         raise HTTPException(status_code=403, detail="账号已禁用")
-    
+
     try:
         content = await file.read()
-        
+
         validation_result = validate_upload_file(
             file_content=content,
             filename=file.filename,
             declared_content_type=file.content_type
         )
-        
+
         if not validation_result.is_valid:
             raise HTTPException(
                 status_code=400,
                 detail=validation_result.error_message
             )
-        
+
         file_extension = get_file_extension(validation_result.detected_type)
         filename = f"{uuid.uuid4()}.{file_extension}"
         file_path = UPLOAD_DIR / filename
-        
+
         with open(file_path, "wb") as f:
             f.write(content)
-        
+
         file_url = f"/uploads/diagnosis/{filename}"
-        
+
         logger.info(
             f"文件上传成功: {filename}, 类型: {validation_result.detected_type}, "
             f"大小: {validation_result.file_size} bytes, "
             f"上传者: {current_user.username}(ID:{current_user.id})"
         )
-        
+
         return {
             "success": True,
             "url": file_url,
@@ -90,7 +90,7 @@ async def upload_image(
             "content_type": validation_result.detected_type,
             "message": "文件上传成功"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:

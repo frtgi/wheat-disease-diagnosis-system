@@ -10,7 +10,7 @@ from typing import Optional
 def generate_unique_id() -> str:
     """
     生成唯一 ID
-    
+
     返回:
         UUID 字符串
     """
@@ -20,10 +20,10 @@ def generate_unique_id() -> str:
 def format_datetime(dt: Optional[datetime]) -> Optional[str]:
     """
     格式化日期时间
-    
+
     参数:
         dt: 日期时间对象
-    
+
     返回:
         格式化后的字符串 (YYYY-MM-DD HH:MM:SS)
     """
@@ -35,19 +35,19 @@ def format_datetime(dt: Optional[datetime]) -> Optional[str]:
 def paginate(items: list, page: int, page_size: int) -> dict:
     """
     分页工具函数
-    
+
     参数:
         items: 数据列表
         page: 页码
         page_size: 每页数量
-    
+
     返回:
         分页后的数据及元信息
     """
     total = len(items)
     start = (page - 1) * page_size
     end = start + page_size
-    
+
     return {
         "items": items[start:end],
         "total": total,
