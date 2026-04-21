@@ -27,8 +27,11 @@ CREATE TABLE `users` (
   `is_active` BOOLEAN DEFAULT TRUE COMMENT '是否激活',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '软删除时间',
+  `last_login_at` TIMESTAMP NULL DEFAULT NULL COMMENT '最后登录时间',
   INDEX `idx_username` (`username`),
-  INDEX `idx_email` (`email`)
+  INDEX `idx_email` (`email`),
+  INDEX `idx_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- ====================================================
@@ -40,17 +43,24 @@ CREATE TABLE `diseases` (
   `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '病害 ID',
   `name` VARCHAR(100) NOT NULL COMMENT '病害名称',
   `scientific_name` VARCHAR(100) COMMENT '学名',
+  `code` VARCHAR(50) DEFAULT NULL COMMENT '疾病编码',
   `category` ENUM('fungal', 'bacterial', 'viral', 'pest', 'nutritional') NOT NULL COMMENT '分类',
   `symptoms` TEXT NOT NULL COMMENT '症状描述',
   `description` TEXT COMMENT '详细描述',
+  `causes` TEXT COMMENT '病因',
   `prevention_methods` JSON COMMENT '防治方法',
   `treatment_methods` JSON COMMENT '治疗方法',
   `suitable_growth_stage` VARCHAR(100) COMMENT '适宜生长阶段',
   `image_urls` JSON COMMENT '图片 URL 列表',
+  `severity` FLOAT DEFAULT 0.0 COMMENT '严重程度(0-1)',
+  `is_active` BOOLEAN DEFAULT TRUE COMMENT '是否启用',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX `idx_name` (`name`),
-  INDEX `idx_category` (`category`)
+  INDEX `idx_category` (`category`),
+  UNIQUE INDEX `idx_code` (`code`),
+  INDEX `idx_severity` (`severity`),
+  INDEX `idx_is_active` (`is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='病害数据表';
 
 -- ====================================================
