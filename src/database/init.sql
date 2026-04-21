@@ -253,7 +253,7 @@ INSERT INTO `diseases` (`name`, `scientific_name`, `category`, `symptoms`, `desc
 ('赤霉病', 'Fusarium graminearum', 'fungal',
 '穗部受害，小穗颖片呈水渍状淡褐色，后产生粉红色霉层。',
 '赤霉病是小麦穗部重要病害，影响产量和品质。',
-'["选用抗病品种", "合理轮作", "及时排水", "适期收获"],
+'["选用抗病品种", "合理轮作", "及时排水", "适期收获"]',
 '["喷洒多菌灵", "使用甲基托布津", "喷施咪鲜胺"]'),
 
 ('纹枯病', 'Rhizoctonia cerealis', 'fungal',

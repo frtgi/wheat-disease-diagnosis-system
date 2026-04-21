@@ -3,6 +3,7 @@
 提供索引分析、创建和管理功能
 """
 import logging
+import re
 from typing import List, Dict, Any, Optional
 from sqlalchemy import text, inspect
 from sqlalchemy.orm import Session
@@ -107,34 +108,58 @@ class IndexOptimizer:
             "total_missing": len(missing)
         }
     
+    @staticmethod
+    def _validate_identifier(name: str) -> str:
+        """
+        验证 SQL 标识符是否合法
+
+        仅允许字母、数字和下划线，防止 SQL 注入
+
+        参数:
+            name: 待验证的标识符
+
+        返回:
+            验证后的标识符
+
+        异常:
+            ValueError: 标识符不合法
+        """
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
+            raise ValueError(f"非法的 SQL 标识符: {name}")
+        return name
+
     def create_index(self, table_name: str, columns: List[str], index_name: str, unique: bool = False) -> bool:
         """
         创建索引
-        
-        Args:
+
+        参数:
             table_name: 表名
             columns: 列名列表
             index_name: 索引名称
             unique: 是否唯一索引
-        
-        Returns:
+
+        返回:
             是否创建成功
         """
         try:
+            table_name = self._validate_identifier(table_name)
+            index_name = self._validate_identifier(index_name)
+            columns = [self._validate_identifier(col) for col in columns]
+
             unique_str = "UNIQUE" if unique else ""
             columns_str = ", ".join(columns)
-            
+
             sql = f"""
             CREATE {unique_str} INDEX {index_name} 
             ON {table_name} ({columns_str})
             """
-            
+
             self.db.execute(text(sql))
             self.db.commit()
-            
+
             logger.info(f"成功创建索引：{index_name} on {table_name}({columns_str})")
             return True
-            
+
         except Exception as e:
             self.db.rollback()
             logger.error(f"创建索引失败 {index_name}：{e}")
@@ -231,13 +256,26 @@ class IndexOptimizer:
     def analyze_query_performance(self, query: str) -> Dict[str, Any]:
         """
         分析查询性能（使用 EXPLAIN）
-        
-        Args:
-            query: SQL 查询语句
-        
-        Returns:
+
+        仅允许 SELECT 查询进行性能分析，防止 SQL 注入和未授权修改。
+
+        参数:
+            query: SQL 查询语句（仅允许 SELECT）
+
+        返回:
             性能分析结果
         """
+        upper_query = query.strip().upper()
+        forbidden_keywords = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'CREATE', 'TRUNCATE', 'GRANT', 'REVOKE']
+        for keyword in forbidden_keywords:
+            if keyword in upper_query:
+                logger.error(f"查询性能分析拒绝执行包含 {keyword} 的语句")
+                return {"error": f"仅允许 SELECT 查询进行性能分析，拒绝包含 {keyword} 的语句"}
+
+        if not upper_query.startswith('SELECT'):
+            logger.error("查询性能分析仅允许 SELECT 语句")
+            return {"error": "仅允许 SELECT 查询进行性能分析"}
+
         try:
             explain_sql = text(f"EXPLAIN {query}")
             result = self.db.execute(explain_sql)

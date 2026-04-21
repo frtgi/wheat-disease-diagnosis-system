@@ -343,6 +343,7 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
         record_login_attempt(db, login_data.username, True, request.client.host if request.client else None)
         
         try:
+            nested = db.begin_nested()
             create_user_session(
                 db=db,
                 user_id=user.id,
@@ -350,7 +351,10 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
                 user_agent=request.headers.get("user-agent")
             )
         except Exception as session_err:
-            db.rollback()
+            try:
+                nested.rollback()
+            except Exception:
+                pass
             logger.warning(f"创建用户会话记录失败：{session_err}")
         
         return {
