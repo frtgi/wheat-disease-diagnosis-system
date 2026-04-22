@@ -350,9 +350,11 @@ def login(request: Request, response: Response, login_data: UserLogin, db: Sessi
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("user-agent")
             )
+            nested.commit()
         except Exception as session_err:
             try:
-                nested.rollback()
+                if nested is not None:
+                    nested.rollback()
             except Exception:
                 pass
             logger.warning(f"创建用户会话记录失败：{session_err}")
