@@ -60,6 +60,188 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/diagnosis", tags=["AI 诊断"])
 
 
+def _log_and_record_diagnosis(
+    db: Optional[Session],
+    user_id: Optional[int],
+    result: dict,
+    diagnosis_type: str,
+    logger: logging.Logger,
+    image_url: Optional[str] = None,
+    symptoms: Optional[str] = None,
+    inference_time_ms: Optional[float] = None,
+    error: Optional[str] = None,
+    cache_hit: bool = False,
+    features: Optional[dict] = None,
+    growth_stage: Optional[str] = None,
+    weather: Optional[str] = None,
+    request_id_prefix: Optional[str] = None,
+    disease_name_override: Optional[str] = None,
+) -> Optional[int]:
+    """
+    记录诊断日志并保存诊断结果到数据库
+
+    统一封装 log_diagnosis 和 record_inference 调用，
+    并在提供 db 和 user_id 时自动保存诊断记录到数据库。
+
+    参数:
+        db: 数据库会话（可选，为 None 时跳过数据库保存）
+        user_id: 用户ID（可选，为 None 时跳过数据库保存）
+        result: 诊断结果字典，需包含 success 字段，
+                成功时需包含 diagnosis 子字典（disease_name, confidence 等）
+        diagnosis_type: 诊断类型（image/text/multimodal/batch）
+        logger: 日志记录器
+        image_url: 图像URL（可选）
+        symptoms: 症状描述（可选，若为 None 则从 result 中提取）
+        inference_time_ms: 推理耗时毫秒（可选，若为 None 则从 result.performance 中提取）
+        error: 错误信息（可选，仅失败时使用）
+        cache_hit: 是否缓存命中
+        features: 特征信息（可选，如 thinking_mode/graph_rag）
+        growth_stage: 生长阶段（可选，用于数据库保存）
+        weather: 天气条件（可选，用于数据库保存）
+        request_id_prefix: 请求ID前缀（可选，默认根据 cache_hit 自动选择）
+        disease_name_override: 疾病名称覆盖（可选，用于批量诊断等特殊场景）
+
+    返回:
+        诊断记录ID（如果数据库保存成功），否则返回 None
+    """
+    success = result.get("success", False)
+    diagnosis_data = result.get("diagnosis", {})
+
+    if disease_name_override is not None:
+        disease_name = disease_name_override
+    else:
+        disease_name = diagnosis_data.get("disease_name", "未知") if success else ""
+
+    confidence = float(diagnosis_data.get("confidence", 0)) if success else 0.0
+
+    if inference_time_ms is None:
+        perf = result.get("performance", {})
+        inference_time_ms = perf.get("inference_time_ms", 0.0)
+
+    if symptoms is None:
+        symptoms = result.get("symptoms", "")
+
+    if request_id_prefix is None:
+        request_id_prefix = "ai_cache" if cache_hit else "ai"
+
+    try:
+        from app.services.diagnosis_logger import log_diagnosis
+        log_diagnosis(
+            request_id=f"{request_id_prefix}_{int(time.time()*1000)}",
+            image_hash=None,
+            symptoms=symptoms or "",
+            disease_detected=disease_name,
+            confidence=confidence,
+            processing_time_ms=inference_time_ms,
+            success=success,
+            error=error[:500] if error else None,
+            cache_hit=cache_hit,
+            features=features
+        )
+    except Exception:
+        pass
+
+    try:
+        from app.api.v1.metrics import record_inference
+        record_inference(latency_ms=inference_time_ms, success=success)
+    except Exception:
+        pass
+
+    diagnosis_id = None
+    if db and user_id and success:
+        try:
+            image_id = None
+            if image_url:
+                try:
+                    from app.models.image import ImageMetadata
+                    import hashlib
+                    image_path = image_url
+                    if image_url.startswith("/uploads/"):
+                        image_path = os.path.join("uploads", image_url.replace("/uploads/", ""))
+                    if image_url.startswith("/api/v1/upload/"):
+                        image_path = image_url.replace("/api/v1/upload/", "uploads/")
+
+                    if os.path.exists(image_path):
+                        with open(image_path, 'rb') as f:
+                            file_data = f.read()
+                            hash_value = hashlib.sha256(file_data).hexdigest()
+                            file_size = len(file_data)
+
+                        existing_meta = db.query(ImageMetadata).filter(
+                            ImageMetadata.hash_value == hash_value
+                        ).first()
+                        if existing_meta:
+                            image_id = existing_meta.id
+                        else:
+                            image_meta = ImageMetadata(
+                                user_id=user_id,
+                                hash_value=hash_value,
+                                original_filename=os.path.basename(image_path),
+                                file_path=os.path.abspath(image_path),
+                                file_size=file_size,
+                                mime_type="image/jpeg",
+                                storage_provider="local"
+                            )
+                            db.add(image_meta)
+                            db.flush()
+                            image_id = image_meta.id
+                except Exception as e:
+                    logger.warning(f"创建图像元数据失败：{e}")
+
+            disease_id = None
+            if disease_name and disease_name != "未知":
+                try:
+                    from app.models.disease import Disease
+                    disease_obj = db.query(Disease).filter(Disease.name == disease_name).first()
+                    if disease_obj:
+                        disease_id = disease_obj.id
+                except Exception:
+                    pass
+
+            description = diagnosis_data.get("description", "")
+            recommendations = diagnosis_data.get("recommendations")
+
+            diagnosis_record = Diagnosis(
+                user_id=user_id,
+                image_id=image_id,
+                image_url=image_url or "",
+                symptoms=symptoms or "",
+                disease_name=disease_name,
+                disease_id=disease_id,
+                confidence=confidence,
+                severity=None,
+                description=description,
+                recommendations=json.dumps(recommendations) if recommendations else "",
+                growth_stage=growth_stage or None,
+                weather_data=json.dumps({"weather": weather}) if weather else None,
+                status="completed"
+            )
+            db.add(diagnosis_record)
+            db.commit()
+            db.refresh(diagnosis_record)
+            diagnosis_id = diagnosis_record.id
+            logger.info(f"诊断记录已保存: id={diagnosis_id}, disease={disease_name}")
+
+            try:
+                confidence_record = DiagnosisConfidence(
+                    diagnosis_id=diagnosis_id,
+                    disease_name=disease_name,
+                    confidence=confidence,
+                    rank=0
+                )
+                db.add(confidence_record)
+                db.commit()
+            except Exception as e:
+                logger.warning(f"保存置信度记录失败: {e}")
+
+        except Exception as e:
+            logger.error(f"保存诊断记录失败: {e}", exc_info=True)
+            db.rollback()
+
+    return diagnosis_id
+
+
+
 @router.post("/fusion")
 async def diagnose_fusion(
     image: Optional[UploadFile] = File(None, description="病害图像文件（可选）"),
@@ -134,26 +316,16 @@ async def diagnose_fusion(
 
         if cache_hit:
             inference_time = time.time() - start_time
-            try:
-                from app.services.diagnosis_logger import log_diagnosis
-                log_diagnosis(
-                    request_id=f"ai_cache_{int(time.time()*1000)}",
-                    image_hash=None,
-                    symptoms=symptoms or "",
-                    disease_detected=cache_hit["result"].get("disease_name", "未知"),
-                    confidence=float(cache_hit["result"].get("confidence", 0)),
-                    processing_time_ms=round(inference_time * 1000, 2),
-                    success=True,
-                    cache_hit=True
-                )
-            except Exception:
-                pass
-
-            try:
-                from app.api.v1.metrics import record_inference
-                record_inference(latency_ms=round(inference_time * 1000, 2), success=True)
-            except Exception:
-                pass
+            _log_and_record_diagnosis(
+                db=None,
+                user_id=None,
+                result={"success": True, "diagnosis": cache_hit["result"]},
+                diagnosis_type="fusion",
+                logger=logger,
+                symptoms=symptoms,
+                inference_time_ms=round(inference_time * 1000, 2),
+                cache_hit=True
+            )
 
             return {
                 "success": True,
@@ -188,26 +360,16 @@ async def diagnose_fusion(
 
         if not result.get("success"):
             elapsed = time.time() - start_time
-            try:
-                from app.services.diagnosis_logger import log_diagnosis
-                log_diagnosis(
-                    request_id=f"ai_{int(time.time()*1000)}",
-                    image_hash=None,
-                    symptoms=symptoms or "",
-                    disease_detected="",
-                    confidence=0.0,
-                    processing_time_ms=round(elapsed * 1000, 2),
-                    success=False,
-                    error=result.get("error", "融合诊断失败")[:500]
-                )
-            except Exception:
-                pass
-
-            try:
-                from app.api.v1.metrics import record_inference
-                record_inference(latency_ms=round(elapsed * 1000, 2), success=False)
-            except Exception:
-                pass
+            _log_and_record_diagnosis(
+                db=None,
+                user_id=None,
+                result={"success": False},
+                diagnosis_type="fusion",
+                logger=logger,
+                symptoms=symptoms,
+                inference_time_ms=round(elapsed * 1000, 2),
+                error=result.get("error", "融合诊断失败")
+            )
 
             return {
                 "success": False,
@@ -242,25 +404,15 @@ async def diagnose_fusion(
 
         response["message"] = "多模态融合诊断成功"
 
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id=f"ai_{int(time.time()*1000)}",
-                image_hash=None,
-                symptoms=symptoms or "",
-                disease_detected=result.get("diagnosis", {}).get("disease_name", "未知"),
-                confidence=float(result.get("diagnosis", {}).get("confidence", 0)),
-                processing_time_ms=round(inference_time * 1000, 2),
-                success=True
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(inference_time * 1000, 2), success=True)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result=result,
+            diagnosis_type="fusion",
+            logger=logger,
+            symptoms=symptoms,
+            inference_time_ms=round(inference_time * 1000, 2)
+        )
 
         return response
 
@@ -269,26 +421,15 @@ async def diagnose_fusion(
     except Exception as e:
         logger.error(f"融合诊断失败：{e}", exc_info=True)
         inference_time = time.time() - start_time
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id="error",
-                image_hash=None,
-                symptoms="",
-                disease_detected="",
-                confidence=0.0,
-                processing_time_ms=round(inference_time * 1000, 2),
-                success=False,
-                error=str(e)[:500]
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(inference_time * 1000, 2), success=False)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": False},
+            diagnosis_type="fusion",
+            logger=logger,
+            inference_time_ms=round(inference_time * 1000, 2),
+            error=str(e)
+        )
 
         raise HTTPException(
             status_code=500,
@@ -348,30 +489,35 @@ async def diagnose_fusion_stream_get(
     )
 
 
-async def _generate_diagnosis_stream_from_url(
-    image_url: Optional[str],
+async def _generate_diagnosis_stream_base(
     symptoms: str,
     weather: str,
     growth_stage: str,
     affected_part: str,
     enable_thinking: bool,
     use_graph_rag: bool,
+    image_url: Optional[str] = None,
+    image: Optional[UploadFile] = None,
     user_id: Optional[int] = None,
-    db: Session = None
+    db: Session = None,
 ) -> AsyncGenerator[str, None]:
     """
-    从 URL 加载图像并生成诊断进度的 SSE 流
+    SSE 流式诊断基础生成器
+
+    统一处理 URL 输入和文件上传输入的诊断流程，
+    共享 SSE 事件格式化、进度推送、结果保存等逻辑。
 
     参数:
-        image_url: 已上传图像的 URL
         symptoms: 症状描述
         weather: 天气条件
         growth_stage: 生长阶段
         affected_part: 发病部位
         enable_thinking: 是否启用 Thinking 模式
         use_graph_rag: 是否使用 GraphRAG
-        user_id: 用户 ID（可选）
-        db: 数据库会话（可选）
+        image_url: 已上传图像的 URL（URL 输入模式）
+        image: 上传的图像文件（文件上传模式）
+        user_id: 用户 ID（可选，用于保存诊断记录）
+        db: 数据库会话（可选，用于保存诊断记录）
 
     生成:
         str: SSE 格式的事件字符串
@@ -493,424 +639,7 @@ async def _generate_diagnosis_stream_from_url(
                 ).to_sse()
                 return
 
-        if not pil_image and not symptoms:
-            yield ProgressEvent(
-                event="error",
-                stage="init",
-                progress=0,
-                message="请至少提供图像或症状描述中的一种输入",
-                data={"error_type": "validation_error", "error_code": "DIAG_004"}
-            ).to_sse()
-            return
-
-        current_time = time.time()
-        if current_time - last_heartbeat > heartbeat_interval:
-            yield f"event: heartbeat\ndata: {json.dumps({'timestamp': current_time})}\n\n"
-            last_heartbeat = current_time
-
-        from app.services.fusion_service import get_fusion_service
-
-        try:
-            from app.services.qwen_service import get_qwen_service
-            qwen_svc = get_qwen_service()
-            if qwen_svc.is_lazy_load and not qwen_svc.is_loaded:
-                logger.info("融合诊断：检测到懒加载模式，确保模型已加载...")
-                await qwen_svc.ensure_loaded()
-        except Exception as e:
-            logger.warning(f"懒加载预处理失败，继续执行: {e}")
-
-        fusion_service = get_fusion_service()
-
-        if not fusion_service._initialized:
-            yield ProgressEvent(
-                event="progress",
-                stage="init",
-                progress=10,
-                message="正在初始化融合服务..."
-            ).to_sse()
-            await asyncio.to_thread(fusion_service.initialize)
-
-        disease_context = None
-        if symptoms:
-            disease_context = symptoms
-        elif affected_part:
-            disease_context = f"发病部位：{affected_part}"
-
-        yield ProgressEvent(
-            event="progress",
-            stage="visual",
-            progress=15,
-            message="正在提取视觉特征 (YOLOv8)..."
-        ).to_sse()
-
-        visual_result = None
-        if pil_image is not None:
-            visual_result = await asyncio.to_thread(fusion_service._extract_visual_features, pil_image)
-
-        yield ProgressEvent(
-            event="progress",
-            stage="visual",
-            progress=30,
-            message=f"视觉特征提取完成，检测到 {visual_result.get('count', 0) if visual_result else 0} 个目标"
-        ).to_sse()
-
-        knowledge_context = None
-        if symptoms or disease_context:
-            yield ProgressEvent(
-                event="progress",
-                stage="knowledge",
-                progress=40,
-                message="正在检索知识 (GraphRAG)..."
-            ).to_sse()
-            knowledge_context = await asyncio.to_thread(
-                fusion_service._retrieve_knowledge,
-                symptoms or disease_context,
-                disease_context
-            )
-
-            yield ProgressEvent(
-                event="progress",
-                stage="knowledge",
-                progress=50,
-                message="知识检索完成"
-            ).to_sse()
-
-        yield ProgressEvent(
-            event="progress",
-            stage="textual",
-            progress=55,
-            message="正在提取文本语义特征 (Qwen3-VL)..."
-        ).to_sse()
-
-        yield LogEvent(
-            level="info",
-            message="Qwen3-VL 推理中，Thinking 模式可能需要 2-5 分钟，请耐心等待...",
-            stage="textual"
-        ).to_sse()
-
-        textual_result = await asyncio.to_thread(
-            fusion_service._extract_textual_features,
-            image=pil_image,
-            symptoms=symptoms,
-            knowledge_context=knowledge_context,
-            enable_thinking=enable_thinking
-        )
-
-        yield ProgressEvent(
-            event="progress",
-            stage="textual",
-            progress=75,
-            message="文本语义特征提取完成"
-        ).to_sse()
-
-        yield LogEvent(
-            level="info",
-            message="文本语义特征提取完成，开始融合...",
-            stage="textual"
-        ).to_sse()
-
-        yield ProgressEvent(
-            event="progress",
-            stage="fusion",
-            progress=80,
-            message="正在融合多模态特征..."
-        ).to_sse()
-
-        fusion_result = await asyncio.to_thread(
-            fusion_service._fuse_features,
-            visual_result=visual_result,
-            textual_result=textual_result,
-            knowledge_context=knowledge_context,
-            original_image=pil_image
-        )
-
-        yield ProgressEvent(
-            event="progress",
-            stage="fusion",
-            progress=90,
-            message="特征融合完成"
-        ).to_sse()
-
-        inference_time = time.time() - start_time
-
-        result = {
-            "success": True,
-            "diagnosis": {
-                "disease_name": fusion_result.disease_name,
-                "disease_name_en": fusion_result.disease_name_en,
-                "confidence": fusion_result.confidence,
-                "visual_confidence": fusion_result.visual_confidence,
-                "textual_confidence": fusion_result.textual_confidence,
-                "knowledge_confidence": fusion_result.knowledge_confidence,
-                "description": fusion_result.description,
-                "symptoms": fusion_result.symptoms,
-                "causes": fusion_result.causes,
-                "recommendations": fusion_result.recommendations,
-                "treatment": fusion_result.treatment,
-                "medicines": fusion_result.medicines,
-                "severity": fusion_result.severity,
-                "knowledge_references": fusion_result.knowledge_references,
-                "roi_boxes": fusion_result.roi_boxes,
-                "annotated_image": fusion_result.annotated_image,
-                "inference_time_ms": fusion_result.inference_time_ms,
-                "kad_former_used": fusion_result.kad_former_used
-            },
-            "features": {
-                "thinking_mode": enable_thinking,
-                "graph_rag": use_graph_rag
-            },
-            "performance": {
-                "inference_time_ms": round(inference_time * 1000, 2),
-                "cache_hit": False
-            }
-        }
-
-        if enable_thinking and fusion_result.reasoning_chain:
-            result["reasoning_chain"] = fusion_result.reasoning_chain
-
-        diagnosis_id = None
-        if user_id and db:
-            try:
-                image_id = None
-                if image_url:
-                    try:
-                        from app.models.image import ImageMetadata
-                        import hashlib
-                        image_path = image_url
-                        if image_url.startswith("/uploads/"):
-                            image_path = os.path.join("uploads", image_url.replace("/uploads/", ""))
-                        if image_url.startswith("/api/v1/upload/"):
-                            image_path = image_url.replace("/api/v1/upload/", "uploads/")
-
-                        if os.path.exists(image_path):
-                            with open(image_path, 'rb') as f:
-                                file_data = f.read()
-                                hash_value = hashlib.sha256(file_data).hexdigest()
-                                file_size = len(file_data)
-
-                            existing_meta = db.query(ImageMetadata).filter(ImageMetadata.hash_value == hash_value).first()
-                            if existing_meta:
-                                image_id = existing_meta.id
-                            else:
-                                image_meta = ImageMetadata(
-                                    user_id=user_id,
-                                    hash_value=hash_value,
-                                    original_filename=os.path.basename(image_path),
-                                    file_path=os.path.abspath(image_path),
-                                    file_size=file_size,
-                                    mime_type="image/jpeg",
-                                    storage_provider="local"
-                                )
-                                db.add(image_meta)
-                                db.flush()
-                                image_id = image_meta.id
-                    except Exception as e:
-                        logger.warning(f"创建图像元数据失败：{e}")
-
-                disease_id = None
-                if fusion_result.disease_name:
-                    try:
-                        from app.models.disease import Disease
-                        disease_obj = db.query(Disease).filter(Disease.name == fusion_result.disease_name).first()
-                        if disease_obj:
-                            disease_id = disease_obj.id
-                    except Exception:
-                        pass
-
-                diagnosis_record = Diagnosis(
-                    user_id=user_id,
-                    image_id=image_id,
-                    image_url=image_url or "",
-                    symptoms=symptoms or "",
-                    disease_name=fusion_result.disease_name,
-                    disease_id=disease_id,
-                    confidence=fusion_result.confidence,
-                    severity=None,
-                    description=fusion_result.description,
-                    recommendations=json.dumps(fusion_result.recommendations) if fusion_result.recommendations else "",
-                    growth_stage=growth_stage or None,
-                    weather_data=json.dumps({"weather": weather}) if weather else None,
-                    status="completed"
-                )
-                db.add(diagnosis_record)
-                db.commit()
-                db.refresh(diagnosis_record)
-                diagnosis_id = diagnosis_record.id
-                logger.info(f"诊断记录已保存: id={diagnosis_id}, disease={fusion_result.disease_name}")
-                try:
-                    from app.services.diagnosis_logger import log_diagnosis
-                    log_diagnosis(
-                        request_id=f"diag_{diagnosis_id}",
-                        image_hash=None,
-                        symptoms=symptoms or "",
-                        disease_detected=fusion_result.disease_name or "未知",
-                        confidence=float(fusion_result.confidence) if fusion_result.confidence else 0.0,
-                        processing_time_ms=round(inference_time * 1000, 2),
-                        success=True,
-                        cache_hit=False,
-                        features={"thinking_mode": enable_thinking, "graph_rag": use_graph_rag}
-                    )
-                except Exception as log_err:
-                    logger.warning(f"记录诊断日志失败：{log_err}")
-
-                try:
-                    from app.api.v1.metrics import record_inference
-                    record_inference(latency_ms=round(inference_time * 1000, 2), success=True)
-                except Exception as metrics_err:
-                    logger.warning(f"记录推理指标失败：{metrics_err}")
-
-                try:
-                    confidence_record = DiagnosisConfidence(
-                        diagnosis_id=diagnosis_id,
-                        disease_name=fusion_result.disease_name,
-                        confidence=fusion_result.confidence,
-                        rank=0
-                    )
-                    db.add(confidence_record)
-                    db.commit()
-                except Exception as e:
-                    logger.warning(f"保存置信度记录失败: {e}")
-
-                result["diagnosis_id"] = diagnosis_id
-            except Exception as e:
-                logger.error(f"保存诊断记录失败: {e}", exc_info=True)
-                db.rollback()
-
-        yield ProgressEvent(
-            event="complete",
-            stage="complete",
-            progress=100,
-            message="融合诊断完成",
-            data=result
-        ).to_sse()
-
-    except GeneratorExit:
-        logger.info("SSE 客户端断开连接，清理资源")
-        if db:
-            try:
-                db.rollback()
-            except Exception:
-                pass
-        raise
-    except Exception as e:
-        logger.error(f"SSE 流式诊断失败: {e}", exc_info=True)
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id="error",
-                image_hash=None,
-                symptoms="",
-                disease_detected="",
-                confidence=0.0,
-                processing_time_ms=0.0,
-                success=False,
-                error=str(e)[:500]
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=0.0, success=False)
-        except Exception:
-            pass
-
-        yield ProgressEvent(
-            event="error",
-            stage="error",
-            progress=0,
-            message="诊断过程中发生错误，请稍后重试",
-            data={"error_type": "internal_error"}
-        ).to_sse()
-
-
-@router.post("/fusion/stream")
-async def diagnose_fusion_stream(
-    image: Optional[UploadFile] = File(None, description="病害图像文件（可选）"),
-    symptoms: str = Form("", description="症状描述文本（可选）"),
-    weather: str = Form("", description="天气条件（如：晴朗、阴雨、高温高湿）"),
-    growth_stage: str = Form("", description="生长阶段（如：苗期、拔节期、抽穗期、灌浆期）"),
-    affected_part: str = Form("", description="发病部位（如：叶片、茎秆、穗部、根部）"),
-    enable_thinking: bool = Form(True, description="是否启用 Thinking 推理链模式"),
-    use_graph_rag: bool = Form(True, description="是否使用 GraphRAG 知识增强"),
-    current_user: User = Depends(get_current_user)
-) -> StreamingResponse:
-    """
-    SSE 流式融合诊断 API (POST 方法)
-
-    通过 Server-Sent Events 实时推送推理进度。
-
-    参数:
-        image: 上传的图像文件（可选）
-        symptoms: 症状描述文本（可选）
-        weather: 天气条件
-        growth_stage: 生长阶段
-        affected_part: 发病部位
-        enable_thinking: 是否启用 Thinking 推理链模式
-        use_graph_rag: 是否使用 GraphRAG 知识增强
-
-    返回:
-        StreamingResponse: SSE 流式响应
-    """
-    return StreamingResponse(
-        _generate_diagnosis_stream(
-            image=image,
-            symptoms=symptoms,
-            weather=weather,
-            growth_stage=growth_stage,
-            affected_part=affected_part,
-            enable_thinking=enable_thinking,
-            use_graph_rag=use_graph_rag
-        ),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
-    )
-
-
-async def _generate_diagnosis_stream(
-    image: Optional[UploadFile],
-    symptoms: str,
-    weather: str,
-    growth_stage: str,
-    affected_part: str,
-    enable_thinking: bool,
-    use_graph_rag: bool
-) -> AsyncGenerator[str, None]:
-    """
-    生成诊断进度的 SSE 流（从上传文件）
-
-    参数:
-        image: 上传的图像文件
-        symptoms: 症状描述
-        weather: 天气条件
-        growth_stage: 生长阶段
-        affected_part: 发病部位
-        enable_thinking: 是否启用 Thinking 模式
-        use_graph_rag: 是否使用 GraphRAG
-
-    生成:
-        str: SSE 格式的事件字符串
-    """
-    start_time = time.time()
-
-    yield ProgressEvent(
-        event="start",
-        stage="init",
-        progress=0,
-        message="开始多模态融合诊断..."
-    ).to_sse()
-
-    try:
-        ensure_ai_service_ready()
-
-        pil_image = None
-        image_bytes = None
-
-        if image:
+        elif image:
             try:
                 image_bytes = await image.read()
                 is_valid, error_msg = validate_image(image_bytes, image.filename or "unknown")
@@ -946,9 +675,23 @@ async def _generate_diagnosis_stream(
                 stage="init",
                 progress=0,
                 message="请至少提供图像或症状描述中的一种输入",
-                data={"error_type": "validation_error"}
+                data={"error_type": "validation_error", "error_code": "DIAG_004"}
             ).to_sse()
             return
+
+        current_time = time.time()
+        if current_time - last_heartbeat > heartbeat_interval:
+            yield f"event: heartbeat\ndata: {json.dumps({'timestamp': current_time})}\n\n"
+            last_heartbeat = current_time
+
+        try:
+            from app.services.qwen_service import get_qwen_service
+            qwen_svc = get_qwen_service()
+            if qwen_svc.is_lazy_load and not qwen_svc.is_loaded:
+                logger.info("融合诊断：检测到懒加载模式，确保模型已加载...")
+                await qwen_svc.ensure_loaded()
+        except Exception as e:
+            logger.warning(f"懒加载预处理失败，继续执行: {e}")
 
         from app.services.fusion_service import get_fusion_service
 
@@ -958,7 +701,7 @@ async def _generate_diagnosis_stream(
             yield ProgressEvent(
                 event="progress",
                 stage="init",
-                progress=5,
+                progress=10,
                 message="正在初始化融合服务..."
             ).to_sse()
             await asyncio.to_thread(fusion_service.initialize)
@@ -1057,6 +800,12 @@ async def _generate_diagnosis_stream(
             message="正在提取文本语义特征 (Qwen3-VL)..."
         ).to_sse()
 
+        yield LogEvent(
+            level="info",
+            message="Qwen3-VL 推理中，Thinking 模式可能需要 2-5 分钟，请耐心等待...",
+            stage="textual"
+        ).to_sse()
+
         textual_result = None
         try:
             textual_result = await asyncio.to_thread(
@@ -1110,6 +859,7 @@ async def _generate_diagnosis_stream(
         ).to_sse()
 
         inference_time = time.time() - start_time
+        inference_time_ms = round(inference_time * 1000, 2)
 
         result = {
             "success": True,
@@ -1128,16 +878,19 @@ async def _generate_diagnosis_stream(
                 "medicines": fusion_result.medicines,
                 "severity": fusion_result.severity,
                 "knowledge_references": fusion_result.knowledge_references,
-                "kad_former_used": fusion_result.kad_former_used,
-                "inference_time_ms": fusion_result.inference_time_ms
+                "roi_boxes": fusion_result.roi_boxes,
+                "annotated_image": fusion_result.annotated_image,
+                "inference_time_ms": fusion_result.inference_time_ms,
+                "kad_former_used": fusion_result.kad_former_used
             },
             "features": {
                 "visual_detection": visual_result is not None,
                 "textual_analysis": textual_result is not None,
-                "graph_rag_enabled": use_graph_rag
+                "thinking_mode": enable_thinking,
+                "graph_rag": use_graph_rag
             },
             "performance": {
-                "inference_time_ms": round(inference_time * 1000, 2),
+                "inference_time_ms": inference_time_ms,
                 "cache_hit": False,
                 "thinking_mode_enabled": enable_thinking,
                 "graph_rag_enabled": use_graph_rag
@@ -1147,66 +900,52 @@ async def _generate_diagnosis_stream(
         if enable_thinking and fusion_result.reasoning_chain:
             result["reasoning_chain"] = fusion_result.reasoning_chain
 
-        if fusion_result.roi_boxes:
-            result["diagnosis"]["roi_boxes"] = fusion_result.roi_boxes
+        diagnosis_id = _log_and_record_diagnosis(
+            db=db,
+            user_id=user_id,
+            result=result,
+            diagnosis_type="multimodal",
+            logger=logger,
+            image_url=image_url,
+            symptoms=symptoms,
+            inference_time_ms=inference_time_ms,
+            features={"thinking_mode": enable_thinking, "graph_rag": use_graph_rag},
+            growth_stage=growth_stage,
+            weather=weather,
+        )
 
-        if fusion_result.annotated_image:
-            result["diagnosis"]["annotated_image"] = fusion_result.annotated_image
-
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id=f"ai_{int(time.time()*1000)}",
-                image_hash=None,
-                symptoms=symptoms or "",
-                disease_detected=fusion_result.disease_name or "未知",
-                confidence=float(fusion_result.confidence) if fusion_result.confidence else 0.0,
-                processing_time_ms=round(inference_time * 1000, 2),
-                success=True
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(inference_time * 1000, 2), success=True)
-        except Exception:
-            pass
+        if diagnosis_id:
+            result["diagnosis_id"] = diagnosis_id
 
         yield ProgressEvent(
             event="complete",
             stage="complete",
             progress=100,
-            message="多模态融合诊断完成",
+            message="融合诊断完成",
             data=result
         ).to_sse()
 
     except GeneratorExit:
         logger.info("SSE 客户端断开连接，清理资源")
+        if db:
+            try:
+                db.rollback()
+            except Exception:
+                pass
         raise
+
     except Exception as e:
         logger.error(f"SSE 流式诊断失败: {e}", exc_info=True)
         inference_time = time.time() - start_time
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id="error",
-                image_hash=None,
-                symptoms="",
-                disease_detected="",
-                confidence=0.0,
-                processing_time_ms=round(inference_time * 1000, 2),
-                success=False,
-                error=str(e)[:500]
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(inference_time * 1000, 2), success=False)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": False},
+            diagnosis_type="multimodal",
+            logger=logger,
+            inference_time_ms=round(inference_time * 1000, 2),
+            error=str(e),
+        )
 
         yield ProgressEvent(
             event="error",
@@ -1216,6 +955,130 @@ async def _generate_diagnosis_stream(
             data={"error_type": "internal_error"}
         ).to_sse()
 
+
+
+async def _generate_diagnosis_stream_from_url(
+    image_url: Optional[str],
+    symptoms: str,
+    weather: str,
+    growth_stage: str,
+    affected_part: str,
+    enable_thinking: bool,
+    use_graph_rag: bool,
+    user_id: Optional[int] = None,
+    db: Session = None
+) -> AsyncGenerator[str, None]:
+    """
+    从 URL 加载图像并生成诊断进度的 SSE 流
+
+    参数:
+        image_url: 已上传图像的 URL
+        symptoms: 症状描述
+        weather: 天气条件
+        growth_stage: 生长阶段
+        affected_part: 发病部位
+        enable_thinking: 是否启用 Thinking 模式
+        use_graph_rag: 是否使用 GraphRAG
+        user_id: 用户 ID（可选）
+        db: 数据库会话（可选）
+
+    生成:
+        str: SSE 格式的事件字符串
+    """
+    async for event in _generate_diagnosis_stream_base(
+        symptoms=symptoms,
+        weather=weather,
+        growth_stage=growth_stage,
+        affected_part=affected_part,
+        enable_thinking=enable_thinking,
+        use_graph_rag=use_graph_rag,
+        image_url=image_url,
+        user_id=user_id,
+        db=db
+    ):
+        yield event
+
+@router.post("/fusion/stream")
+async def diagnose_fusion_stream(
+    image: Optional[UploadFile] = File(None, description="病害图像文件（可选）"),
+    symptoms: str = Form("", description="症状描述文本（可选）"),
+    weather: str = Form("", description="天气条件（如：晴朗、阴雨、高温高湿）"),
+    growth_stage: str = Form("", description="生长阶段（如：苗期、拔节期、抽穗期、灌浆期）"),
+    affected_part: str = Form("", description="发病部位（如：叶片、茎秆、穗部、根部）"),
+    enable_thinking: bool = Form(True, description="是否启用 Thinking 推理链模式"),
+    use_graph_rag: bool = Form(True, description="是否使用 GraphRAG 知识增强"),
+    current_user: User = Depends(get_current_user)
+) -> StreamingResponse:
+    """
+    SSE 流式融合诊断 API (POST 方法)
+
+    通过 Server-Sent Events 实时推送推理进度。
+
+    参数:
+        image: 上传的图像文件（可选）
+        symptoms: 症状描述文本（可选）
+        weather: 天气条件
+        growth_stage: 生长阶段
+        affected_part: 发病部位
+        enable_thinking: 是否启用 Thinking 推理链模式
+        use_graph_rag: 是否使用 GraphRAG 知识增强
+
+    返回:
+        StreamingResponse: SSE 流式响应
+    """
+    return StreamingResponse(
+        _generate_diagnosis_stream(
+            image=image,
+            symptoms=symptoms,
+            weather=weather,
+            growth_stage=growth_stage,
+            affected_part=affected_part,
+            enable_thinking=enable_thinking,
+            use_graph_rag=use_graph_rag
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+async def _generate_diagnosis_stream(
+    image: Optional[UploadFile],
+    symptoms: str,
+    weather: str,
+    growth_stage: str,
+    affected_part: str,
+    enable_thinking: bool,
+    use_graph_rag: bool
+) -> AsyncGenerator[str, None]:
+    """
+    生成诊断进度的 SSE 流（从上传文件）
+
+    参数:
+        image: 上传的图像文件
+        symptoms: 症状描述
+        weather: 天气条件
+        growth_stage: 生长阶段
+        affected_part: 发病部位
+        enable_thinking: 是否启用 Thinking 模式
+        use_graph_rag: 是否使用 GraphRAG
+
+    生成:
+        str: SSE 格式的事件字符串
+    """
+    async for event in _generate_diagnosis_stream_base(
+        symptoms=symptoms,
+        weather=weather,
+        growth_stage=growth_stage,
+        affected_part=affected_part,
+        enable_thinking=enable_thinking,
+        use_graph_rag=use_graph_rag,
+        image=image
+    ):
+        yield event
 
 @router.post("/image")
 async def diagnose_image(
@@ -1273,49 +1136,27 @@ async def diagnose_image(
 
         if not result["success"]:
             elapsed = time.time() - start_time
-            try:
-                from app.services.diagnosis_logger import log_diagnosis
-                log_diagnosis(
-                    request_id=f"ai_{int(time.time()*1000)}",
-                    image_hash=None,
-                    symptoms="",
-                    disease_detected="",
-                    confidence=0.0,
-                    processing_time_ms=round(elapsed * 1000, 2),
-                    success=False,
-                    error=result.get("error", "检测失败")[:500]
-                )
-            except Exception:
-                pass
-
-            try:
-                from app.api.v1.metrics import record_inference
-                record_inference(latency_ms=round(elapsed * 1000, 2), success=False)
-            except Exception:
-                pass
+            _log_and_record_diagnosis(
+                db=None,
+                user_id=None,
+                result={"success": False},
+                diagnosis_type="image",
+                logger=logger,
+                inference_time_ms=round(elapsed * 1000, 2),
+                error=result.get("error", "检测失败")
+            )
 
             raise HTTPException(status_code=500, detail=result.get("error", "检测失败"))
 
         elapsed = time.time() - start_time
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id=f"ai_{int(time.time()*1000)}",
-                image_hash=None,
-                symptoms="",
-                disease_detected=result.get("diagnosis", {}).get("disease_name", "未知"),
-                confidence=float(result.get("diagnosis", {}).get("confidence", 0)),
-                processing_time_ms=round(elapsed * 1000, 2),
-                success=True
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(elapsed * 1000, 2), success=True)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": True, "diagnosis": result.get("diagnosis", {})},
+            diagnosis_type="image",
+            logger=logger,
+            inference_time_ms=round(elapsed * 1000, 2)
+        )
 
         return {
             "success": True,
@@ -1328,26 +1169,15 @@ async def diagnose_image(
     except Exception as e:
         logger.error(f"图像诊断失败：{e}", exc_info=True)
         elapsed = time.time() - start_time
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id="error",
-                image_hash=None,
-                symptoms="",
-                disease_detected="",
-                confidence=0.0,
-                processing_time_ms=round(elapsed * 1000, 2),
-                success=False,
-                error=str(e)[:500]
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(elapsed * 1000, 2), success=False)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": False},
+            diagnosis_type="image",
+            logger=logger,
+            inference_time_ms=round(elapsed * 1000, 2),
+            error=str(e)
+        )
 
         raise HTTPException(status_code=500, detail="诊断失败，请稍后重试")
 
@@ -1401,26 +1231,16 @@ async def diagnose_multimodal(
             except Exception as e:
                 logger.error(f"模型加载失败: {e}")
                 elapsed = time.time() - start_time
-                try:
-                    from app.services.diagnosis_logger import log_diagnosis
-                    log_diagnosis(
-                        request_id="error",
-                        image_hash=None,
-                        symptoms=symptoms or "",
-                        disease_detected="",
-                        confidence=0.0,
-                        processing_time_ms=round(elapsed * 1000, 2),
-                        success=False,
-                        error=f"模型加载失败：{str(e)}"[:500]
-                    )
-                except Exception:
-                    pass
-
-                try:
-                    from app.api.v1.metrics import record_inference
-                    record_inference(latency_ms=round(elapsed * 1000, 2), success=False)
-                except Exception:
-                    pass
+                _log_and_record_diagnosis(
+                    db=None,
+                    user_id=None,
+                    result={"success": False},
+                    diagnosis_type="multimodal",
+                    logger=logger,
+                    symptoms=symptoms,
+                    inference_time_ms=round(elapsed * 1000, 2),
+                    error=f"模型加载失败：{str(e)}"
+                )
 
                 return {
                     "success": False,
@@ -1440,26 +1260,16 @@ async def diagnose_multimodal(
 
         if cache_hit:
             inference_time = time.time() - start_time
-            try:
-                from app.services.diagnosis_logger import log_diagnosis
-                log_diagnosis(
-                    request_id=f"ai_cache_{int(time.time()*1000)}",
-                    image_hash=None,
-                    symptoms=symptoms or "",
-                    disease_detected=cache_hit["result"].get("disease_name", "未知"),
-                    confidence=float(cache_hit["result"].get("confidence", 0)),
-                    processing_time_ms=round(inference_time * 1000, 2),
-                    success=True,
-                    cache_hit=True
-                )
-            except Exception:
-                pass
-
-            try:
-                from app.api.v1.metrics import record_inference
-                record_inference(latency_ms=round(inference_time * 1000, 2), success=True)
-            except Exception:
-                pass
+            _log_and_record_diagnosis(
+                db=None,
+                user_id=None,
+                result={"success": True, "diagnosis": cache_hit["result"]},
+                diagnosis_type="multimodal",
+                logger=logger,
+                symptoms=symptoms,
+                inference_time_ms=round(inference_time * 1000, 2),
+                cache_hit=True
+            )
 
             response = {
                 "success": True,
@@ -1511,26 +1321,16 @@ async def diagnose_multimodal(
             if not result["success"]:
                 logger.error(f"诊断失败：{result.get('error')}")
                 elapsed = time.time() - start_time
-                try:
-                    from app.services.diagnosis_logger import log_diagnosis
-                    log_diagnosis(
-                        request_id=f"ai_{int(time.time()*1000)}",
-                        image_hash=None,
-                        symptoms=symptoms or "",
-                        disease_detected="",
-                        confidence=0.0,
-                        processing_time_ms=round(elapsed * 1000, 2),
-                        success=False,
-                        error=result.get("error", "诊断服务暂时不可用")[:500]
-                    )
-                except Exception:
-                    pass
-
-                try:
-                    from app.api.v1.metrics import record_inference
-                    record_inference(latency_ms=round(elapsed * 1000, 2), success=False)
-                except Exception:
-                    pass
+                _log_and_record_diagnosis(
+                    db=None,
+                    user_id=None,
+                    result={"success": False},
+                    diagnosis_type="multimodal",
+                    logger=logger,
+                    symptoms=symptoms,
+                    inference_time_ms=round(elapsed * 1000, 2),
+                    error=result.get("error", "诊断服务暂时不可用")
+                )
 
                 return {
                     "success": False,
@@ -1541,26 +1341,16 @@ async def diagnose_multimodal(
         except Exception as e:
             logger.error(f"诊断过程异常：{e}")
             elapsed = time.time() - start_time
-            try:
-                from app.services.diagnosis_logger import log_diagnosis
-                log_diagnosis(
-                    request_id=f"ai_{int(time.time()*1000)}",
-                    image_hash=None,
-                    symptoms=symptoms or "",
-                    disease_detected="",
-                    confidence=0.0,
-                    processing_time_ms=round(elapsed * 1000, 2),
-                    success=False,
-                    error=f"诊断异常：{str(e)}"[:500]
-                )
-            except Exception:
-                pass
-
-            try:
-                from app.api.v1.metrics import record_inference
-                record_inference(latency_ms=round(elapsed * 1000, 2), success=False)
-            except Exception:
-                pass
+            _log_and_record_diagnosis(
+                db=None,
+                user_id=None,
+                result={"success": False},
+                diagnosis_type="multimodal",
+                logger=logger,
+                symptoms=symptoms,
+                inference_time_ms=round(elapsed * 1000, 2),
+                error=f"诊断异常：{str(e)}"
+            )
 
             return {
                 "success": False,
@@ -1599,51 +1389,30 @@ async def diagnose_multimodal(
 
         response["message"] = "多模态诊断成功"
 
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id=f"ai_{int(time.time()*1000)}",
-                image_hash=None,
-                symptoms=symptoms or "",
-                disease_detected=result.get("diagnosis", {}).get("disease_name", "未知"),
-                confidence=float(result.get("diagnosis", {}).get("confidence", 0)),
-                processing_time_ms=round(inference_time * 1000, 2),
-                success=True
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(inference_time * 1000, 2), success=True)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": True, "diagnosis": result.get("diagnosis", {})},
+            diagnosis_type="multimodal",
+            logger=logger,
+            symptoms=symptoms,
+            inference_time_ms=round(inference_time * 1000, 2)
+        )
 
         return response
 
     except Exception as e:
         logger.error(f"多模态诊断失败：{e}", exc_info=True)
         inference_time = time.time() - start_time
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id="error",
-                image_hash=None,
-                symptoms="",
-                disease_detected="",
-                confidence=0.0,
-                processing_time_ms=round(inference_time * 1000, 2),
-                success=False,
-                error=str(e)[:500]
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(inference_time * 1000, 2), success=False)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": False},
+            diagnosis_type="multimodal",
+            logger=logger,
+            inference_time_ms=round(inference_time * 1000, 2),
+            error=str(e)
+        )
 
         raise HTTPException(
             status_code=500,
@@ -1713,26 +1482,16 @@ async def diagnose_text(
             except Exception as e:
                 logger.error(f"模型加载失败: {e}")
                 elapsed = time.time() - start_time
-                try:
-                    from app.services.diagnosis_logger import log_diagnosis
-                    log_diagnosis(
-                        request_id="error",
-                        image_hash=None,
-                        symptoms=symptoms or "",
-                        disease_detected="",
-                        confidence=0.0,
-                        processing_time_ms=round(elapsed * 1000, 2),
-                        success=False,
-                        error=f"模型加载失败：{str(e)}"[:500]
-                    )
-                except Exception:
-                    pass
-
-                try:
-                    from app.api.v1.metrics import record_inference
-                    record_inference(latency_ms=round(elapsed * 1000, 2), success=False)
-                except Exception:
-                    pass
+                _log_and_record_diagnosis(
+                    db=None,
+                    user_id=None,
+                    result={"success": False},
+                    diagnosis_type="text",
+                    logger=logger,
+                    symptoms=symptoms,
+                    inference_time_ms=round(elapsed * 1000, 2),
+                    error=f"模型加载失败：{str(e)}"
+                )
 
                 raise HTTPException(
                     status_code=503,
@@ -1747,49 +1506,29 @@ async def diagnose_text(
 
         if not result["success"]:
             elapsed = time.time() - start_time
-            try:
-                from app.services.diagnosis_logger import log_diagnosis
-                log_diagnosis(
-                    request_id=f"ai_{int(time.time()*1000)}",
-                    image_hash=None,
-                    symptoms=symptoms or "",
-                    disease_detected="",
-                    confidence=0.0,
-                    processing_time_ms=round(elapsed * 1000, 2),
-                    success=False,
-                    error=result.get("error", "诊断失败")[:500]
-                )
-            except Exception:
-                pass
-
-            try:
-                from app.api.v1.metrics import record_inference
-                record_inference(latency_ms=round(elapsed * 1000, 2), success=False)
-            except Exception:
-                pass
+            _log_and_record_diagnosis(
+                db=None,
+                user_id=None,
+                result={"success": False},
+                diagnosis_type="text",
+                logger=logger,
+                symptoms=symptoms,
+                inference_time_ms=round(elapsed * 1000, 2),
+                error=result.get("error", "诊断失败")
+            )
 
             raise HTTPException(status_code=500, detail=result.get("error", "诊断失败"))
 
         elapsed = time.time() - start_time
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id=f"ai_{int(time.time()*1000)}",
-                image_hash=None,
-                symptoms=symptoms or "",
-                disease_detected=result.get("diagnosis", {}).get("disease_name", "未知"),
-                confidence=float(result.get("diagnosis", {}).get("confidence", 0)),
-                processing_time_ms=round(elapsed * 1000, 2),
-                success=True
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(elapsed * 1000, 2), success=True)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": True, "diagnosis": result.get("diagnosis", {})},
+            diagnosis_type="text",
+            logger=logger,
+            symptoms=symptoms,
+            inference_time_ms=round(elapsed * 1000, 2)
+        )
 
         return {
             "success": True,
@@ -1803,26 +1542,15 @@ async def diagnose_text(
     except Exception as e:
         logger.error(f"文本诊断失败：{e}", exc_info=True)
         elapsed = time.time() - start_time
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id="error",
-                image_hash=None,
-                symptoms="",
-                disease_detected="",
-                confidence=0.0,
-                processing_time_ms=round(elapsed * 1000, 2),
-                success=False,
-                error=str(e)[:500]
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(elapsed * 1000, 2), success=False)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": False},
+            diagnosis_type="text",
+            logger=logger,
+            inference_time_ms=round(elapsed * 1000, 2),
+            error=str(e)
+        )
 
         raise HTTPException(status_code=500, detail="诊断失败，请稍后重试")
 
@@ -2093,25 +1821,17 @@ async def diagnose_batch(
 
         total_time = time.time() - start_time
 
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id=f"ai_batch_{int(time.time()*1000)}",
-                image_hash=None,
-                symptoms=symptoms or "",
-                disease_detected=f"批量诊断({success_count}/{len(images)}成功)",
-                confidence=0.0,
-                processing_time_ms=round(total_time * 1000, 2),
-                success=True
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(total_time * 1000, 2), success=True)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": True},
+            diagnosis_type="batch",
+            logger=logger,
+            symptoms=symptoms,
+            inference_time_ms=round(total_time * 1000, 2),
+            request_id_prefix="ai_batch",
+            disease_name_override=f"批量诊断({success_count}/{len(images)}成功)"
+        )
 
         return {
             "success": True,
@@ -2134,26 +1854,15 @@ async def diagnose_batch(
     except Exception as e:
         logger.error(f"批量诊断失败：{e}", exc_info=True)
         total_time = time.time() - start_time
-        try:
-            from app.services.diagnosis_logger import log_diagnosis
-            log_diagnosis(
-                request_id="error",
-                image_hash=None,
-                symptoms="",
-                disease_detected="",
-                confidence=0.0,
-                processing_time_ms=round(total_time * 1000, 2),
-                success=False,
-                error=str(e)[:500]
-            )
-        except Exception:
-            pass
-
-        try:
-            from app.api.v1.metrics import record_inference
-            record_inference(latency_ms=round(total_time * 1000, 2), success=False)
-        except Exception:
-            pass
+        _log_and_record_diagnosis(
+            db=None,
+            user_id=None,
+            result={"success": False},
+            diagnosis_type="batch",
+            logger=logger,
+            inference_time_ms=round(total_time * 1000, 2),
+            error=str(e)
+        )
 
         raise HTTPException(
             status_code=500,
