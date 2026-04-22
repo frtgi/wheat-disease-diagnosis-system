@@ -5,7 +5,7 @@
 import secrets
 import uuid
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
@@ -208,7 +208,7 @@ def create_password_reset_token(db: Session, email: str) -> Optional[str]:
         return None
 
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(hours=PASSWORD_RESET_EXPIRE_HOURS)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=PASSWORD_RESET_EXPIRE_HOURS)
 
     reset_token = PasswordResetToken(
         user_id=user.id,
@@ -239,7 +239,7 @@ def verify_password_reset_token(db: Session, token: str) -> Optional[User]:
         and_(
             PasswordResetToken.token == _hash_token(token),
             PasswordResetToken.used.is_(False),
-            PasswordResetToken.expires_at > datetime.utcnow()
+            PasswordResetToken.expires_at > datetime.now(timezone.utc)
         )
     ).first()
 
@@ -287,7 +287,7 @@ def create_refresh_token(db: Session, user_id: int) -> str:
         刷新令牌
     """
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
     refresh_token = RefreshToken(
         user_id=user_id,
@@ -317,7 +317,7 @@ def verify_refresh_token(db: Session, token: str) -> Optional[User]:
         and_(
             RefreshToken.token == token_hash,
             RefreshToken.revoked.is_(False),
-            RefreshToken.expires_at > datetime.utcnow()
+            RefreshToken.expires_at > datetime.now(timezone.utc)
         )
     ).first()
 
@@ -326,7 +326,7 @@ def verify_refresh_token(db: Session, token: str) -> Optional[User]:
             and_(
                 RefreshToken.token == token,
                 RefreshToken.revoked.is_(False),
-                RefreshToken.expires_at > datetime.utcnow()
+                RefreshToken.expires_at > datetime.now(timezone.utc)
             )
         ).first()
 
@@ -406,7 +406,7 @@ def create_user_session(
         会话令牌
     """
     session_token = str(uuid.uuid4())
-    expires_at = datetime.utcnow() + timedelta(days=SESSION_EXPIRE_DAYS)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=SESSION_EXPIRE_DAYS)
 
     session = UserSession(
         user_id=user_id,
@@ -437,7 +437,7 @@ def get_user_sessions(db: Session, user_id: int) -> List[UserSession]:
         and_(
             UserSession.user_id == user_id,
             UserSession.is_active.is_(True),
-            UserSession.expires_at > datetime.utcnow()
+            UserSession.expires_at > datetime.now(timezone.utc)
         )
     ).all()
 
@@ -504,7 +504,7 @@ def record_login_attempt(db: Session, email: str, success: bool, ip_address: Opt
         username=email,
         success=success,
         ip_address=ip_address or "unknown",
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
     db.add(attempt)
     db.commit()
@@ -521,7 +521,7 @@ def check_login_attempts(db: Session, email: str) -> int:
     返回:
         最近锁定时间窗口内的失败次数
     """
-    cutoff_time = datetime.utcnow() - timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+    cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=LOCKOUT_DURATION_MINUTES)
 
     failed_count = db.query(LoginAttempt).filter(
         and_(

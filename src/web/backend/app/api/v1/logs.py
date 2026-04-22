@@ -1,4 +1,4 @@
-"""
+﻿"""
 诊断日志分析 API 端点
 
 提供日志查询和统计分析（需要管理员权限）：
@@ -15,7 +15,7 @@
 import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Request, Depends
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 
 from app.core.security import require_admin
@@ -45,7 +45,7 @@ def _build_stats_from_db(duration_hours: int) -> dict:
     """从数据库构建诊断统计信息"""
     db = SyncSessionLocal()
     try:
-        cutoff = datetime.utcnow() - timedelta(hours=duration_hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=duration_hours)
         query = db.query(Diagnosis).filter(
             Diagnosis.created_at >= cutoff,
             Diagnosis.deleted_at.is_(None)
@@ -99,7 +99,7 @@ def _build_distribution_from_db(duration_hours: int) -> list:
     """从数据库构建病害分布"""
     db = SyncSessionLocal()
     try:
-        cutoff = datetime.utcnow() - timedelta(hours=duration_hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=duration_hours)
         disease_counts = (
             db.query(Diagnosis.disease_name, func.count(Diagnosis.id))
             .filter(
@@ -272,7 +272,7 @@ async def get_success_rate_trend(
         if not trend:
             db = SyncSessionLocal()
             try:
-                cutoff = datetime.utcnow() - timedelta(hours=duration_hours)
+                cutoff = datetime.now(timezone.utc) - timedelta(hours=duration_hours)
                 records = (
                     db.query(Diagnosis.created_at, Diagnosis.status)
                     .filter(Diagnosis.created_at >= cutoff, Diagnosis.deleted_at.is_(None))

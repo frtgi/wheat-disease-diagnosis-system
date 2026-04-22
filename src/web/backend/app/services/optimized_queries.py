@@ -5,7 +5,7 @@
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from ..models.user import User
 from ..models.diagnosis import Diagnosis
@@ -180,7 +180,7 @@ class OptimizedQueryService:
         Returns:
             诊断记录列表
         """
-        since = datetime.utcnow() - timedelta(hours=hours)
+        since = datetime.now(timezone.utc) - timedelta(hours=hours)
 
         return self.db.query(Diagnosis).options(
             joinedload(Diagnosis.user),
