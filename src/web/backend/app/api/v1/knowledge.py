@@ -297,7 +297,7 @@ def get_knowledge_graph(
                     rel_keys.add(rel_key)
                     relations.append({"from": src_id, "to": tgt_id, "type": triple.relation.upper()})
 
-        diseases = db.query(Disease).filter(Disease.is_active is True)
+        diseases = db.query(Disease).filter(Disease.is_active.is_(True))
         if disease_id:
             diseases = diseases.filter(Disease.id == disease_id)
         diseases = diseases.limit(20).all()
