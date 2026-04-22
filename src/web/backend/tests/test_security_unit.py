@@ -3,7 +3,7 @@
 覆盖 security.py 中的核心函数：密码验证、哈希、Token 生成/验证、黑名单功能
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, AsyncMock, MagicMock
 import bcrypt
 
@@ -182,7 +182,7 @@ class TestCreateAccessToken:
         payload = decode_access_token(token)
         assert payload is not None
         exp_timestamp = payload["exp"]
-        time_diff = datetime.utcfromtimestamp(exp_timestamp) - datetime.utcnow()
+        time_diff = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc) - datetime.now(timezone.utc)
         assert abs(time_diff.total_seconds() - 300) < 10
 
     def test_token_with_multiple_fields(self):
@@ -242,7 +242,7 @@ class TestCreateRefreshToken:
         assert payload is not None
         assert payload["type"] == "refresh"
         exp_timestamp = payload["exp"]
-        time_diff = datetime.utcfromtimestamp(exp_timestamp) - datetime.utcnow()
+        time_diff = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc) - datetime.now(timezone.utc)
         assert abs(time_diff.total_seconds() - 86400) < 10
 
     def test_refresh_token_default_expiry_days(self):
@@ -254,7 +254,7 @@ class TestCreateRefreshToken:
         token = create_refresh_token(data={"sub": "test"})
         payload = decode_access_token(token)
         exp_timestamp = payload["exp"]
-        time_diff = datetime.utcfromtimestamp(exp_timestamp) - datetime.utcnow()
+        time_diff = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc) - datetime.now(timezone.utc)
         expected_seconds = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
         assert abs(time_diff.total_seconds() - expected_seconds) < 10
 
