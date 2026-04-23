@@ -1,0 +1,19 @@
+{
+  "tool": "generate_bar_chart",
+  "args": {
+    "data": [
+      { "name": "YOLO推理延迟", "value": 225, "unit": "ms" },
+      { "name": "SSE首事件延迟", "value": 0.01, "unit": "ms" },
+      { "name": "完整诊断延迟", "value": 185.8, "unit": "ms" },
+      { "name": "Qwen显存占用", "value": 2.6, "unit": "GB" },
+      { "name": "知识覆盖率", "value": 100, "unit": "%" }
+    ],
+    "title": "系统性能指标",
+    "theme": "light",
+    "style": {
+      "color": "#4CAF50",
+      "fontSize": 14,
+      "barWidth": 40
+    }
+  }
+}
