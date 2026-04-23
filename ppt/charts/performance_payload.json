@@ -2,45 +2,18 @@
   "tool": "generate_bar_chart",
   "args": {
     "data": [
-      {
-        "name": "目标值",
-        "data": [
-          150,
-          500,
-          40000,
-          4,
-          95
-        ]
-      },
-      {
-        "name": "实测值",
-        "data": [
-          225,
-          0.01,
-          185.8,
-          2.6,
-          100
-        ]
-      }
+      { "name": "YOLO推理延迟", "value": 225, "unit": "ms" },
+      { "name": "SSE首事件延迟", "value": 0.01, "unit": "ms" },
+      { "name": "完整诊断延迟", "value": 185.8, "unit": "ms" },
+      { "name": "Qwen显存占用", "value": 2.6, "unit": "GB" },
+      { "name": "知识覆盖率", "value": 100, "unit": "%" }
     ],
-    "xAxis": [
-      "YOLO 推理延迟",
-      "SSE 首事件延迟",
-      "完整诊断延迟",
-      "Qwen 显存占用",
-      "知识覆盖率"
-    ],
-    "yAxis": {
-      "title": "数值"
-    },
-    "title": "系统性能指标对比",
+    "title": "系统性能指标",
     "theme": "light",
     "style": {
-      "color": [
-        "#4caf50",
-        "#2196f3"
-      ],
-      "barWidth": "40%"
+      "color": "#4CAF50",
+      "fontSize": 14,
+      "barWidth": 40
     }
   }
 }

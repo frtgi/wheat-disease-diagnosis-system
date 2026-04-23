@@ -2,27 +2,29 @@
   "tool": "generate_pie_chart",
   "args": {
     "data": [
-      {
-        "name": "昆虫",
-        "value": 3
-      },
-      {
-        "name": "真菌",
-        "value": 13
-      },
-      {
-        "name": "正常",
-        "value": 1
-      }
+      { "name": "蚜虫", "value": 15 },
+      { "name": "螨虫", "value": 10 },
+      { "name": "茎蝇", "value": 5 },
+      { "name": "锈病", "value": 20 },
+      { "name": "茎锈病", "value": 12 },
+      { "name": "叶锈病", "value": 8 },
+      { "name": "条锈病", "value": 10 },
+      { "name": "黑粉病", "value": 5 },
+      { "name": "根腐病", "value": 8 },
+      { "name": "叶斑病", "value": 12 },
+      { "name": "小麦爆发病", "value": 5 },
+      { "name": "赤霉病", "value": 15 },
+      { "name": "壳针孢叶斑病", "value": 10 },
+      { "name": "斑点叶斑病", "value": 8 },
+      { "name": "褐斑病", "value": 12 },
+      { "name": "白粉病", "value": 15 },
+      { "name": "健康", "value": 30 }
     ],
-    "title": "病害类别分布",
+    "title": "病害分布情况",
     "theme": "light",
     "style": {
-      "color": [
-        "#ff9800",
-        "#f44336",
-        "#4caf50"
-      ]
+      "color": ["#4CAF50", "#8BC34A", "#CDDC39", "#FFEB3B", "#FFC107", "#FF9800", "#FF5722", "#795548", "#9C27B0", "#673AB7", "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4", "#009688", "#795548", "#E91E63"],
+      "fontSize": 12
     }
   }
 }
