@@ -1,0 +1,28 @@
+{
+  "tool": "generate_pie_chart",
+  "args": {
+    "data": [
+      {
+        "name": "昆虫",
+        "value": 3
+      },
+      {
+        "name": "真菌",
+        "value": 13
+      },
+      {
+        "name": "正常",
+        "value": 1
+      }
+    ],
+    "title": "病害类别分布",
+    "theme": "light",
+    "style": {
+      "color": [
+        "#ff9800",
+        "#f44336",
+        "#4caf50"
+      ]
+    }
+  }
+}
