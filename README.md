@@ -331,7 +331,7 @@ GPU_MEMORY_THRESHOLD = 0.9       # GPU 显存阈值
 
 ## 📞 联系方式
 
-- 项目主页: <https://github.com/your-repo/WheatAgent>
+- 项目主页: <https://github.com/frtgi/wheat-disease-diagnosis-system>
 - 问题反馈: [Issues](https://github.com/your-repo/WheatAgent/issues)
 - 邮箱: [2652218967@qq.com](mailto:2652218967@qq.com)
 
