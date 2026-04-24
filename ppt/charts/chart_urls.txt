@@ -1,5 +1,0 @@
-性能指标对比图: https://mdn.alipayobjects.com/one_clip/afts/img/EWjNSI8D4P4AAAAAQmAAAAgAoEACAQFr/original
-病害类别分布图: https://mdn.alipayobjects.com/one_clip/afts/img/j2aGTL93D-wAAAAAQnAAAAgAoEACAQFr/original
-https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20professional%20bar%20chart%20showing%20system%20performance%20metrics%20with%20green%20color%20scheme&image_size=landscape_16_9
-https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20professional%20bar%20chart%20showing%20system%20performance%20metrics%20with%20green%20color%20scheme&image_size=landscape_16_9
-https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20professional%20pie%20chart%20showing%20disease%20distribution%20with%20colorful%20segments%2C%20agricultural%20theme&image_size=landscape_16_9
